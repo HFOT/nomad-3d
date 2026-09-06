@@ -1,0 +1,14 @@
+import {mkdir,copyFile,cp,readFile,writeFile} from 'node:fs/promises';
+import path from 'node:path';
+const root=import.meta.dirname;
+const dist=path.join(root,'dist');
+await mkdir(dist,{recursive:true});
+for(const file of ['viewer.js','model.js','style.css','concept.png','NOMAD-animated.glb'])await copyFile(path.join(root,file),path.join(dist,file));
+const html=(await readFile(path.join(root,'index.html'),'utf8')).replaceAll('./node_modules/three/','./vendor/three/');
+await writeFile(path.join(dist,'index.html'),html);
+await mkdir(path.join(dist,'vendor/three'),{recursive:true});
+await cp(path.join(root,'node_modules/three/build'),path.join(dist,'vendor/three/build'),{recursive:true});
+await cp(path.join(root,'node_modules/three/examples/jsm'),path.join(dist,'vendor/three/examples/jsm'),{recursive:true});
+await copyFile(path.join(root,'node_modules/three/LICENSE'),path.join(dist,'vendor/three/LICENSE'));
+await writeFile(path.join(dist,'.nojekyll'),'');
+console.log('Built static NOMAD viewer in dist/');

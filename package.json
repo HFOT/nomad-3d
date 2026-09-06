@@ -1,0 +1,21 @@
+{
+  "name": "lantern-robot",
+  "version": "1.0.0",
+  "description": "NOMAD, an animated 3D explorer robot by CORN",
+  "scripts": {
+    "start": "node server.cjs",
+    "check": "node --check model.js && node --check viewer.js",
+    "build": "node build.mjs"
+  },
+  "keywords": [],
+  "author": "CORN",
+  "license": "UNLICENSED",
+  "type": "module",
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "gltf-validator": "^2.0.0-dev.3.10",
+    "playwright": "^1.56.1"
+  }
+}
