@@ -10,7 +10,7 @@
 
 /* Below this the wordmark and the page's own buttons close in, so only the current
    character keeps its name and the rest fall back to their number. */
-@media(max-width:1300px){
+@media(max-width:1440px){
   .series-hub{padding-right:9px}
   .series-hub span{display:none}
   .series-link:not(.active) span{display:none}

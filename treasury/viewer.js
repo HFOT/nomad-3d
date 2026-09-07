@@ -43,13 +43,13 @@ document.querySelectorAll('[data-light]').forEach(b=>b.onclick=()=>{lighting(b.d
 $('#reset').onclick=resetCamera;$('#collapse').onclick=()=>{const settings=$('#settings'),v=!settings.hidden;settings.hidden=v;$('#collapse').textContent=v?'+':'−';$('#collapse').setAttribute('aria-expanded',String(!v))};
 $('#reference').onclick=()=>$('#concept-dialog').showModal();$('#close-reference').onclick=()=>$('#concept-dialog').close();$('#concept-dialog').onclick=e=>{if(e.target===$('#concept-dialog'))$('#concept-dialog').close()};
 function download(blob,name){const a=document.createElement('a'),url=URL.createObjectURL(blob);a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000)}
-$('#capture').onclick=()=>{composer.render();renderer.domElement.toBlob(b=>download(b,'QUORUM-portrait.png'))};
+$('#capture').onclick=()=>{composer.render();renderer.domElement.toBlob(b=>download(b,'TREASURY-portrait.png'))};
 async function exportModel(){
   const button=$('#export');button.disabled=true;status.textContent='モデルを保存しています…';
   const saved=[];robot.root.traverse(o=>{if(o.isMesh){saved.push([o,o.material]);o.material=originals.get(o.uuid)}});const vis=robot.rig.flame.visible;robot.rig.flame.visible=true;
   try{const exporter=new GLTFExporter();const data=await exporter.parseAsync(robot.root,{binary:true,animations:robot.clips,onlyVisible:true,maxTextureSize:1024});return data}finally{for(const [o,m]of saved)o.material=m;robot.rig.flame.visible=vis;button.disabled=false;status.textContent='アニメーション付きGLBを保存しました'}
 }
-$('#export').onclick=async()=>{try{download(new Blob([await exportModel()],{type:'model/gltf-binary'}),'QUORUM-animated.glb')}catch(e){console.error(e);status.textContent='保存に失敗しました。もう一度お試しください'}};
+$('#export').onclick=async()=>{try{download(new Blob([await exportModel()],{type:'model/gltf-binary'}),'TREASURY-animated.glb')}catch(e){console.error(e);status.textContent='保存に失敗しました。もう一度お試しください'}};
 const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;if(reduced){paused=true;$('#pause').checked=true}
 const clock=new T.Clock();let elapsed=0,frames=0;
 renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);if(!paused){mixer.update(dt);elapsed+=dt;robot.rig.flame.scale.set(1+.08*Math.sin(elapsed*19),1+.12*Math.sin(elapsed*13),1);robot.rig.fire.intensity=2.5+.20*Math.sin(elapsed*17)+.1*Math.sin(elapsed*29)}robot.ward.tick(elapsed,paused?0:dt);controls.update();composer.render();frames++;if(frames===2){$('#loading').classList.add('done');status.textContent='のんびり待機中'}});

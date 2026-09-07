@@ -36,7 +36,7 @@ export function createMaterials(){
   };
 }
 export function buildRobot(M){
-  const root=new T.Group();root.name='QUORUM';const rig={};let serial=0;
+  const root=new T.Group();root.name='TREASURY';const rig={};let serial=0;
   function group(parent,name,x=0,y=0,z=0){const o=new T.Group();o.name=name||'Assembly_'+serial++;o.position.set(x,y,z);parent.add(o);return o}
   function mesh(parent,geo,mat,x=0,y=0,z=0,name){const o=new T.Mesh(geo,mat);o.name=name||'Part_'+serial++;o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
   const sphere=(p,m,x,y,z,sx,sy=sx,sz=sx)=>{const o=mesh(p,new T.SphereGeometry(1,32,22),m,x,y,z);o.scale.set(sx,sy,sz);return o};
@@ -58,7 +58,7 @@ export function buildRobot(M){
   const torso=group(body,'Torso',0,.56,0);torso.scale.set(1.25,1.08,1.18);
   lathe(torso,M.teal,[[0,-.54],[.32,-.52],[.52,-.43],[.64,-.22],[.63,.08],[.56,.31],[.44,.49],[.25,.53],[0,.53]],0,0,0,1,.77);
   const neck=group(body,'Neck',0,1.13,0);cyl(neck,M.iron,0,0,0,.21,.30);
-  const head=rig.head=group(body,'Head',0,1.86,.01);head.scale.set(.86,.88,.90);
+  const head=rig.head=group(body,'Head',0,1.72,.01);head.scale.set(.86,.88,.90);
   lathe(head,M.ivory,[[0,-.68],[.35,-.66],[.60,-.55],[.78,-.35],[.85,-.05],[.84,.22],[.74,.5],[.54,.70],[.27,.81],[0,.85]],0,0,0,1,.88);
   const bottomRim=torus(head,M.dark,0,-.605,0,.61,.019,'y');bottomRim.scale.z=.83;
   for(const s of [-1,1]){
@@ -68,10 +68,7 @@ export function buildRobot(M){
     const lens=sphere(e,M.eye,0,0,.045,.179,.198,.101);lens.name='Lens_'+s;
   }
   const mouth=box(head,M.dark,0,-.435,.695,.15,.035,.03,.015);mouth.rotation.x=.18;
-  for(const s of [-1,1]){
-    const ear=group(head,'Ear_'+s,s*.836,-.035,-.025);
-    cyl(ear,M.dark,0,0,0,.25,.08,'x');torus(ear,M.brass,s*.05,0,0,.17,.018,'x');
-  }
+
   const antenna=rig.antenna=group(head,'Antenna',0,.835,-.08);antenna.scale.set(1,.18,1);
   cyl(antenna,M.brass,0,0,0,.067,.052);
 
@@ -132,7 +129,7 @@ export function buildRobot(M){
     if(!g.index)g.setIndex(Array.from({length:g.attributes.position.count},(_,i)=>i));g.computeTangents();
     const a=g.attributes.tangent,n=g.attributes.normal,v=new T.Vector3(),normal=new T.Vector3();
     for(let i=0;i<a.count;i++){v.set(a.getX(i),a.getY(i),a.getZ(i));if(!Number.isFinite(v.lengthSq())||v.lengthSq()<1e-10){normal.fromBufferAttribute(n,i);v.set(Math.abs(normal.x)<.9?1:0,Math.abs(normal.x)<.9?0:1,0).cross(normal)}v.normalize();a.setXYZW(i,v.x,v.y,v.z,a.getW(i)<0?-1:1)}
-  }else if(!o.material.map){g.deleteAttribute('uv')}});
+  }else if(!o.material.map&&!o.material.emissiveMap){g.deleteAttribute('uv')}});
   ward.setState({health:1,shared:false,latency:120});
   const rest=new Map();root.traverse(o=>rest.set(o.uuid,{position:o.position.clone(),quaternion:o.quaternion.clone(),scale:o.scale.clone()}));
   function pose(mode,t){
@@ -180,3 +177,4 @@ export function buildGround(M){
   for(let i=0;i<420;i++){const a=rand()*Math.PI*2,r=Math.sqrt(rand()),x=Math.cos(a)*r*1.35,z=Math.sin(a)*r*.90;matrix.compose(new T.Vector3(x,-.005-r*.09,z),q,new T.Vector3(.035+rand()*.075,.014+rand()*.025,.035+rand()*.06));moss.setMatrixAt(i,matrix);moss.setColorAt(i,new T.Color().setHSL(.20+rand()*.045,.23+rand()*.2,.14+rand()*.13))}moss.receiveShadow=true;group.add(moss);
   const blades=[];for(let i=0;i<600;i++){const a=rand()*6.28,r=.5+rand()*.48,x=Math.cos(a)*r*1.34,z=Math.sin(a)*r*.84,y=-.01-r*.07,h=.025+rand()*.1;blades.push(x-.004,y,z,x+.004,y,z,x+.018*(rand()-.5),y+h,z+.018)}const bg=new T.BufferGeometry();bg.setAttribute('position',new T.Float32BufferAttribute(blades,3));bg.computeVertexNormals();const gm=M.grass.clone();gm.side=T.DoubleSide;const grass=new T.Mesh(bg,gm);group.add(grass);return group;
 }
+

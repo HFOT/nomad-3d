@@ -59,4 +59,15 @@ export const SERIES = [
     tagline: '受け取った資金が、形になる。',
     accent: '#e08d4f',
   },
+  {
+    id: 'treasury',
+    crop: {x: 470, y: 313, w: 482, h: 643},
+    no: '06',
+    name: 'TREASURY',
+    role: 'TREASURY KEEPER',
+    eyebrow: 'POWERED BY DREPS',
+    title: '国庫の器。',
+    tagline: '吸い上げた声が、エネルギーになる。',
+    accent: '#6fd2f2',
+  },
 ];
