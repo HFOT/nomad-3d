@@ -105,7 +105,7 @@ if (!reduced) setInterval(nextTeaser, 4600);
 shot.addEventListener('click', nextTeaser);
 document.getElementById('enter').onclick = () => document.getElementById('gallery').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
 // ---- The screening: GRANDXP starts, and the story rolls like film.
-import('./theater.js?v=4').then(({Score, cinema}) => {
+import('./theater.js?v=5').then(({Score, cinema}) => {
   // Recording rig: ?record=1 blacks out the page and rolls the film once,
   // silently — the score is muxed in afterwards.
   if (new URLSearchParams(location.search).has('record')) {

@@ -101,7 +101,9 @@ export function cinema(score,onDone,opts={}){
   }else if(shot.type==='clip'){
    const m=MODES[shot.c.id];
    const grades=shot.grade.split(' ').map(g=>'g-'+g).join(' ');
-   layer.innerHTML=`<figure class="c-frame c-live ${grades}"><div class="c-crop"><video src="${shot.file}" autoplay muted loop playsinline></video></div><figcaption><span class="c-who"><b>${shot.c.no}</b> ${shot.c.name}<i class="c-mode">MODE: ${m.mode}</i></span><span class="c-desc">${shot.label}</span></figcaption></figure>`;
+   // Two sources: the recorder's Chromium has no H.264, real Safari has no VP9.
+   const base=shot.file.replace(/\.mp4$/,'');
+   layer.innerHTML=`<figure class="c-frame c-live ${grades}"><div class="c-crop"><video autoplay muted loop playsinline><source src="${base}.webm" type="video/webm"><source src="${base}.mp4" type="video/mp4"></video></div><figcaption><span class="c-who"><b>${shot.c.no}</b> ${shot.c.name}<i class="c-mode">MODE: ${m.mode}</i></span><span class="c-desc">${shot.label}</span></figcaption></figure>`;
   }else{
    const f=framed(shot.c);
    const grades=shot.grade.split(' ').map(g=>'g-'+g).join(' ');
