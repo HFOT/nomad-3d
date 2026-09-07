@@ -17,9 +17,9 @@ renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWid
 const scene=new T.Scene();scene.background=new T.Color('#20241f');scene.fog=new T.FogExp2('#20241f',.032);
 const camera=new T.PerspectiveCamera(35,innerWidth/innerHeight,.1,100);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.06;controls.minDistance=4.5;controls.maxDistance=200;controls.maxPolarAngle=Math.PI*.49;controls.minPolarAngle=.23;controls.autoRotateSpeed=.65;
-// Framed from the front-right: the chain runs away behind, so the default view
-// has to show both the furnace door and the ledger it feeds.
-function resetCamera(){const mobile=innerWidth<800;camera.position.set(mobile?6.2:5.6,mobile?3.6:3.2,mobile?12.5:8.6);controls.target.set(0,mobile?2.1:2.0,mobile?-.6:-.8);if(mobile){camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.18,innerWidth,innerHeight)}else{camera.setViewOffset(innerWidth,innerHeight,innerWidth*.065,0,innerWidth,innerHeight)}controls.update()}
+// Framed from the front-right and offset to the left: the chain of finished
+// blocks lies in front of the smith, so the shot has to hold both.
+function resetCamera(){const mobile=innerWidth<800;camera.position.set(mobile?6.0:5.6,mobile?3.6:3.1,mobile?13.5:9.9);controls.target.set(mobile?-.4:-.52,mobile?2.0:1.90,mobile?.4:.45);if(mobile){camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.18,innerWidth,innerHeight)}else{camera.setViewOffset(innerWidth,innerHeight,innerWidth*.065,0,innerWidth,innerHeight)}controls.update()}
 resetCamera();
 const pmrem=new T.PMREMGenerator(renderer),envScene=new RoomEnvironment();const env=pmrem.fromScene(envScene,.04);scene.environment=env.texture;scene.environmentIntensity=.52;envScene.dispose();pmrem.dispose();
 const hemi=new T.HemisphereLight(0xbcc6cf,0x3a2a1c,1.25);scene.add(hemi);

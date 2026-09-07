@@ -85,9 +85,9 @@ export const SERIES = [
   },
   {
     id: 'forge',
-    // Framed a little right of the body so a few links of the chain come with it:
-    // the chain is half of what this one is.
-    crop: {x: 357, y: 272, w: 570, h: 760},
+    // Framed a little left of the body so the near end of the chain comes with
+    // it: the chain is half of what this one is.
+    crop: {x: 505, y: 240, w: 620, h: 827},
     no: '08',
     name: 'FORGE',
     role: 'BLOCK FORGER',

@@ -41,6 +41,7 @@ export function createMaterials(){
     eye:new T.MeshPhysicalMaterial({name:'Welding visor glass',color:0x05090b,metalness:.2,roughness:.10,clearcoat:1,clearcoatRoughness:.05}),
     // The furnace: everything hot in this build shares one ember.
     ember:new T.MeshStandardMaterial({name:'Furnace ember',color:0xffca8a,emissive:0xff5a12,emissiveIntensity:3.2,roughness:1}),
+    gaze:new T.MeshStandardMaterial({name:'Eye lamp',color:0xffe6bd,emissive:0xffab3d,emissiveIntensity:2.4,roughness:1}),
     spark:new T.MeshBasicMaterial({name:'Forge spark',color:0xffd9a0,toneMapped:false}),
     // A transaction on its way in: the same amber cube PIP carries.
     packet:new T.MeshStandardMaterial({name:'Pending transaction',color:0xe8b465,emissive:0xff9c2a,emissiveIntensity:.55,metalness:.15,roughness:.26}),
@@ -89,14 +90,15 @@ export function buildRobot(M){
   lathe(head,M.plate,[[0,-.34],[.40,-.33],[.52,-.24],[.56,-.02],[.53,.20],[.42,.33],[.22,.40],[0,.41]],0,0,0,1.02,.90);
   box(head,M.iron,0,.24,-.02,.86,.20,.62,.05);
   // The welding visor drops for the strike; the slit eyes burn behind it.
-  const visor=rig.visor=group(head,'Visor',0,.16,.30);
-  box(visor,M.iron,0,-.02,.10,.88,.17,.15,.04);
-  box(visor,M.iron,0,-.44,.10,.88,.15,.15,.04);
-  for(const s of [-1,1])box(visor,M.iron,s*.37,-.23,.10,.15,.44,.15,.04);
-  box(visor,M.eye,0,-.23,.16,.64,.30,.05,.02);
-  torus(visor,M.brass,0,-.23,.17,.36,.020).scale.set(1.10,.52,1);
-  for(const s of [-1,1])cyl(visor,M.edge,s*.42,0,.06,.055,.05,'x');
-  for(const s of [-1,1]){const slit=box(visor,M.ember,s*.17,-.23,.195,.22,.05,.02,.012);slit.name='EyeSlit_'+s}
+  const visor=rig.visor=group(head,'Visor',0,.14,.36);
+  box(visor,M.iron,0,.06,.08,.90,.16,.20,.04);
+  box(visor,M.edge,0,-.02,.185,.86,.045,.03,.012);
+  box(visor,M.iron,0,-.46,.08,.86,.16,.20,.04);
+  for(const s of [-1,1])box(visor,M.iron,s*.40,-.20,.08,.12,.50,.20,.04);
+  box(visor,M.eye,0,-.20,.17,.66,.36,.06,.02);
+  for(const s of [-1,1]){const slit=box(visor,M.gaze,s*.16,-.18,.215,.24,.075,.03,.02);slit.name='EyeSlit_'+s}
+  box(visor,M.edge,0,-.35,.20,.32,.035,.03,.01);
+  for(const s of [-1,1])cyl(visor,M.edge,s*.44,-.08,.06,.06,.06,'x');
   // Ear intakes: the furnace has to breathe.
   for(const s of [-1,1]){const ear=group(head,'Intake_'+s,s*.54,-.06,-.02);ear.rotation.y=s*Math.PI/2;cyl(ear,M.dark,0,0,0,.15,.10,'z');torus(ear,M.brass,0,0,.05,.14,.022);for(let i=0;i<3;i++)torus(ear,M.edge,0,0,.07,.11-i*.035,.010)}
 

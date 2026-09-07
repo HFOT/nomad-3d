@@ -14,7 +14,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 // That is not a failure state, it is how the chain keeps its beat.
 const PERIOD=3.4;           // seconds per slot, chosen to read rather than to be accurate
 const MEMPOOL_MAX=48;       // how many cubes the hopper can show before it just reads as "full"
-const CHAIN=7,STEP=.74,CHAIN_Y=1.05,CHAIN_Z=-1.12;
+const CHAIN=6,STEP=.60,CHAIN_X=-.66,CHAIN_Y=.94,CHAIN_Z=1.46;
 
 let seed=4242;
 const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
@@ -119,19 +119,19 @@ export function addWard({root,rig,M,helpers}){
 
   // ---- The chain. Bolted to the world, not to the body: the ledger does not
   // sway when the smith does.
-  const blockGeo=new RoundedBoxGeometry(.46,.46,.46,3,.035);
+  const blockGeo=new RoundedBoxGeometry(.44,.44,.44,3,.035);
   function makeBlock(){
     const g=group(root,null,0,CHAIN_Y,0);
     mesh(g,blockGeo,M.block);
-    for(const s of [-1,1])for(const e of [-1,1])box(g,M.seal,s*.235,e*.235,0,.03,.03,.44,.008);
+    for(const s of [-1,1])for(const e of [-1,1])box(g,M.seal,s*.225,e*.225,0,.03,.03,.42,.008);
     const bars=[];
-    for(let i=0;i<5;i++)bars.push(box(g,M.seal,-.16+i*.08,-.06,.24,.045,.16,.02,.006));
-    cyl(g,M.brass,0,0,.30,.05,.16,'z');cyl(g,M.brass,0,0,-.30,.05,.16,'z');
+    for(let i=0;i<5;i++)bars.push(box(g,M.seal,-.15+i*.075,-.05,.23,.042,.15,.02,.006));
+    for(const s of [-1,1])cyl(g,M.brass,s*.29,0,0,.05,.16,'x');
     return {g,bars,rehash(){for(const b of bars)b.visible=rand()>.42}};
   }
-  const chain=[];for(let i=0;i<CHAIN;i++){const b=makeBlock();b.rehash();b.g.position.z=CHAIN_Z-i*STEP;chain.push(b)}
+  const chain=[];for(let i=0;i<CHAIN;i++){const b=makeBlock();b.rehash();b.g.position.set(CHAIN_X-i*STEP,CHAIN_Y,CHAIN_Z);chain.push(b)}
   const links=[];
-  for(let i=0;i<CHAIN;i++){const l=cyl(root,M.iron,0,CHAIN_Y,0,.035,STEP-.46,'z');links.push(l)}
+  for(let i=0;i<CHAIN;i++){const l=cyl(root,M.iron,0,CHAIN_Y,CHAIN_Z,.035,STEP-.44,'x');links.push(l)}
   const hot=makeBlock();hot.g.visible=false;
   // The freshly sealed block runs hot and cools as it joins the chain.
   const hotShell=new T.MeshStandardMaterial({color:0x7a4a2c,emissive:0xff5a12,emissiveIntensity:2.2,roughness:.6,metalness:.5});
@@ -160,7 +160,7 @@ export function addWard({root,rig,M,helpers}){
     // The batch that has been in the furnace all cycle becomes a block.
     state.height++;state.lastCount=taken;
     const oldest=chain.pop();oldest.rehash();chain.unshift(oldest);
-    oldest.g.position.set(0,CHAIN_Y,CHAIN_Z);
+    oldest.g.position.set(CHAIN_X,CHAIN_Y,CHAIN_Z);
     // Draw the next batch out of the mempool; the remainder is the backlog.
     taken=Math.min(state.capacity,Math.floor(state.pending));
     state.pending-=taken;state.spill=Math.max(0,Math.floor(state.pending)-state.capacity);
@@ -267,13 +267,14 @@ export function addWard({root,rig,M,helpers}){
     hot.g.visible=out>0&&out<1;
     if(hot.g.visible){
       const e=ease(out);
-      hot.g.position.set(0,T.MathUtils.lerp(1.62,CHAIN_Y,e),T.MathUtils.lerp(-.72,CHAIN_Z,e));
+      // Out of the door, down, and along to the near end of the row.
+      hot.g.position.set(T.MathUtils.lerp(0,CHAIN_X,e),T.MathUtils.lerp(1.66,CHAIN_Y,e),T.MathUtils.lerp(1.00,CHAIN_Z,e));
       hot.g.rotation.set(0,(1-e)*1.4,0);
       hotShell.emissiveIntensity=2.2*(1-e)+.05;
     }
     for(let i=0;i<CHAIN;i++){
-      chain[i].g.position.z=CHAIN_Z-(i+out)*STEP;
-      const l=links[i];l.position.z=chain[i].g.position.z-STEP*.5;l.position.y=CHAIN_Y;
+      chain[i].g.position.x=CHAIN_X-(i+out)*STEP;
+      links[i].position.x=chain[i].g.position.x+STEP*.5;
     }
 
     // The clock hand sweeps one full turn per slot and the rim confirms the seal.
