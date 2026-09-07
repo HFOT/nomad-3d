@@ -85,8 +85,7 @@ export const SERIES = [
   },
   {
     id: 'nox',
-    // Placeholder crop until preview.png is captured; tuned by eye afterwards.
-    crop: {x: 440, y: 200, w: 560, h: 747},
+    crop: {x: 467, y: 262, w: 440, h: 587},
     no: '09',
     name: 'NOX',
     role: 'PROOF BEARER',
@@ -97,8 +96,7 @@ export const SERIES = [
   },
   {
     id: 'hydra',
-    // Placeholder crop until preview.png is captured; tuned by eye afterwards.
-    crop: {x: 430, y: 190, w: 560, h: 747},
+    crop: {x: 510, y: 280, w: 440, h: 587},
     no: '10',
     name: 'HYDRA',
     role: 'SETTLEMENT GUNNER',
