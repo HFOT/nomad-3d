@@ -9,8 +9,10 @@ const forDist=html=>html.replaceAll('../node_modules/three/','../vendor/three/')
 
 await rm(dist,{recursive:true,force:true});
 await mkdir(dist,{recursive:true});
-for(const file of ['hub.css','theater.js','theme.mp3'])await copyFile(path.join(root,file),path.join(dist,file));
-await copyFile(path.join(root,'index.html'),path.join(dist,'index.html'));
+for(const file of ['hub.css','theater.js','theme.mp3','courier.js'])await copyFile(path.join(root,file),path.join(dist,file));
+// The hub reaches three through ./node_modules in dev, the character pages
+// through ../node_modules; in dist both point at the one shared copy.
+await writeFile(path.join(dist,'index.html'),(await readFile(path.join(root,'index.html'),'utf8')).replaceAll('./node_modules/three/','./vendor/three/'));
 await cp(path.join(root,'shared'),path.join(dist,'shared'),{recursive:true});
 if(await exists(path.join(root,'clips')))await cp(path.join(root,'clips'),path.join(dist,'clips'),{recursive:true});
 
