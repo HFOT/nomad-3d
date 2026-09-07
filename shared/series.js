@@ -95,4 +95,16 @@ export const SERIES = [
     tagline: '見せない。それでも、証せる。',
     accent: '#939bf0',
   },
+  {
+    id: 'hydra',
+    // Placeholder crop until preview.png is captured; tuned by eye afterwards.
+    crop: {x: 430, y: 190, w: 560, h: 747},
+    no: '10',
+    name: 'HYDRA',
+    role: 'SETTLEMENT GUNNER',
+    eyebrow: 'FIVE FLAMES. ONE SHOT.',
+    title: '五つの炎を、一発に。',
+    tagline: '速さは、外で生まれる。',
+    accent: '#e8384f',
+  },
 ];
