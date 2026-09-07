@@ -12,14 +12,14 @@ import {buildMouse} from '../pip/model.js';
 // and direction. Routes thread the plaza, the road and the building fronts
 // without crossing a footprint (gate ~z22, depot ~(14,-12), canal x>20).
 const ROUTES={
- nomad:   {cx:0,  cz:0,   rx:6,  rz:6,  speed:.20, phase:0,   dir:1},
- ward:    {cx:0,  cz:14,  rx:5,  rz:4,  speed:.22, phase:2,   dir:-1},
- quorum:  {cx:-6, cz:-4,  rx:6,  rz:5,  speed:.16, phase:1,   dir:1},
- lex:     {cx:-10,cz:4,   rx:5,  rz:7,  speed:.14, phase:4,   dir:1},
- catalyst:{cx:6,  cz:6,   rx:5,  rz:6,  speed:.19, phase:3,   dir:-1},
- treasury:{cx:8,  cz:-5,  rx:4,  rz:4,  speed:.13, phase:5,   dir:1},
- forge:   {cx:-4, cz:-12, rx:7,  rz:4,  speed:.15, phase:2.5, dir:-1},
- pip:     {cx:0,  cz:2,   rx:12, rz:13, speed:.34, phase:.7,  dir:1},
+ nomad:   {cx:0,  cz:0,   rx:13, rz:13, speed:.13, phase:0,   dir:1},
+ ward:    {cx:0,  cz:28,  rx:11, rz:8,  speed:.15, phase:2,   dir:-1},
+ quorum:  {cx:-13,cz:-9,  rx:11, rz:10, speed:.11, phase:1,   dir:1},
+ lex:     {cx:-21,cz:8,   rx:10, rz:14, speed:.09, phase:4,   dir:1},
+ catalyst:{cx:13, cz:13,  rx:10, rz:11, speed:.12, phase:3,   dir:-1},
+ treasury:{cx:17, cz:-10, rx:8,  rz:8,  speed:.09, phase:5,   dir:1},
+ forge:   {cx:-8, cz:-26, rx:14, rz:8,  speed:.10, phase:2.5, dir:-1},
+ pip:     {cx:0,  cz:0,   rx:28, rz:30, speed:.20, phase:.7,  dir:1},
 };
 
 function walk(w,dt){
