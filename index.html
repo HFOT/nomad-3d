@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#1c211e"><title>CARAKURI — 灯りを運ぶ6体</title><meta name="description" content="NOMAD・WARD・QUORUM・LEX・CATALYST・TREASURY。ブラウザで組み立てて動かせる6体の3Dキャラクター。"><link rel="stylesheet" href="hub.css?v=teaser-5"></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#1c211e"><title>CARAKURI — 灯りを運ぶ6体</title><meta name="description" content="NOMAD・WARD・QUORUM・LEX・CATALYST・TREASURY。ブラウザで組み立てて動かせる6体の3Dキャラクター。"><link rel="stylesheet" href="hub.css?v=teaser-6"></head>
 <body>
 <button id="sound" hidden aria-label="音楽の再生/停止">♪</button>
 <section id="teaser">
@@ -105,7 +105,7 @@ if (!reduced) setInterval(nextTeaser, 4600);
 shot.addEventListener('click', nextTeaser);
 document.getElementById('enter').onclick = () => document.getElementById('story').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
 // ---- The screening: GRANDXP starts, and the story rolls like film.
-import('./theater.js?v=1').then(({Score, screen}) => {
+import('./theater.js?v=2').then(({Score, cinema}) => {
   const score = new Score();
   const soundBtn = document.getElementById('sound');
   const playBtn = document.getElementById('play');
@@ -115,7 +115,7 @@ import('./theater.js?v=1').then(({Score, screen}) => {
     soundBtn.hidden = false;
     soundBtn.classList.add('on');
     playBtn.disabled = true;
-    screen(score, () => { playBtn.disabled = false; });
+    cinema(score, () => { playBtn.disabled = false; });
   };
   soundBtn.onclick = () => {
     if (score.running) { score.hush(); soundBtn.classList.remove('on'); }
