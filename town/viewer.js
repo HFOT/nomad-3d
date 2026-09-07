@@ -13,17 +13,17 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
-const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.008);
-const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,200);
-const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=180;
-function front(){camera.position.set(0,37,106);controls.target.set(0,2,-6);controls.update();}front();
+const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.006);
+const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,500);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=260;
+function front(){camera.position.set(0,48,142);controls.target.set(0,2,-8);controls.update();}front();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
-const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-70,right:70,top:70,bottom:-70});scene.add(sun);
+const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-92,right:92,top:92,bottom:-92});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.
-const ground=new T.Mesh(new T.PlaneGeometry(240,240),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const ground=new T.Mesh(new T.PlaneGeometry(320,320),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
 // Brick floor fills the whole walled hexagon; the dark earth stays outside.
 function brickTexture(){
  const c=document.createElement('canvas');c.width=c.height=1024;const g=c.getContext('2d');
@@ -36,8 +36,8 @@ function brickTexture(){
  const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;
  return tex;
 }
-const floorTex=brickTexture();floorTex.repeat.set(14,14);
-const floor=new T.Mesh(new T.CircleGeometry(49.5,6,Math.PI/2),new T.MeshStandardMaterial({color:0xcabc9f,map:floorTex,bumpMap:floorTex,bumpScale:.05,roughness:.95}));
+const floorTex=brickTexture();floorTex.repeat.set(20,20);
+const floor=new T.Mesh(new T.CircleGeometry(69.5,6,Math.PI/2),new T.MeshStandardMaterial({color:0xcabc9f,map:floorTex,bumpMap:floorTex,bumpScale:.05,roughness:.95}));
 floor.rotation.x=-Math.PI/2;floor.position.y=.04;floor.receiveShadow=true;scene.add(floor);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
@@ -45,12 +45,12 @@ const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCan
 // dark plane with a drifting texture reads as canal at this distance for free.
 const waterMat=new T.MeshStandardMaterial({color:0x0a1a22,metalness:.75,roughness:.28,normalMap:normal,normalScale:new T.Vector2(.6,.6)});
 normal.repeat.set(6,36);
-const water=new T.Mesh(new T.PlaneGeometry(18,200),waterMat);water.rotation.x=-Math.PI/2;water.position.set(58,-.05,0);scene.add(water);
+const water=new T.Mesh(new T.PlaneGeometry(20,280),waterMat);water.rotation.x=-Math.PI/2;water.position.set(74,-.05,0);scene.add(water);
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
 for(let j=0;j<6;j++){
- const x=(j%2?3.5:-3.5),z=40-j*5.4;
+ const x=(j%2?4:-4),z=58-j*7;
  const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,2.6,10),lampMat);pole.position.set(x,1.3,z);pole.castShadow=true;scene.add(pole);
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
  const light=new T.PointLight(0xffa324,.35,6);light.position.set(x,2.6,z);scene.add(light);
@@ -75,7 +75,7 @@ function tintGate(g,signal){
  });
  for(const l of g.lights)l.color.set(signal.color);
 }
-const RING=50,gates=[],gatePos=[];
+const RING=70,gates=[],gatePos=[];
 for(let k=0;k<6;k++){
  const g=buildGate();
  const a=Math.PI-k*Math.PI/3;// north gate first, then clockwise like the radar chart
@@ -107,7 +107,7 @@ function buildWallSegment(len){
  for(let x=-len/2+1;x<len/2-1.8;x+=3.5)brick(x+.9,rows*bh+.46,1.8,1,bd+.15);
  return wall;
 }
-const GATE_SPAN=12;// walls bury their ends in the gatehouse flanks — no daylight at the joints
+const GATE_SPAN=9;// the gatehouse is asymmetric (round vs square tower), so both wall ends bury deep in the flanks
 const wallRing=new T.Group();scene.add(wallRing);
 for(let k=0;k<6;k++){
  const p1=gatePos[k],p2=gatePos[(k+1)%6];
@@ -117,7 +117,7 @@ for(let k=0;k<6;k++){
  seg.rotation.y=Math.atan2(-dir.z,dir.x);
  wallRing.add(seg);
 }
-const depot=buildDepot();depot.root.position.set(20,0,-16);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
