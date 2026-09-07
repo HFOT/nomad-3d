@@ -170,3 +170,12 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 .t-copy,.t-stage{z-index:1}
 @media(max-width:900px){#courier{height:min(24vh,190px)}}
 @media(prefers-reduced-motion:reduce){#courier{display:none}}
+/* ---- Architecture links: two quiet doorway cards under the character grid. */
+#arch{display:flex;flex-wrap:wrap;gap:16px;justify-content:center}
+.arch-link{flex:1 1 300px;max-width:420px;text-decoration:none;color:inherit;background:#ffffff08;border:1px solid #ffffff14;border-radius:14px;padding:18px 20px;transition:.25s}
+.arch-link:hover{background:#ffffff10;border-color:#d8b66955}
+.arch-link b{font-size:10px;color:#c5ba92;letter-spacing:2px}
+.arch-link .a-name{display:block;font-size:17px;letter-spacing:2px;margin:8px 0 3px}
+.arch-link .a-role{display:block;font-size:9px;letter-spacing:2px;color:#9fa79d}
+.arch-link p{font-size:11px;line-height:1.7;color:#9fa79d;margin:10px 0 0}
+@media(max-width:700px){.arch-link{flex-basis:100%}}
