@@ -1,0 +1,13 @@
+{
+  "errors": [],
+  "votes": true,
+  "noConfidence": true,
+  "expiryDistinct": true,
+  "renewal": true,
+  "mobile": true,
+  "exported": {
+    "clips": 5,
+    "moving": true,
+    "author": "CORN"
+  }
+}

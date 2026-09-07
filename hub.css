@@ -1,0 +1,44 @@
+:root{font-family:"Segoe UI","Yu Gothic UI",Meiryo,sans-serif;color:#e9e5d9;background:#1c211e;font-synthesis:none;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;padding:0 40px 64px;background:radial-gradient(120% 80% at 50% -10%,#242c27 0%,#1c211e 62%)}
+a{color:inherit;text-decoration:none}
+
+header{padding:32px 0 0}
+.wordmark{font-size:29px;font-weight:650;letter-spacing:7px}
+.wordmark span{display:block;font-size:9px;font-weight:400;letter-spacing:2.1px;color:#b6b8ac;margin-top:9px}
+
+.intro{margin:76px 0 40px}
+.eyebrow{font-size:9px;letter-spacing:2.4px;color:#c5ba92;display:flex;gap:9px;align-items:center}
+.eyebrow i{height:5px;width:5px;border-radius:50%;background:#d8b669;box-shadow:0 0 14px #ffc564}
+.intro h1{font-size:27px;letter-spacing:3px;font-weight:450;margin:17px 0 11px}
+.intro p{font-size:12px;color:#9fa79d;letter-spacing:2px;margin:0}
+
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+
+.card{display:flex;flex-direction:column;border:1px solid #d5dec21f;border-radius:17px;background:linear-gradient(140deg,#253029d6,#161e1bcf);overflow:hidden;transition:.25s}
+.card:hover{border-color:color-mix(in srgb,var(--accent) 45%,transparent);transform:translateY(-4px);box-shadow:0 18px 50px #0000005e}
+
+.shot{position:relative;aspect-ratio:3/4;overflow:hidden;background:#1a201d}
+.shot img{position:absolute;width:var(--iw);max-width:none;height:auto;left:var(--ix);top:var(--iy);transition:.5s}
+.card:hover .shot img{transform:scale(1.04)}
+.shot::after{content:'';position:absolute;inset:auto 0 0;height:38%;background:linear-gradient(#0000,#161e1bd9)}
+
+.meta{padding:16px 18px 20px;margin-top:-42px;position:relative}
+.line{display:flex;align-items:baseline;gap:9px}
+.line b{font-size:9px;font-weight:500;letter-spacing:1px;color:var(--accent);opacity:.75}
+.name{font-size:17px;font-weight:650;letter-spacing:4.5px}
+.role{font-size:8px;letter-spacing:2px;color:#8e988a;margin-top:7px}
+.meta h2{font-size:14px;font-weight:450;letter-spacing:1.6px;margin:15px 0 8px}
+.meta p{font-size:11px;letter-spacing:1.2px;color:#9fa79d;margin:0}
+
+footer{margin-top:44px;font-size:9px;color:#a1aa99;letter-spacing:.6px}
+footer b{margin:0 8px;font-weight:400;color:#626c61}
+a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
+
+@media(max-width:1080px){#grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){
+  body{padding:0 22px 48px}
+  .wordmark{font-size:23px;letter-spacing:5px}.wordmark span{font-size:7px}
+  .intro{margin:48px 0 28px}.intro h1{font-size:19px;letter-spacing:1px}.intro p{font-size:11px}
+  #grid{gap:14px}
+}

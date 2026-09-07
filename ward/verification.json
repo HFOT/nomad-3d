@@ -1,0 +1,95 @@
+{
+  "errors": [],
+  "motions": [
+    "Walk",
+    "Wave",
+    "Look",
+    "Guard",
+    "Idle"
+  ],
+  "presets": [
+    {
+      "name": "shared",
+      "state": {
+        "health": 1,
+        "shared": true,
+        "latency": 120
+      },
+      "lamps": [
+        true,
+        true,
+        true
+      ],
+      "independent": false,
+      "shared": true,
+      "gaps": [
+        0.055,
+        0.055,
+        0.055,
+        0.055,
+        0.055,
+        0.055
+      ]
+    },
+    {
+      "name": "degraded",
+      "state": {
+        "health": 0.32,
+        "shared": false,
+        "latency": 650
+      },
+      "lamps": [
+        true,
+        false,
+        false
+      ],
+      "independent": true,
+      "shared": false,
+      "gaps": [
+        0.05310794333564375,
+        0.105,
+        0.105,
+        0.05310794333564375,
+        0.105,
+        0.105
+      ]
+    },
+    {
+      "name": "healthy",
+      "state": {
+        "health": 1,
+        "shared": false,
+        "latency": 120
+      },
+      "lamps": [
+        true,
+        true,
+        true
+      ],
+      "independent": true,
+      "shared": false,
+      "gaps": [
+        0.055,
+        0.055,
+        0.05482779183341303,
+        0.055,
+        0.055,
+        0.05482779183341303
+      ]
+    }
+  ],
+  "export": {
+    "clips": [
+      "Idle",
+      "Walk",
+      "Wave",
+      "Look",
+      "Guard"
+    ],
+    "meshes": 810,
+    "author": "CORN",
+    "moving": true,
+    "sharedExported": false
+  },
+  "mobile": true
+}

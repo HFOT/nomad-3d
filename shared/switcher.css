@@ -1,0 +1,23 @@
+.series-switcher{position:fixed;top:30px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:2px;padding:4px;border:1px solid #ffffff1c;border-radius:24px;background:#1d242246;backdrop-filter:blur(12px)}
+.series-switcher a{display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:20px;text-decoration:none;color:#9aa598;font-size:11px;letter-spacing:1.6px;white-space:nowrap;transition:.2s}
+.series-switcher a:hover{background:#ffffff10;color:#d7ddd2}
+.series-link b{font-size:8px;font-weight:500;letter-spacing:.6px;color:#75806f;transition:.2s}
+.series-link.active{background:#ffffff0d;color:var(--accent);cursor:default}
+.series-link.active b{color:var(--accent);opacity:.62}
+.series-link.active:hover{background:#ffffff0d;color:var(--accent)}
+.series-hub{margin-right:3px;padding-right:12px;border-right:1px solid #ffffff17;border-radius:20px 4px 4px 20px;color:#8a9486;font-size:9px}
+.series-hub i{height:5px;width:5px;border-radius:50%;background:#d8b669;box-shadow:0 0 12px #ffc564}
+
+/* Below this the wordmark and the page's own buttons close in, so only the current
+   character keeps its name and the rest fall back to their number. */
+@media(max-width:1180px){
+  .series-hub{padding-right:9px}
+  .series-hub span{display:none}
+  .series-link:not(.active) span{display:none}
+  .series-link:not(.active) b{font-size:9px;letter-spacing:1px}
+  .series-switcher a{padding:7px 11px}
+}
+@media(max-width:640px){
+  .series-switcher{top:70px;left:22px;transform:none;padding:3px}
+  .series-switcher a{padding:6px 9px;font-size:10px;letter-spacing:1.2px;gap:5px}
+}

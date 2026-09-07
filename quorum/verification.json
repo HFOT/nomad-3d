@@ -1,0 +1,10 @@
+{
+  "errors": [],
+  "threshold": true,
+  "continuesPastWarning": true,
+  "growth": true,
+  "release": true,
+  "motions": 5,
+  "export": true,
+  "mobile": true
+}

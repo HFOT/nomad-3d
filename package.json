@@ -1,10 +1,10 @@
 {
-  "name": "lantern-robot",
+  "name": "nomad-series",
   "version": "1.0.0",
-  "description": "NOMAD, an animated 3D explorer robot by CORN",
+  "description": "NOMAD SERIES — four animated 3D characters by CORN",
   "scripts": {
     "start": "node server.cjs",
-    "check": "node --check model.js && node --check viewer.js",
+    "check": "node check.mjs",
     "build": "node build.mjs"
   },
   "keywords": [],

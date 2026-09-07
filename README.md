@@ -1,32 +1,43 @@
-# NOMAD — 灯りを運ぶ旅人
+# NOMAD SERIES — 灯りを運ぶ4体
 
-コンセプト画像を参考に、形状・素材・装備・動作を新しく組み立てた3Dキャラクターです。
+コンセプト画像を参考に、形状・素材・装備・動作を新しく組み立てた3Dキャラクター4体です。
+ブラウザ上でその場で組み立てて動かします。
 
 **Created by CORN · Published by HFOT**
 
-[公開ビューア](https://hfot.github.io/nomad-3d/) · [アニメーション付きGLB](https://hfot.github.io/nomad-3d/NOMAD-animated.glb)
+[公開ビューア](https://hfot.github.io/nomad-3d/)
 
-![NOMAD](NOMAD-portrait.png)
+| | キャラクター | 役割 | ページ |
+| --- | --- | --- | --- |
+| 01 | NOMAD 灯りを運ぶ旅人 | FIELD COMPANION | [/nomad/](https://hfot.github.io/nomad-3d/nomad/) |
+| 02 | WARD リレーの番人 | RELAY GUARDIAN | [/ward/](https://hfot.github.io/nomad-3d/ward/) |
+| 03 | QUORUM 委任の書記官 | MANDATE KEEPER | [/quorum/](https://hfot.github.io/nomad-3d/quorum/) |
+| 04 | LEX 知識の灯守 | CONSTITUTION KEEPER | [/lex/](https://hfot.github.io/nomad-3d/lex/) |
+
+![NOMAD](nomad/NOMAD-portrait.png)
 
 ## ローカルで開く
 
-**START.bat をダブルクリック**してください。ブラウザでビューアが開きます。
+**START.bat をダブルクリック**してください。ブラウザで4体の一覧が開きます。
 このPCにある Node.js を使用します。制作フォルダと `node_modules` を一緒に保管してください。
 起動後は http://127.0.0.1:8846 からも開けます。ローカルでの閲覧時に外部通信は不要です。公開版はGitHub Pagesで配信します。
 
 ## 操作
 
+- 一覧から選ぶ、または各ページ上部の切り替えバーで4体を行き来できます。
 - ドラッグ：360°回転。ホイール／ピンチ：拡大。右ドラッグ：平行移動。
-- 待機／歩く／手を振る／見回す：動作を滑らかに切り替えます。
+- 待機／歩く／手を振る／見回す：動作を滑らかに切り替えます。02〜04には各キャラ固有の動作が加わります。
 - 動きの速さ、一時停止、自動回転を変更できます。
 - 黄昏／スタジオ／夜の照明と、仕上げ／クレイ／ワイヤーの表面表示を切り替えられます。
-- ランタンの点灯・消灯、原画の表示、PNGでの写真保存に対応しています。
-- 「モデルを保存」で、4つの動作と埋め込みテクスチャを含むGLBを保存できます。
+- 原画・解説の表示、PNGでの写真保存に対応しています。
+- 「モデルを保存」で、動作と埋め込みテクスチャを含むGLBをその場で書き出して保存できます。
 
 ## 3Dモデル
 
-`NOMAD-animated.glb` がキャラクター本体です。背景の岩やビューアの文字は含めていません。
-599個のメッシュを使い、陶器の頭、光学レンズ、肩・肘・股・膝の機構、分節した指、マフラー、リュック、寝袋、水筒、ブーツ、ガラス入りランタンを立体化しています。
+各キャラクターはページを開くたびに `model.js` から組み立てられます。GLBはサイトに置かず、
+「モデルを保存」を押した時点で書き出します。背景の岩やビューアの文字は含めていません。
+
+NOMADは599個のメッシュを使い、陶器の頭、光学レンズ、肩・肘・股・膝の機構、分節した指、マフラー、リュック、寝袋、水筒、ブーツ、ガラス入りランタンを立体化しています。
 塗装・革・布の色と微細な凹凸は、埋め込みのカラーテクスチャ／法線マップとして保存されています。
 
 | 動作名 | 長さ | 内容 |
@@ -45,15 +56,18 @@ BlenderなどGLB対応ソフトにインポートして編集できます。こ�
 
 ## 制作ファイル
 
-- `model.js`：全形状、素材、テクスチャ生成、4つのアニメーション。
-- `viewer.js`：照明、影、環境反射、陰影補助、カメラ、操作、GLB書き出し。
-- `index.html` / `style.css`：日本語のビューア画面。
-- `preview.png` / `NOMAD-portrait.png`：実際の3D表示。
-- `wave.png` / `back.png` / `night.png`：動作、背面、夜の表示。
-- `verification.json`：ブラウザ操作・GLB再読み込みの検証記録。
-- `gltf-validation.json`：Khronos glTF Validatorによる形式検証。エラー0、警告0、情報指摘0。
+- `index.html` / `hub.css`：4体の一覧。
+- `shared/series.js`：4体の名前・肩書・一覧カードの切り出し範囲。一覧と切り替えバーはここだけを見ています。
+- `shared/switcher.js` / `switcher.css`：各ページ上部の切り替えバー。
+- `<キャラ名>/model.js`：全形状、素材、テクスチャ生成、アニメーション。
+- `<キャラ名>/ward.js`：そのキャラ固有の装備・演出（02〜04）。
+- `<キャラ名>/viewer.js`：照明、影、環境反射、陰影補助、カメラ、操作、GLB書き出し。
+- `<キャラ名>/index.html` / `style.css`：日本語のビューア画面。
+- `<キャラ名>/preview.png`：実際の3D表示。一覧のカードにも使っています。
+- `<キャラ名>/verification.json`：ブラウザ操作・GLB再読み込みの検証記録。
+- `<キャラ名>/gltf-validation.json`：Khronos glTF Validatorによる形式検証。エラー0、警告0、情報指摘0。
 
-描画・ファイル書き出しには Three.js（MIT）を使用しています。
+描画・ファイル書き出しには Three.js（MIT）を使用しています。4体で1つのコピーを共有します。
 書き出し仕様：[Three.js GLTFExporter](https://threejs.org/docs/pages/GLTFExporter.html)。
 
 ## ビルドと公開

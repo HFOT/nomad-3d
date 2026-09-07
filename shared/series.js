@@ -1,0 +1,49 @@
+// The four characters of the series. Single source of truth for the hub and the switcher.
+// crop: the region of preview.png (1600x1100) the hub card shows, all at a 3:4 aspect
+// so the four figures read at the same size.
+export const SERIES = [
+  {
+    id: 'nomad',
+    crop: {x: 325, y: 43, w: 780, h: 1040},
+    no: '01',
+    name: 'NOMAD',
+    role: 'FIELD COMPANION',
+    eyebrow: 'LITTLE WANDERER',
+    title: '灯りを運ぶ旅人。',
+    tagline: '遠回りも、悪くない。',
+    accent: '#d8b669',
+  },
+  {
+    id: 'ward',
+    crop: {x: 381, y: 81, w: 731, h: 975},
+    no: '02',
+    name: 'WARD',
+    role: 'RELAY GUARDIAN',
+    eyebrow: 'KEEP THE CHAIN ALIVE',
+    title: 'リレーの番人。',
+    tagline: '一つひとつの灯を、守る。',
+    accent: '#7fb4dd',
+  },
+  {
+    id: 'quorum',
+    crop: {x: 460, y: 254, w: 551, h: 735},
+    no: '03',
+    name: 'QUORUM',
+    role: 'MANDATE KEEPER',
+    eyebrow: 'POWER IS DELEGATED',
+    title: '委任の書記官。',
+    tagline: '託された声が、力になる。',
+    accent: '#b28fd0',
+  },
+  {
+    id: 'lex',
+    crop: {x: 440, y: 244, w: 557, h: 742},
+    no: '04',
+    name: 'LEX',
+    role: 'CONSTITUTION KEEPER',
+    eyebrow: 'ILLUMINATE THE CONSTITUTION',
+    title: '知識の灯守。',
+    tagline: '憲法を携え、判断の基準を守る。',
+    accent: '#e0cb87',
+  },
+];
