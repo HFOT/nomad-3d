@@ -70,4 +70,15 @@ export const SERIES = [
     tagline: '吸い上げた声が、エネルギーになる。',
     accent: '#6fd2f2',
   },
+  {
+    id: 'pip',
+    crop: {x: 446, y: 230, w: 440, h: 587},
+    no: '07',
+    name: 'PIP',
+    role: 'TRANSACTION COURIER',
+    eyebrow: 'SMALL BODY. FAST DELIVERY.',
+    title: '光の、はこび屋。',
+    tagline: '小さな一歩が、世界をつなぐ。',
+    accent: '#e2705f',
+  },
 ];

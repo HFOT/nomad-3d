@@ -1,6 +1,6 @@
-# CARAKURI — 灯りを運ぶ6体
+# CARAKURI — 灯りを運ぶ7体
 
-コンセプト画像を参考に、形状・素材・装備・動作を新しく組み立てた3Dキャラクター6体です。
+コンセプト画像を参考に、形状・素材・装備・動作を新しく組み立てた3Dキャラクター7体です。
 ブラウザ上でその場で組み立てて動かします。
 
 **Created by CORN · Published by HFOT**
@@ -15,12 +15,13 @@
 | 04 | LEX 知識の灯守 | CONSTITUTION KEEPER | [/lex/](https://hfot.github.io/nomad-3d/lex/) |
 | 05 | CATALYST 築く者 | PROJECT BUILDER | [/catalyst/](https://hfot.github.io/nomad-3d/catalyst/) |
 | 06 | TREASURY 国庫の器 | TREASURY KEEPER | [/treasury/](https://hfot.github.io/nomad-3d/treasury/) |
+| 07 | PIP 光の、はこび屋 | TRANSACTION COURIER | [/pip/](https://hfot.github.io/nomad-3d/pip/) |
 
 ![NOMAD](nomad/NOMAD-portrait.png)
 
 ## ローカルで開く
 
-**START.bat をダブルクリック**してください。ブラウザで6体の一覧が開きます。
+**START.bat をダブルクリック**してください。ブラウザで7体の一覧が開きます。
 このPCにある Node.js を使用します。制作フォルダと `node_modules` を一緒に保管してください。
 起動後は http://127.0.0.1:8846 からも開けます。ローカルでの閲覧時に外部通信は不要です。公開版はGitHub Pagesで配信します。
 
@@ -28,7 +29,7 @@
 
 - 一覧から選ぶ、または各ページ上部の切り替えバーで全キャラを行き来できます。
 - ドラッグ：360°回転。ホイール／ピンチ：拡大。右ドラッグ：平行移動。
-- 待機／歩く／手を振る／見回す：動作を滑らかに切り替えます。02〜06には各キャラ固有の動作が加わります。
+- 待機／歩く／手を振る／見回す：動作を滑らかに切り替えます。02〜07には各キャラ固有の動作が加わります。
 - 動きの速さ、一時停止、自動回転を変更できます。
 - 黄昏／スタジオ／夜の照明と、仕上げ／クレイ／ワイヤーの表面表示を切り替えられます。
 - 原画・解説の表示、PNGでの写真保存に対応しています。
@@ -62,7 +63,7 @@ BlenderなどGLB対応ソフトにインポートして編集できます。こ�
 - `shared/series.js`：全キャラの名前・肩書・一覧カードの切り出し範囲。一覧と切り替えバーはここだけを見ています。
 - `shared/switcher.js` / `switcher.css`：各ページ上部の切り替えバー。
 - `<キャラ名>/model.js`：全形状、素材、テクスチャ生成、アニメーション。
-- `<キャラ名>/ward.js`：そのキャラ固有の装備・演出（02〜06）。
+- `<キャラ名>/ward.js`：そのキャラ固有の装備・演出（02〜06）。PIPは model.js に内蔵。
 - `<キャラ名>/viewer.js`：照明、影、環境反射、陰影補助、カメラ、操作、GLB書き出し。
 - `<キャラ名>/index.html` / `style.css`：日本語のビューア画面。
 - `<キャラ名>/preview.png`：実際の3D表示。一覧のカードにも使っています。

@@ -13,7 +13,7 @@ header{padding:32px 0 0}
 .intro h1{font-size:27px;letter-spacing:3px;font-weight:450;margin:17px 0 11px}
 .intro p{font-size:12px;color:#9fa79d;letter-spacing:2px;margin:0}
 
-#grid{display:grid;grid-template-columns:repeat(6,1fr);gap:15px}
+#grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 
 .card{display:flex;flex-direction:column;border:1px solid #d5dec21f;border-radius:17px;background:linear-gradient(140deg,#253029d6,#161e1bcf);overflow:hidden;transition:.25s}
 .card:hover{border-color:color-mix(in srgb,var(--accent) 45%,transparent);transform:translateY(-4px);box-shadow:0 18px 50px #0000005e}
