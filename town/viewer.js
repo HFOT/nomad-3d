@@ -1,5 +1,5 @@
-import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';import{Water}from'three/addons/objects/Water.js';
-import{buildGate}from'../gate/model.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';
+import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
+import{buildGate}from'../gate/model.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.018);
@@ -9,7 +9,7 @@ function front(){camera.position.set(0,16,46);controls.target.set(0,1,-2);contro
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
-const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35});scene.add(sun);
+const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.
 const ground=new T.Mesh(new T.PlaneGeometry(120,120),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
@@ -18,7 +18,11 @@ const road=new T.Mesh(new T.BoxGeometry(4,.05,30),roadMat);road.position.set(0,.
 const plaza=new T.Mesh(new T.CircleGeometry(7,48),roadMat);plaza.rotation.x=-Math.PI/2;plaza.position.y=.06;plaza.receiveShadow=true;scene.add(plaza);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
-const water=new Water(new T.PlaneGeometry(20,120),{textureWidth:512,textureHeight:512,waterNormals:normal,sunDirection:new T.Vector3(-.5,1,.15).normalize(),sunColor:0x8a4b33,waterColor:0x061219,distortionScale:.65,fog:true});water.rotation.x=-Math.PI/2;water.position.set(30,-.05,0);scene.add(water);
+// A reflective Water pass would render the whole town twice; a normal-mapped
+// dark plane with a drifting texture reads as canal at this distance for free.
+const waterMat=new T.MeshStandardMaterial({color:0x0a1a22,metalness:.75,roughness:.28,normalMap:normal,normalScale:new T.Vector2(.6,.6)});
+normal.repeat.set(6,36);
+const water=new T.Mesh(new T.PlaneGeometry(20,120),waterMat);water.rotation.x=-Math.PI/2;water.position.set(30,-.05,0);scene.add(water);
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
@@ -33,6 +37,10 @@ const gate=buildGate();gate.root.position.set(0,0,22);gate.root.rotation.y=Math.
 const depot=buildDepot();depot.root.position.set(14,0,-12);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
 const walkers=loadCast(scene);
+// Bake every rigid run of meshes down to one draw call per joint and material.
+const baked=[optimize(gate.root,t=>gate.tick(t,.016)),optimize(depot.root,t=>depot.tick(t))];
+for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
+console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
 // Click to follow: pick a walker with a ray, keep the target on it while set.
 const ray=new T.Raycaster(),pointer=new T.Vector2();let following=null;
 function setFollow(w){following=w;$('#follow-name').textContent=w?w.name+' を追跡中':'';$('#follow-name').style.color=w?w.accent:'';}
@@ -50,7 +58,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
   gate.tick(elapsed,dt);depot.tick(elapsed);
-  water.material.uniforms.time.value=elapsed*.4;
+  normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
  controls.update();composer.render();frames++;}

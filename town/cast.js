@@ -64,6 +64,15 @@ export function loadCast(scene){
   robotWalker(Forge,   {id:'forge',   name:'FORGE',   accent:'#f0a848'}),
   pipWalker(           {id:'pip',     name:'PIP',     accent:'#e2705f'}),
  ];
- for(const w of walkers){w.root.scale.setScalar(.8);w.update(0,0);scene.add(w.root);}
+ // Real shadow casting across ~3000 character meshes doubles the frame cost,
+ // so the cast opts out of the shadow pass and carries a soft blob instead.
+ const blobGeo=new T.CircleGeometry(.55,24);
+ const blobMat=new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false});
+ for(const w of walkers){
+  w.root.scale.setScalar(.8);
+  w.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=false;});
+  const blob=new T.Mesh(blobGeo,blobMat);blob.rotation.x=-Math.PI/2;blob.position.y=.02;w.root.add(blob);
+  w.update(0,0);scene.add(w.root);
+ }
  return walkers;
 }
