@@ -1,7 +1,7 @@
 {
   "name": "carakuri",
   "version": "1.0.0",
-  "description": "CARAKURI — seven animated 3D characters by CORN",
+  "description": "CARAKURI — eight animated 3D characters by CORN",
   "scripts": {
     "start": "node server.cjs",
     "check": "node check.mjs",

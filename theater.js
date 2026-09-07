@@ -42,6 +42,8 @@ const MODES={
  lex:{mode:'CC',desc:'憲法との整合を審査する灯守'},
  catalyst:{mode:'CATALYST',desc:'コミュニティ資金で築く実施者'},
  treasury:{mode:'TREASURY',desc:'DRepの承認で動く国庫の器'},
+ pip:{mode:'TRANSACTION',desc:'一つひとつの取引を運ぶはこび屋'},
+ forge:{mode:'BLOCK PRODUCER',desc:'運ばれた取引をひとつのブロックに鍛える者'},
 };
 
 // The film: full-screen letterboxed shots. Text cards from the story section
