@@ -5,10 +5,10 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.018);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,200);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=70;
-function front(){camera.position.set(0,9,38);controls.target.set(0,1.5,0);controls.update();}front();
+function front(){camera.position.set(0,16,46);controls.target.set(0,1,-2);controls.update();}front();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
-const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.18;
-scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.5));
+const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
+scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
 const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-35,right:35,top:35,bottom:-35});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.

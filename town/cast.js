@@ -64,6 +64,6 @@ export function loadCast(scene){
   robotWalker(Forge,   {id:'forge',   name:'FORGE',   accent:'#f0a848'}),
   pipWalker(           {id:'pip',     name:'PIP',     accent:'#e2705f'}),
  ];
- for(const w of walkers){w.update(0,0);scene.add(w.root);}
+ for(const w of walkers){w.root.scale.setScalar(.8);w.update(0,0);scene.add(w.root);}
  return walkers;
 }
