@@ -12,7 +12,7 @@ const hub = document.createElement('a');
 hub.className = 'series-hub';
 hub.href = '../';
 hub.title = '4体の一覧へ';
-hub.innerHTML = '<i></i><span>SERIES</span>';
+hub.innerHTML = '<i></i><span>CARAKURI</span>';
 nav.append(hub);
 
 for (const character of SERIES) {

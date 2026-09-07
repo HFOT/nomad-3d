@@ -1,10 +1,12 @@
 // The four characters of the series. Single source of truth for the hub and the switcher.
 // crop: the region of preview.png (1600x1100) the hub card shows, all at a 3:4 aspect
-// so the four figures read at the same size.
+// so the four figures read at the same size. zoom trims that by eye afterwards:
+// NOMAD has the heaviest build of the four and still read large at parity.
 export const SERIES = [
   {
     id: 'nomad',
     crop: {x: 325, y: 43, w: 780, h: 1040},
+    zoom: 0.86,
     no: '01',
     name: 'NOMAD',
     role: 'FIELD COMPANION',

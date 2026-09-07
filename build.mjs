@@ -27,4 +27,4 @@ await cp(path.join(root,'node_modules/three/build'),path.join(dist,'vendor/three
 await cp(path.join(root,'node_modules/three/examples/jsm'),path.join(dist,'vendor/three/examples/jsm'),{recursive:true});
 await copyFile(path.join(root,'node_modules/three/LICENSE'),path.join(dist,'vendor/three/LICENSE'));
 await writeFile(path.join(dist,'.nojekyll'),'');
-console.log('Built static NOMAD SERIES viewer in dist/ ('+characters.join(', ')+')');
+console.log('Built static CARAKURI viewer in dist/ ('+characters.join(', ')+')');
