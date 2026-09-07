@@ -7,6 +7,7 @@ export function buildNox(){
  const dark=new T.MeshStandardMaterial({color:0x10121e,metalness:.5,roughness:.55});
  const voidMat=new T.MeshBasicMaterial({color:0x04050c});
  const glow=new T.MeshStandardMaterial({color:0xd7dbff,emissive:0x939bf0,emissiveIntensity:2.2});
+ const eyeMat=new T.MeshStandardMaterial({color:0x6b74d8,emissive:0x939bf0,emissiveIntensity:1.5});
  const amber=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:2.0});
  function g(p,name,x=0,y=0,z=0){const o=new T.Group();o.name=name;o.position.set(x,y,z);p.add(o);return o;}
  function m(p,geo,mat,x=0,y=0,z=0){const o=new T.Mesh(geo,mat);o.name='NoxPart'+serial++;o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;}
@@ -15,14 +16,15 @@ export function buildNox(){
  function ring(p,mat,x,y,z,r,t,axis='z'){const o=m(p,new T.TorusGeometry(r,t,10,40),mat,x,y,z);if(axis==='y')o.rotation.x=Math.PI/2;if(axis==='x')o.rotation.y=Math.PI/2;return o;}
 
  // The whole figure hovers: there are no legs, and the cloak closes into the air below.
- const body=rig.body=g(root,'NoxBody',0,.58,0);
+ const body=rig.body=g(root,'NoxBody',0,.66,0);
 
  // Cloak: a lathe from the sealed hem up to the shoulders. Vertices are waved every frame in tick().
- const profile=[[.001,-.545],[.09,-.52],[.17,-.44],[.235,-.34],[.285,-.20],[.31,-.04],[.315,.10],[.29,.22],[.225,.30],[.14,.35],[.09,.375]];
+ // Tall and narrow on purpose: the figure should read as a wraith, not a gnome.
+ const profile=[[.001,-.62],[.08,-.60],[.16,-.52],[.215,-.40],[.255,-.22],[.27,-.02],[.265,.14],[.235,.26],[.18,.34],[.115,.40],[.08,.42]];
  const cloakGeo=new T.LatheGeometry(profile.map(p=>new T.Vector2(p[0],p[1])),64);
  const cloak=m(body,cloakGeo,night);cloak.name='NoxCloak';
  const cloakBase=cloakGeo.attributes.position.array.slice();
- const hemY=-.545,topY=.375;
+ const hemY=-.62,topY=.42;
  function waveCloak(t,power){
   const pos=cloakGeo.attributes.position;
   for(let i=0;i<pos.count;i++){
@@ -39,30 +41,30 @@ export function buildNox(){
  waveCloak(0,0);
 
  // Hood: an open shell over a pocket of darkness. Only the mask inside catches light.
- const head=rig.head=g(body,'NoxHead',0,.46,.01);
+ const head=rig.head=g(body,'NoxHead',0,.52,.01);
  const hoodGeo=new T.SphereGeometry(.205,48,32,Math.PI*.28,Math.PI*1.44);
- const hood=m(head,hoodGeo,night);hood.rotation.y=-Math.PI/2;hood.scale.set(1.04,1.08,1.04);hood.rotation.x=-.12;
- const peak=m(head,new T.ConeGeometry(.075,.16,24),night,0,.185,-.075);peak.rotation.x=.55;// the hood folds back into a soft point
- ball(head,voidMat,0,-.005,.0,.165,.175,.165);// darkness inside the hood
+ const hood=m(head,hoodGeo,night);hood.rotation.y=Math.PI/2;hood.scale.set(1.05,1.18,1.08);hood.rotation.x=-.12;
+ const peak=m(head,new T.ConeGeometry(.07,.18,24),night,0,.20,-.13);peak.rotation.x=1.25;// the hood folds back into a soft point
+ ball(head,voidMat,0,-.005,.0,.15,.17,.12);// darkness inside the hood
  // Mask: featureless porcelain, noh proportions. Two narrow slits of light are the only face.
- const mask=g(head,'NoxMask',0,-.01,.075);mask.rotation.x=-.06;
- ball(mask,porcelain,0,0,0,.112,.148,.05);
+ const mask=g(head,'NoxMask',0,.005,.09);mask.rotation.x=-.10;
+ ball(mask,porcelain,0,0,0,.088,.12,.038);
  for(const s of [-1,1]){
-  const slit=m(mask,new T.BoxGeometry(.043,.0055,.008),glow,s*.048,.012,.047);
-  slit.rotation.z=s*.10;slit.rotation.y=s*.28;slit.castShadow=false;
+  const slit=m(mask,new T.BoxGeometry(.042,.0042,.008),eyeMat,s*.040,.012,.035);
+  slit.rotation.z=s*.10;slit.rotation.y=s*.30;slit.castShadow=false;
  }
 
  // Sleeves end in small porcelain hands; the right hand carries the lantern.
  for(const s of [-1,1]){
-  const arm=rig['arm'+s]=g(body,'NoxArm'+s,s*.24,.20,.03);
-  const sleeve=cyl(arm,night,0,-.14,.05,.055,.095,.30);
-  sleeve.rotation.z=s*.35;sleeve.rotation.x=-.3;
-  const hx=s*.11,hy=-.28,hz=.13;
-  ball(arm,porcelain,hx,hy,hz,.034,.040,.030);
+  const arm=rig['arm'+s]=g(body,'NoxArm'+s,s*.23,.26,.07);
+  // The hand lives at the sleeve tip inside one tilted group, so they can never drift apart.
+  const sleeve=g(arm,'NoxSleeve'+s,0,0,0);sleeve.rotation.z=s*.42;sleeve.rotation.x=-.60;
+  cyl(sleeve,night,0,-.18,0,.05,.095,.36);
+  ball(sleeve,porcelain,0,-.37,0,.034,.040,.030);
  }
  // Shuttered lantern: vertical slats with narrow gaps. It never opens; light only leaks.
- const lantern=rig.lantern=g(body,'NoxLantern',.35,-.12,.16);
- cyl(lantern,brass,0,.10,0,.012,.012,.09);// hanger stem from the hand
+ const lantern=rig.lantern=g(body,'NoxLantern',.36,-.10,.25);
+ cyl(lantern,brass,0,.08,0,.012,.012,.14);// hanger stem up to the right hand
  ring(lantern,brass,0,.045,0,.030,.006);
  cyl(lantern,brass,0,0,0,.075,.082,.025);
  for(let j=0;j<7;j++){
@@ -90,13 +92,13 @@ export function buildNox(){
    body.position.set(0,.58+.045*Math.sin(w),0);body.rotation.set(.01*Math.sin(w+.7),0,.025*Math.sin(w+1.3));
    head.rotation.set(0,.07*Math.sin(w+2.1),.015*Math.sin(w));
    for(const s of [-1,1])rig['arm'+s].rotation.set(.04*Math.sin(w+s),0,0);
-   lantern.rotation.set(.02*Math.sin(w),0,.06*Math.sin(w+.9));lantern.position.set(.35,-.12+.008*Math.sin(w+.4),.16);
+   lantern.rotation.set(.02*Math.sin(w),0,.06*Math.sin(w+.9));lantern.position.set(.36,-.10+.008*Math.sin(w+.4),.25);
   }else{// Drift: pitched into the glide, everything trailing
    const w=t*Math.PI*2/3;// one full cycle over the 3s loop
    body.position.set(0,.58+.03*Math.sin(2*w),0);body.rotation.set(.17+.015*Math.sin(2*w),0,.02*Math.sin(w));
    head.rotation.set(-.10,.04*Math.sin(w),0);
    for(const s of [-1,1])rig['arm'+s].rotation.set(-.22+.03*Math.sin(w+s),0,s*.06);
-   lantern.rotation.set(-.18+.03*Math.sin(2*w),0,.04*Math.sin(w));lantern.position.set(.35,-.10,.12);
+   lantern.rotation.set(-.18+.03*Math.sin(2*w),0,.04*Math.sin(w));lantern.position.set(.36,-.08,.21);
   }
  }
  for(const [name,duration] of [['Idle',4],['Drift',3]]){
@@ -114,6 +116,7 @@ export function buildNox(){
   lampLight.intensity=.45+.15*Math.sin(t*11)+.08*Math.sin(t*23)+proof*.9;
   amber.emissiveIntensity=1.8+.5*Math.sin(t*13)+proof*1.6;
   glow.emissiveIntensity=2.0+.5*Math.sin(t*1.7)+proof*1.2;
+  eyeMat.emissiveIntensity=1.4+.35*Math.sin(t*1.7)+proof*1.0;
   for(const {mote,r,h,phase,speed} of motes){
    const a=t*speed+phase;
    mote.position.set(Math.sin(a)*r,h+.12*Math.sin(a*1.7),Math.cos(a)*r);
