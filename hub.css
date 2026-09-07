@@ -155,3 +155,6 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 .c-mode{font-style:normal;font-size:10px;letter-spacing:2px;color:#8fd8f0;border:1px solid #3ec2ff55;border-radius:12px;padding:3px 11px;background:#3ec2ff14}
 .g-cold .c-mode{color:#9fb8c4;border-color:#9fb8c433}
 .c-desc{display:block;margin-top:9px;font-size:11px;letter-spacing:2px;color:#8e988a}
+
+/* The story now lives in the film; the section stays only as its script. */
+#story{display:none}
