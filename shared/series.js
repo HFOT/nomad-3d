@@ -1,4 +1,4 @@
-// The four characters of the series. Single source of truth for the hub and the switcher.
+// The characters of the series. Single source of truth for the hub and the switcher.
 // crop: the region of preview.png (1600x1100) the hub card shows, all at a 3:4 aspect
 // so the four figures read at the same size. zoom trims that by eye afterwards:
 // NOMAD has the heaviest build of the four and still read large at parity.
@@ -82,5 +82,18 @@ export const SERIES = [
     title: '光の、はこび屋。',
     tagline: '小さな一歩が、世界をつなぐ。',
     accent: '#e2705f',
+  },
+  {
+    id: 'forge',
+    // Framed a little left of the body so the near end of the chain comes with
+    // it: the chain is half of what this one is.
+    crop: {x: 505, y: 240, w: 620, h: 827},
+    no: '08',
+    name: 'FORGE',
+    role: 'BLOCK FORGER',
+    eyebrow: 'ONE BLOCK, EVERY SLOT',
+    title: 'まとめて、刻む者。',
+    tagline: '運ばれた記録が、ひとつの塊になる。',
+    accent: '#79c9a4',
   },
 ];

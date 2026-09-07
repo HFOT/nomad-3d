@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#1c211e"><title>CARAKURI — 灯りを運ぶ7体</title><meta name="description" content="NOMAD・WARD・QUORUM・LEX・CATALYST・TREASURY・PIP。ブラウザで組み立てて動かせる7体の3Dキャラクター。"><link rel="stylesheet" href="hub.css?v=teaser-15"><script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#1c211e"><title>CARAKURI — 灯りを運ぶ8体</title><meta name="description" content="NOMAD・WARD・QUORUM・LEX・CATALYST・TREASURY・PIP・FORGE。ブラウザで組み立てて動かせる8体の3Dキャラクター。"><link rel="stylesheet" href="hub.css?v=teaser-16"><script type="importmap">{"imports":{"three":"./node_modules/three/build/three.module.js","three/addons/":"./node_modules/three/examples/jsm/"}}</script></head>
 <body>
 <button id="sound" hidden aria-label="音楽の再生/停止">♪</button>
 <section id="teaser">
@@ -7,8 +7,8 @@
   <div class="t-copy">
     <div class="t-eyebrow"><i></i> HFOT PRESENTS · BY CORN</div>
     <h1 class="t-wordmark" id="t-wordmark">CARAKURI</h1>
-    <p class="t-lead">灯りを運ぶ、7体のからくり。</p>
-    <p class="t-sub">迷わないための旅人。チェーンを守る番人。声を蓄える書記官。<br>憲法の灯守。資金で築く者。国庫の器。そして、光のはこび屋。<br>すべてブラウザの中で組み上がり、動き出す。</p>
+    <p class="t-lead">灯りを運ぶ、8体のからくり。</p>
+    <p class="t-sub">迷わないための旅人。チェーンを守る番人。声を蓄える書記官。<br>憲法の灯守。資金で築く者。国庫の器。光のはこび屋。<br>そして、すべてをひとつに刻む者。<br>すべてブラウザの中で組み上がり、動き出す。</p>
     <div class="t-actions"><button id="play">▶ 上映する</button><button id="enter">ENTER ↓</button></div>
   </div>
   <div id="courier" aria-hidden="true"></div>
@@ -34,8 +34,8 @@
   <div class="s-arrow">↓</div>
 </section>
 <div id="gallery">
-<header><div class="wordmark">CARAKURI<span>SERIES / 01–07 · BY CORN</span></div></header>
-<section class="intro"><div class="eyebrow"><i></i> SEVEN OF A KIND</div><h1>灯りを運ぶ、7体。</h1><p>それぞれが自分の役目を持っている。選んで、動かして、回してみてください。</p></section>
+<header><div class="wordmark">CARAKURI<span>SERIES / 01–08 · BY CORN</span></div></header>
+<section class="intro"><div class="eyebrow"><i></i> EIGHT OF A KIND</div><h1>灯りを運ぶ、8体。</h1><p>それぞれが自分の役目を持っている。選んで、動かして、回してみてください。</p></section>
 <main id="grid" aria-label="キャラクターの一覧"></main>
 <section class="intro"><div class="eyebrow"><i></i> ARCHITECTURE</div><h1>からくりの、建つ場所。</h1><p>キャラクターたちが働く舞台。建物もブラウザ上で組み上がります。</p></section>
 <nav id="arch" aria-label="建築物の一覧">
@@ -117,7 +117,7 @@ if (!reduced) setInterval(nextTeaser, 4600);
 shot.addEventListener('click', nextTeaser);
 document.getElementById('enter').onclick = () => document.getElementById('gallery').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
 // ---- The screening: GRANDXP starts, and the story rolls like film.
-import('./theater.js?v=5').then(({Score, cinema}) => {
+import('./theater.js?v=6').then(({Score, cinema}) => {
   // Recording rig: ?record=1 blacks out the page and rolls the film once,
   // silently — the score is muxed in afterwards.
   if (new URLSearchParams(location.search).has('record')) {
