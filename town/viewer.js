@@ -1,11 +1,22 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
 import{buildGate}from'../gate/model.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';
 const $=s=>document.querySelector(s);
-const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
+const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+// If the browser hands us a software rasterizer, say so: the fix lives in the
+// browser's hardware-acceleration setting, not in this page.
+{const gl=renderer.getContext(),info=gl.getExtension('WEBGL_debug_renderer_info');
+ const gpu=info?gl.getParameter(info.UNMASKED_RENDERER_WEBGL):'';
+ console.log('[TOWN] renderer:',gpu||'(masked)');
+ if(/swiftshader|software|llvmpipe/i.test(gpu)){
+  const note=document.createElement('p');
+  note.textContent='⚠ ソフトウェア描画で動いています。ブラウザの「グラフィック アクセラレーション」を有効にすると滑らかになります。';
+  note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
+  document.body.append(note);setTimeout(()=>note.remove(),12000);
+ }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.018);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,200);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=70;
-function front(){camera.position.set(0,16,46);controls.target.set(0,1,-2);controls.update();}front();
+function front(){camera.position.set(0,21,56);controls.target.set(0,1.5,-4);controls.update();}front();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
@@ -33,7 +44,7 @@ for(let j=0;j<5;j++){
  const light=new T.PointLight(0xffa324,.35,6);light.position.set(x,2.6,z);scene.add(light);
 }
 // The two buildings. The gate opens onto the road; the depot sits by the canal.
-const gate=buildGate();gate.root.position.set(0,0,22);gate.root.rotation.y=Math.PI;scene.add(gate.root);
+const gate=buildGate();gate.root.position.set(0,0,24);gate.root.rotation.y=Math.PI;gate.root.scale.setScalar(1.6);scene.add(gate.root);
 const depot=buildDepot();depot.root.position.set(14,0,-12);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
 const walkers=loadCast(scene);

@@ -14,6 +14,7 @@ export function optimize(root,animate){
  const dyn=new Set([root]);
  for(let i=1;i<=50;i++){
   animate(i*.1);
+  root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
   root.traverse(o=>{if(!dyn.has(o)&&!snap.get(o).equals(o.matrix))dyn.add(o);});
  }
  root.updateMatrixWorld(true);
