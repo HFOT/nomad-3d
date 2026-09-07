@@ -158,3 +158,8 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 
 /* The story now lives in the film; the section stays only as its script. */
 #story{display:none}
+
+/* Live inserts fill their frame edge to edge, letting the motion carry. */
+.c-live .c-crop{aspect-ratio:1/1}
+.c-live video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.g-cold .c-live video{filter:brightness(.68) saturate(.35) hue-rotate(165deg)}

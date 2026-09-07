@@ -12,6 +12,7 @@ await mkdir(dist,{recursive:true});
 for(const file of ['hub.css','theater.js','theme.mp3'])await copyFile(path.join(root,file),path.join(dist,file));
 await copyFile(path.join(root,'index.html'),path.join(dist,'index.html'));
 await cp(path.join(root,'shared'),path.join(dist,'shared'),{recursive:true});
+if(await exists(path.join(root,'clips')))await cp(path.join(root,'clips'),path.join(dist,'clips'),{recursive:true});
 
 const built=[];
 for(const id of characters){

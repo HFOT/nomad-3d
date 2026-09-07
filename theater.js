@@ -54,19 +54,27 @@ export function cinema(score,onDone,opts={}){
  const lines=[...document.querySelectorAll('#story .s-line')];
  const text=i=>({type:'text',el:lines[i]});
  const img=(id,grade,cap)=>({type:'img',c:byId(id),grade,cap});
+ // Live inserts: short loops of the models actually moving, cut in tight.
+ const clip=(file,id,grade,label)=>({type:'clip',file,c:byId(id),grade,label});
  const shots=[
   {type:'title'},
   text(0),text(1),
-  img('nomad','warm'),img('ward','warm'),img('quorum','warm'),
+  img('nomad','warm'),img('ward','warm'),
+  clip('clips/ward-shield.mp4','ward','warm','盾は回り続ける'),
+  img('quorum','warm'),
   text(2),
+  clip('clips/quorum-crown.mp4','quorum','warm','冠の灯が数を数える'),
   img('lex','warm'),
+  clip('clips/lex-books.mp4','lex','warm','条文は絶えず巡る'),
   text(3),
   text(4),
   img('quorum','cold swell'),
   text(5),text(6),
   img('ward','cold flicker'),
   text(7),text(8),
-  img('treasury','cold'),img('catalyst','cold'),
+  img('treasury','cold'),
+  clip('clips/treasury-gears.mp4','treasury','cold','歯車だけが回っている'),
+  img('catalyst','cold'),
   text(9),
   text(10),
   img('nomad','warm rise'),
@@ -80,7 +88,7 @@ export function cinema(score,onDone,opts={}){
  let cancelled=false,timer=null,current=null;
  function moodOf(shot){
   if(shot.type==='text'&&shot.el){if(shot.el.classList.contains('s-hope'))return 2;if(shot.el.classList.contains('s-dark'))return 1;return 0;}
-  if(shot.type==='img')return shot.grade.includes('cold')?1:(shot.grade.includes('rise')?2:0);
+  if(shot.type==='img'||shot.type==='clip')return shot.grade.includes('cold')?1:(shot.grade.includes('rise')?2:0);
   return 0;
  }
  function render(shot){
@@ -90,6 +98,10 @@ export function cinema(score,onDone,opts={}){
   }else if(shot.type==='text'){
    const tone=shot.el.classList.contains('s-dark')?' c-cold':(shot.el.classList.contains('s-hope')?' c-hope':'');
    layer.innerHTML=`<div class="c-text${tone}">${shot.el.innerHTML}</div>`;
+  }else if(shot.type==='clip'){
+   const m=MODES[shot.c.id];
+   const grades=shot.grade.split(' ').map(g=>'g-'+g).join(' ');
+   layer.innerHTML=`<figure class="c-frame c-live ${grades}"><div class="c-crop"><video src="${shot.file}" autoplay muted loop playsinline></video></div><figcaption><span class="c-who"><b>${shot.c.no}</b> ${shot.c.name}<i class="c-mode">MODE: ${m.mode}</i></span><span class="c-desc">${shot.label}</span></figcaption></figure>`;
   }else{
    const f=framed(shot.c);
    const grades=shot.grade.split(' ').map(g=>'g-'+g).join(' ');
@@ -134,7 +146,7 @@ export function cinema(score,onDone,opts={}){
   const shot=shots[i++];
   score.setMood(moodOf(shot));
   render(shot);
-  const hold=shot.type==='title'?2300:shot.type==='img'?2500:1500+shot.el.textContent.length*34;
+  const hold=shot.type==='title'?2300:shot.type==='clip'?3200:shot.type==='img'?2500:1500+shot.el.textContent.length*34;
   timer=setTimeout(step,hold);
  };
  step();
