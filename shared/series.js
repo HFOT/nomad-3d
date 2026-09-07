@@ -72,7 +72,9 @@ export const SERIES = [
   },
   {
     id: 'pip',
-    crop: {x: 446, y: 230, w: 440, h: 587},
+    // A wider box than parity would give: PIP is the small one, and the card
+    // lets it read that way instead of scaling it up to the others.
+    crop: {x: 424, y: 164, w: 540, h: 720},
     no: '07',
     name: 'PIP',
     role: 'TRANSACTION COURIER',
