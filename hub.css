@@ -105,3 +105,13 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 .s-dark em{font-style:normal;color:#c3d8e0;letter-spacing:4px;text-shadow:0 0 18px #3ec2ff2e}
 .s-hope{color:#ded8c4}
 .s-hope b{font-weight:650;letter-spacing:4px;color:#e9dba9;text-shadow:0 0 18px #ffc56444}
+
+/* ---- Screening controls ---- */
+.t-actions{display:flex;gap:12px;opacity:0;animation:fadeUp 1s 2.1s forwards}
+.t-actions #enter{animation:none;opacity:1}
+#play{background:#e9dba9;border:1px solid #e9dba9;color:#241f10;border-radius:26px;padding:13px 34px;font:inherit;font-size:13px;letter-spacing:3px;cursor:pointer;transition:.2s}
+#play:hover:not(:disabled){background:#fff0c4}
+#play:disabled{opacity:.55;cursor:default}
+#sound{position:fixed;top:26px;right:28px;z-index:9;width:44px;height:44px;border-radius:50%;background:#1d242246;border:1px solid #ffffff25;color:#8e988a;font-size:17px;cursor:pointer;backdrop-filter:blur(10px);transition:.2s}
+#sound.on{color:#e9dba9;border-color:#d3c28c60;text-shadow:0 0 12px #ffc56466}
+@media(max-width:700px){.t-actions{flex-wrap:wrap}#sound{top:18px;right:18px}}

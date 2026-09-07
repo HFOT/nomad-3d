@@ -2,14 +2,14 @@ import {mkdir,copyFile,cp,readFile,writeFile,access,rm} from 'node:fs/promises';
 import path from 'node:path';
 const root=import.meta.dirname;
 const dist=path.join(root,'dist');
-const characters=['nomad','ward','quorum','lex','catalyst','treasury'];
+const characters=['nomad','ward','quorum','lex','catalyst','treasury','pip'];
 const exists=async p=>{try{await access(p);return true}catch{return false}};
 // Every character page reaches three through ../node_modules in dev; in dist it is one shared copy.
 const forDist=html=>html.replaceAll('../node_modules/three/','../vendor/three/');
 
 await rm(dist,{recursive:true,force:true});
 await mkdir(dist,{recursive:true});
-await copyFile(path.join(root,'hub.css'),path.join(dist,'hub.css'));
+for(const file of ['hub.css','theater.js','theme.mp3'])await copyFile(path.join(root,file),path.join(dist,file));
 await copyFile(path.join(root,'index.html'),path.join(dist,'index.html'));
 await cp(path.join(root,'shared'),path.join(dist,'shared'),{recursive:true});
 
