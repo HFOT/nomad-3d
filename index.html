@@ -104,7 +104,7 @@ nextTeaser();
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 // PIP runs across the foot of the teaser once it has finished assembling.
 if (!reduced) addEventListener('load', () => setTimeout(() => {
-  import('./courier.js?v=5')
+  import('./courier.js?v=7')
     .then(({runCourier}) => runCourier(document.getElementById('courier')))
     .catch(e => console.warn('courier skipped', e));
 }, 600));

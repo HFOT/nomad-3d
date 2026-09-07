@@ -13,22 +13,51 @@ export async function runCourier(host){
  host.appendChild(renderer.domElement);
 
  const scene=new T.Scene();
+ renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
  const camera=new T.PerspectiveCamera(30,W()/H(),.1,60);
  camera.position.set(0,.70,3.6);camera.lookAt(0,.50,0);
  scene.add(new T.HemisphereLight(0xbcd2dd,0x1a2018,1.5));
- const key=new T.DirectionalLight(0xffe2b0,1.5);key.position.set(-3,4,3);scene.add(key);
+ const key=new T.DirectionalLight(0xffe2b0,1.5);key.position.set(-3,4,3);
+ key.castShadow=true;key.shadow.mapSize.set(1024,1024);
+ const shadowCam=key.shadow.camera;shadowCam.left=-5;shadowCam.right=5;shadowCam.top=4;shadowCam.bottom=-4;shadowCam.near=.5;shadowCam.far=14;
+ key.shadow.bias=-.0012;
+ scene.add(key);
+ // An invisible floor that catches the shadow: without it PIP just grows and
+ // shrinks with no sense of standing anywhere.
+ const floor=new T.Mesh(new T.PlaneGeometry(40,40),new T.ShadowMaterial({opacity:.42}));
+ floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
  const rim=new T.DirectionalLight(0x8fd8f0,.8);rim.position.set(4,2,-3);scene.add(rim);
 
  const pip=buildMouse();
  // The mixer owns pip.root's transform, so steering happens on a carrier
  // group above it.
  const carrier=new T.Group();carrier.add(pip.root);scene.add(carrier);
+ pip.root.traverse(o=>{if(o.isMesh)o.castShadow=true});
 
- const bounds=()=>{
-  const halfW=Math.tan(camera.fov*Math.PI/360)*camera.position.z*camera.aspect;
-  return {x:halfW*.80,near:.7,far:-1.8};
+ // How much room there is at a given depth: nearer to the camera the frame is
+ // narrower in world units and the head reaches higher, so PIP is kept further
+ // in. Without this it clips the edges of the lane whenever it comes forward.
+ const HEAD=1.5,FOOT=-.1;
+ const roomAt=z=>{
+  const dist=camera.position.z-z;
+  const halfH=Math.tan(camera.fov*Math.PI/360)*dist;
+  const halfW=halfH*camera.aspect;
+  // Keep the whole body inside the frame: the shot must cover foot to head.
+  const fits=halfH*2>=(HEAD-FOOT)*1.12;
+  return {halfW,fits};
  };
- const pick=()=>{const b=bounds();return new T.Vector3((Math.random()*2-1)*b.x,0,b.far+Math.random()*(b.near-b.far))};
+ const nearestZ=()=>{
+  // Walk back from the camera until the full body fits in frame.
+  let z=camera.position.z-1;
+  while(z>-3&&!roomAt(z).fits)z-=.1;
+  return z-.15;
+ };
+ const pick=()=>{
+  const far=-1.8,near=Math.min(.7,nearestZ());
+  const z=far+Math.random()*Math.max(.2,near-far);
+  const x=(Math.random()*2-1)*Math.max(.3,roomAt(z).halfW-.75);
+  return new T.Vector3(x,0,z);
+ };
  let target=pick(),heading=Math.PI/2,dash=0,dashTimer=3+Math.random()*4,t=0;
  carrier.position.copy(pick());
 
@@ -66,6 +95,10 @@ export async function runCourier(host){
   step.copy(target).sub(carrier.position);
   const distance=step.length();
   if(distance<.25){target=pick();}
+  else if(Math.abs(carrier.position.x)>roomAt(carrier.position.z).halfW-.7){
+   // The frame narrowed under it (a resize, or it drifted forward): pick again.
+   target=pick();
+  }
   else{
    step.divideScalar(distance);
    carrier.position.addScaledVector(step,(dash>0?3.4:1.5)*dt);
