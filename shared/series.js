@@ -83,4 +83,16 @@ export const SERIES = [
     tagline: '小さな一歩が、世界をつなぐ。',
     accent: '#e2705f',
   },
+  {
+    id: 'nox',
+    // Placeholder crop until preview.png is captured; tuned by eye afterwards.
+    crop: {x: 440, y: 200, w: 560, h: 747},
+    no: '09',
+    name: 'NOX',
+    role: 'PROOF BEARER',
+    eyebrow: 'PROVE IT. DON\'T SHOW IT.',
+    title: '夜をまとう、証し人。',
+    tagline: '見せない。それでも、証せる。',
+    accent: '#939bf0',
+  },
 ];
