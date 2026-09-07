@@ -1,0 +1,11 @@
+import {chromium} from 'playwright';
+const browser=await chromium.launch();
+const context=await browser.newContext({viewport:{width:1920,height:1080},recordVideo:{dir:'record-out',size:{width:1920,height:1080}}});
+const page=await context.newPage();
+await page.goto('http://127.0.0.1:8846/?record=1&rv=1');
+await page.waitForFunction('window.__cinemaDone===true',null,{timeout:240000});
+await page.waitForTimeout(1800);
+const video=page.video();
+await context.close();
+console.log('VIDEO:'+await video.path());
+await browser.close();

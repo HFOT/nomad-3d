@@ -34,13 +34,23 @@ export class Score{
 const IMG={w:1600,h:1100};
 const framed=c=>{const zoom=c.zoom??1,w=c.crop.w/zoom,h=c.crop.h/zoom;return {w,h,x:c.crop.x+(c.crop.w-w)/2,y:c.crop.y+(c.crop.h-h)/2}};
 const byId=id=>SERIES.find(c=>c.id===id);
+// What each carakuri IS in Cardano terms: the mode tag and a one-line reading.
+const MODES={
+ nomad:{mode:'HOLDER',desc:'ADAを持ち、灯りを運ぶ旅人'},
+ ward:{mode:'SPO / RELAY',desc:'ブロックを伝える中継網の番人'},
+ quorum:{mode:'DREP',desc:'委任された投票力を蓄える書記官'},
+ lex:{mode:'CC',desc:'憲法との整合を審査する灯守'},
+ catalyst:{mode:'CATALYST',desc:'コミュニティ資金で築く実施者'},
+ treasury:{mode:'TREASURY',desc:'DRepの承認で動く国庫の器'},
+};
 
 // The film: full-screen letterboxed shots. Text cards from the story section
 // are intercut with character shots that drift like camera moves. The cold
 // grade and the sunken score arrive together in act two.
 // NOTE: the storyboard indexes #story .s-line by position — if story lines
 // are added or reordered, adjust the interleave below.
-export function cinema(score,onDone){
+export function cinema(score,onDone,opts={}){
+ const record=!!opts.record;
  const lines=[...document.querySelectorAll('#story .s-line')];
  const text=i=>({type:'text',el:lines[i]});
  const img=(id,grade,cap)=>({type:'img',c:byId(id),grade,cap});
@@ -64,7 +74,7 @@ export function cinema(score,onDone){
  ].filter(s=>s.type!=='text'||s.el);
  // Build the screen.
  const room=document.createElement('div');room.id='cinema';
- room.innerHTML='<div class="c-bar c-top"></div><div class="c-bar c-bottom"></div><div class="c-skip">クリックでスキップ</div>';
+ room.innerHTML='<div class="c-bar c-top"></div><div class="c-bar c-bottom"></div>'+(record?'':'<div class="c-skip">クリックでスキップ</div>');
  document.body.append(room);
  requestAnimationFrame(()=>room.classList.add('on'));
  let cancelled=false,timer=null,current=null;
@@ -83,12 +93,13 @@ export function cinema(score,onDone){
   }else{
    const f=framed(shot.c);
    const grades=shot.grade.split(' ').map(g=>'g-'+g).join(' ');
-   layer.innerHTML=`<figure class="c-frame ${grades}"><div class="c-crop"><img src="./${shot.c.id}/preview.png" alt="" style="width:${(IMG.w/f.w*100).toFixed(2)}%;left:${(-f.x/f.w*100).toFixed(2)}%;top:${(-f.y/f.h*100).toFixed(2)}%"></div><figcaption><b>${shot.c.no}</b> ${shot.c.name}</figcaption></figure>`;
+   const m=MODES[shot.c.id];
+   layer.innerHTML=`<figure class="c-frame ${grades}"><div class="c-crop"><img src="./${shot.c.id}/preview.png" alt="" style="width:${(IMG.w/f.w*100).toFixed(2)}%;left:${(-f.x/f.w*100).toFixed(2)}%;top:${(-f.y/f.h*100).toFixed(2)}%"></div><figcaption><span class="c-who"><b>${shot.c.no}</b> ${shot.c.name}<i class="c-mode">MODE: ${m.mode}</i></span><span class="c-desc">${m.desc}</span></figcaption></figure>`;
   }
   room.append(layer);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
    layer.classList.add('show');
-   if(current){const old=current;old.classList.remove('show');setTimeout(()=>old.remove(),1400);}
+   if(current){const old=current;old.classList.remove('show');setTimeout(()=>old.remove(),900);}
    current=layer;
   }));
  }
@@ -103,16 +114,27 @@ export function cinema(score,onDone){
  };
  const onSkip=()=>finish(true);
  const onKey=e=>{if(e.key==='Escape'||e.key===' ')finish(true)};
- room.addEventListener('click',onSkip);
- addEventListener('keydown',onKey);
+ if(!record){room.addEventListener('click',onSkip);addEventListener('keydown',onKey);}
+ // For a rendered film the reel ends on a title card and fades to black
+ // instead of landing on the gallery.
+ const endCard=()=>{
+  const layer=document.createElement('div');layer.className='c-shot';
+  layer.innerHTML='<div class="c-text c-title">CARAKURI<span>灯りを運ぶ、6体のからくり</span><span class="c-url">hfot.github.io/nomad-3d</span></div>';
+  room.append(layer);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{layer.classList.add('show');if(current){const old=current;old.classList.remove('show');setTimeout(()=>old.remove(),900);}current=layer;}));
+  setTimeout(()=>{
+   current.classList.remove('show');
+   setTimeout(()=>{window.__cinemaDone=true;onDone&&onDone(false);},1800);
+  },4200);
+ };
  let i=0;
  const step=()=>{
   if(cancelled)return;
-  if(i>=shots.length){finish(false);return;}
+  if(i>=shots.length){if(record)endCard();else finish(false);return;}
   const shot=shots[i++];
   score.setMood(moodOf(shot));
   render(shot);
-  const hold=shot.type==='title'?3000:shot.type==='img'?3000:2400+shot.el.textContent.length*52;
+  const hold=shot.type==='title'?2300:shot.type==='img'?2500:1500+shot.el.textContent.length*34;
   timer=setTimeout(step,hold);
  };
  step();
