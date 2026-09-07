@@ -31,14 +31,36 @@ export function buildNox(){
    const x=cloakBase[i*3],y=cloakBase[i*3+1],z=cloakBase[i*3+2];
    const f=Math.pow(1-(y-hemY)/(topY-hemY),2);// strongest at the hem, still at the shoulders
    const a=Math.atan2(x,z);
+   // Two travelling waves plus a slower swell: the hem should ripple like cloth, not wobble like jelly.
    pos.setXYZ(i,
-    x+Math.sin(3*a+t*2.4)*.028*f*(.4+power),
-    y+Math.sin(2*a-t*1.7)*.012*f*(.3+power),
-    z-f*f*.15*power+Math.cos(2*a-t*1.9)*.02*f*(.4+power));
+    x+(Math.sin(3*a+t*2.4)*.042+Math.sin(5*a-t*3.7)*.018)*f*(.45+power),
+    y+(Math.sin(2*a-t*1.7)*.020+Math.sin(4*a+t*2.9)*.010)*f*(.35+power),
+    z-f*f*.15*power+(Math.cos(2*a-t*1.9)*.032+Math.cos(4*a+t*3.1)*.013)*f*(.45+power));
   }
   pos.needsUpdate=true;cloakGeo.computeVertexNormals();
  }
  waveCloak(0,0);
+
+ // A loose cape hangs from the shoulders and streams behind the figure — animated
+ // vertex by vertex like PIP's scarf, so the cloth genuinely billows.
+ const capeGeo=new T.PlaneGeometry(1,1,12,48);
+ const cape=m(body,capeGeo,night);cape.frustumCulled=false;cape.name='NoxCape';
+ const capePos=capeGeo.attributes.position;
+ function animateCape(t,power){
+  for(let row=0;row<=48;row++)for(let col=0;col<=12;col++){
+   const u=row/48,w=col/12-.5;
+   const width=.32*(1+.60*u);
+   const flutter=Math.sin(u*9-t*3.3)*u*u;
+   // The top edge wraps the shoulders (edges curl forward); in a drift the whole
+   // sheet lifts and streams behind the figure instead of hanging straight down.
+   const x=w*width+Math.sin(u*7-t*2.6+w*2)*.06*u*(.35+power);
+   const y=.37-u*.94*(1-power*.42)+flutter*.06*(.3+power)+w*w*.07*u;
+   const z=-.15-Math.cos(w*Math.PI)*.06*(1-u*.5)-u*(.08+power*.85)-Math.sin(u*11-t*4.1)*.035*u*(.3+power);
+   capePos.setXYZ(row*13+col,x,y,z);
+  }
+  capePos.needsUpdate=true;capeGeo.computeVertexNormals();
+ }
+ animateCape(0,0);
 
  // Hood: an open shell over a pocket of darkness. Only the mask inside catches light.
  const head=rig.head=g(body,'NoxHead',0,.52,.01);
@@ -48,9 +70,9 @@ export function buildNox(){
  ball(head,voidMat,0,-.005,.0,.15,.17,.12);// darkness inside the hood
  // Mask: featureless porcelain, noh proportions. Two narrow slits of light are the only face.
  const mask=g(head,'NoxMask',0,.005,.09);mask.rotation.x=-.10;
- ball(mask,porcelain,0,0,0,.088,.12,.038);
+ ball(mask,porcelain,0,0,0,.094,.106,.040);
  for(const s of [-1,1]){
-  const slit=m(mask,new T.BoxGeometry(.042,.0042,.008),eyeMat,s*.040,.012,.035);
+  const slit=m(mask,new T.BoxGeometry(.042,.0042,.008),eyeMat,s*.040,.010,.036);
   slit.rotation.z=s*.10;slit.rotation.y=s*.30;slit.castShadow=false;
  }
 
@@ -67,10 +89,14 @@ export function buildNox(){
  cyl(lantern,brass,0,.08,0,.012,.012,.14);// hanger stem up to the right hand
  ring(lantern,brass,0,.045,0,.030,.006);
  cyl(lantern,brass,0,0,0,.075,.082,.025);
+ // Louvered shutters: each slat pivots like a blind, so the lantern breathes —
+ // it opens, spills its light, then hides it again.
+ const slats=[];
  for(let j=0;j<7;j++){
   const a=j/7*Math.PI*2;
-  const slat=m(lantern,new T.BoxGeometry(.052,.170,.012),dark,Math.sin(a)*.066,-.098,Math.cos(a)*.066);
-  slat.rotation.y=a;
+  const pivot=g(lantern,'NoxSlat'+j,Math.sin(a)*.066,-.098,Math.cos(a)*.066);pivot.rotation.y=a;
+  m(pivot,new T.BoxGeometry(.052,.170,.012),dark,0,0,0);
+  slats.push(pivot);
  }
  const flame=ball(lantern,amber,0,-.098,0,.047);flame.castShadow=false;
  const lampLight=new T.PointLight(0xffa324,.5,1.6);lampLight.position.set(0,-.098,0);lantern.add(lampLight);
@@ -113,8 +139,14 @@ export function buildNox(){
  return{root,rig,clips,tick(t,motion='Idle',proof=0){
   boost=T.MathUtils.lerp(boost,motion==='Drift'?1:.18,.08);
   waveCloak(t,boost);
-  lampLight.intensity=.45+.15*Math.sin(t*11)+.08*Math.sin(t*23)+proof*.9;
-  amber.emissiveIntensity=1.8+.5*Math.sin(t*13)+proof*1.6;
+  animateCape(t,boost);
+  // The lantern breathes on its own slow cycle: closed most of the time,
+  // then the louvers swing open and the light spills out. A proof forces it open.
+  const open=Math.max(Math.pow(Math.max(0,Math.sin(t*.45)),3),proof);
+  slats.forEach((slat,j)=>{slat.rotation.y=j/7*Math.PI*2+open*1.1;});
+  const flicker=.15*Math.sin(t*11)+.08*Math.sin(t*23);
+  lampLight.intensity=.35+flicker+open*1.5;
+  amber.emissiveIntensity=1.5+.4*Math.sin(t*13)+open*2.6;
   glow.emissiveIntensity=2.0+.5*Math.sin(t*1.7)+proof*1.2;
   eyeMat.emissiveIntensity=1.4+.35*Math.sin(t*1.7)+proof*1.0;
   for(const {mote,r,h,phase,speed} of motes){
