@@ -8,7 +8,7 @@ export function buildHydra(){
  const dark=new T.MeshStandardMaterial({color:0x0c0e13,metalness:.6,roughness:.4});
  const flameMat=new T.MeshStandardMaterial({color:0xffd7cc,emissive:0xff3b30,emissiveIntensity:2.5});
  const trailMat=new T.MeshStandardMaterial({color:0xff8d80,emissive:0xe8384f,emissiveIntensity:1.8,transparent:true,opacity:.55,depthWrite:false});
- const glass=new T.MeshPhysicalMaterial({color:0x1a0d0f,roughness:.1,metalness:0,transmission:.85,thickness:.04});
+ const glass=new T.MeshPhysicalMaterial({color:0xffffff,roughness:.08,metalness:0,transmission:.92,thickness:.02});
  const chamberMat=new T.MeshStandardMaterial({color:0xffe3df,emissive:0xff3b30,emissiveIntensity:.3});
  const eyeMat=new T.MeshStandardMaterial({color:0xd85560,emissive:0xe8384f,emissiveIntensity:1.5});
  function g(p,name,x=0,y=0,z=0){const o=new T.Group();o.name=name;o.position.set(x,y,z);p.add(o);return o;}
@@ -31,7 +31,7 @@ export function buildHydra(){
  cyl(head,dark,0,-.02,0,.10,.06);
  ball(head,porcelain,0,.11,0,.20,.165,.175);
  for(const s of [-1,1]){
-  const slit=m(head,new T.BoxGeometry(.05,.006,.008),eyeMat,s*.075,.115,.168);
+  const slit=m(head,new T.BoxGeometry(.05,.007,.016),eyeMat,s*.072,.10,.170);
   slit.rotation.z=s*.08;slit.rotation.y=s*.2;slit.castShadow=false;
  }
  box(head,dark,0,.05,.16,.05,.01,.01,.004);
@@ -62,7 +62,7 @@ export function buildHydra(){
  ball(armR,dark,.03,-.15,.07,.04);
  link(armR,armor,[.03,-.15,.07],[.02,-.24,.16],.038,.032);
  // The cannon: brass barrel out of a black receiver, glass charge chamber on top.
- const gun=g(armR,'LightCannon',.02,-.26,.18);
+ const gun=g(armR,'LightCannon',.02,-.26,.18);gun.rotation.x=-.35;
  box(gun,dark,0,-.05,-.02,.032,.08,.045,.008);
  box(gun,armor,0,.01,.04,.06,.065,.19,.014);
  cyl(gun,brass,0,.02,.21,.020,.26,'z');
@@ -83,10 +83,10 @@ export function buildHydra(){
  for(let j=0;j<5;j++){
   const a=(j-2)*.52;boomBase.push(a);
   const boom=rig['boom'+j]=g(body,'Boom'+j,0,.16,-.22);boom.rotation.z=a;
-  link(boom,dark,[0,0,0],[0,.20,-.03],.020,.016);
-  ball(boom,brass,0,.20,-.03,.022);
-  link(boom,dark,[0,.20,-.03],[0,.40,-.05],.015,.012);
-  const lantern=g(boom,'HeadLantern'+j,0,.47,-.05);lantern.rotation.z=-a;// lanterns hang level however the boom fans
+  link(boom,dark,[0,0,0],[0,.30,-.04],.020,.015);
+  ball(boom,brass,0,.30,-.04,.022);
+  link(boom,dark,[0,.30,-.04],[0,.58,-.06],.014,.011);
+  const lantern=g(boom,'HeadLantern'+j,0,.66,-.06);lantern.rotation.z=-a;// lanterns hang level however the boom fans
   cyl(lantern,brass,0,.065,0,.042,.022);ball(lantern,brass,0,.082,0,.012,.015,.012);
   cyl(lantern,brass,0,-.065,0,.046,.022);
   cyl(lantern,glass,0,0,0,.044,.11);
@@ -94,12 +94,12 @@ export function buildHydra(){
   // The flame is a spinner: a hot core with three tilted blades. tick() spins it fast
   // enough to read as a vortex; the horizontal trail ring is the after-image.
   const spinner=g(lantern,'FlameSpinner'+j,0,0,0);
-  ball(spinner,flameMat,0,0,0,.020).castShadow=false;
+  ball(spinner,flameMat,0,0,0,.024).castShadow=false;
   for(let k=0;k<3;k++){
-   const blade=ball(spinner,flameMat,Math.sin(k*2.1)*.024,0,Math.cos(k*2.1)*.024,.008,.032,.018);
+   const blade=ball(spinner,flameMat,Math.sin(k*2.1)*.026,0,Math.cos(k*2.1)*.026,.010,.040,.022);
    blade.rotation.y=k*2.1;blade.rotation.z=.5;blade.castShadow=false;
   }
-  const trail=ring(lantern,trailMat,0,0,0,.030,.0045,'y');trail.castShadow=false;
+  const trail=ring(lantern,trailMat,0,0,0,.033,.005,'y');trail.castShadow=false;
   flameSpinners.push(spinner);trailRings.push(trail);flameAnchors.push(lantern);
  }
 
