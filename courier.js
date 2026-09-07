@@ -14,8 +14,10 @@ export async function runCourier(host){
 
  const scene=new T.Scene();
  renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;
- const camera=new T.PerspectiveCamera(30,W()/H(),.1,60);
- camera.position.set(0,.70,3.6);camera.lookAt(0,.50,0);
+ // A longer lens, further back: at 30° from 3.6 units the perspective was
+ // strong enough that the running lean read as a squat, wide body.
+ const camera=new T.PerspectiveCamera(22,W()/H(),.1,60);
+ camera.position.set(0,.92,5.0);camera.lookAt(0,.62,0);
  scene.add(new T.HemisphereLight(0xbcd2dd,0x1a2018,1.5));
  const key=new T.DirectionalLight(0xffe2b0,1.5);key.position.set(-3,4,3);
  key.castShadow=true;key.shadow.mapSize.set(1024,1024);
@@ -58,7 +60,9 @@ export async function runCourier(host){
  const pick=from=>{
   const far=-1.8,near=Math.min(.7,nearestZ());
   const z=T.MathUtils.clamp((from?from.z:0)+(Math.random()*2-1)*.7,far,near);
-  const limit=Math.max(.3,roomAt(z).halfW-.75);
+  // Stay well inside the frame: perspective distorts most toward the edges,
+  // and a turn made out there is where the body looks stretched.
+  const limit=Math.max(.3,(roomAt(z).halfW-.75)*.62);
   const here=from?from.x:0;
   // Cross to the other side of the lane, so the walk reads as a run past.
   const side=here>0?-1:1;
@@ -109,7 +113,7 @@ export async function runCourier(host){
   step.copy(target).sub(carrier.position);
   const distance=step.length();
   if(distance<.25){target=pick(carrier.position);}
-  else if(Math.abs(carrier.position.x)>roomAt(carrier.position.z).halfW-.7){
+  else if(Math.abs(carrier.position.x)>(roomAt(carrier.position.z).halfW-.75)*.78){
    // The frame narrowed under it (a resize, or it drifted forward): pick again.
    target=pick(carrier.position);
   }
