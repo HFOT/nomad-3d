@@ -52,19 +52,33 @@ export async function runCourier(host){
   while(z>-3&&!roomAt(z).fits)z-=.1;
   return z-.15;
  };
- const pick=()=>{
+ // Marks always sit well to one side of where PIP is now, and never far in
+ // depth: walking straight at the camera turns it face-on, which is its widest
+ // and least flattering silhouette. Kept mostly lateral, it stays in profile.
+ const pick=from=>{
   const far=-1.8,near=Math.min(.7,nearestZ());
-  const z=far+Math.random()*Math.max(.2,near-far);
-  const x=(Math.random()*2-1)*Math.max(.3,roomAt(z).halfW-.75);
+  const z=T.MathUtils.clamp((from?from.z:0)+(Math.random()*2-1)*.7,far,near);
+  const limit=Math.max(.3,roomAt(z).halfW-.75);
+  const here=from?from.x:0;
+  // Cross to the other side of the lane, so the walk reads as a run past.
+  const side=here>0?-1:1;
+  const x=side*(limit*(.35+Math.random()*.65));
   return new T.Vector3(x,0,z);
  };
- let target=pick(),heading=Math.PI/2,dash=0,dashTimer=3+Math.random()*4,t=0;
- carrier.position.copy(pick());
+ let target=pick(null),heading=Math.PI/2,dash=0,dashTimer=3+Math.random()*4,t=0;
+ carrier.position.copy(pick(null));
 
  const clock=new T.Clock();
  let running=true;
- const resize=()=>{renderer.setSize(W(),H());camera.aspect=W()/H();camera.updateProjectionMatrix()};
+ const resize=()=>{
+  if(!W()||!H())return;
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(W(),H());
+  camera.aspect=W()/H();camera.updateProjectionMatrix();
+ };
  addEventListener('resize',resize);
+ // Zoom and layout shifts do not always fire a window resize.
+ new ResizeObserver(resize).observe(host);
  // Nothing to animate while the tab is hidden or the section is scrolled away.
  const io=new IntersectionObserver(([e])=>{running=e.isIntersecting},{threshold:0});
  io.observe(host);
@@ -94,10 +108,10 @@ export async function runCourier(host){
   // Head for the current mark; on arrival, choose another anywhere in the lane.
   step.copy(target).sub(carrier.position);
   const distance=step.length();
-  if(distance<.25){target=pick();}
+  if(distance<.25){target=pick(carrier.position);}
   else if(Math.abs(carrier.position.x)>roomAt(carrier.position.z).halfW-.7){
    // The frame narrowed under it (a resize, or it drifted forward): pick again.
-   target=pick();
+   target=pick(carrier.position);
   }
   else{
    step.divideScalar(distance);
