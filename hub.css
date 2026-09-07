@@ -179,3 +179,5 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 .arch-link .a-role{display:block;font-size:9px;letter-spacing:2px;color:#9fa79d}
 .arch-link p{font-size:11px;line-height:1.7;color:#9fa79d;margin:10px 0 0}
 @media(max-width:700px){.arch-link{flex-basis:100%}}
+#worldnav{display:flex;justify-content:center}
+.world-link{flex-basis:100%;max-width:856px}
