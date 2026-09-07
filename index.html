@@ -1,10 +1,26 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,"><meta name="theme-color" content="#1c211e"><title>CARAKURI — 灯りを運ぶ6体</title><meta name="description" content="NOMAD・WARD・QUORUM・LEX・CATALYST・TREASURY。ブラウザで組み立てて動かせる6体の3Dキャラクター。"><link rel="stylesheet" href="hub.css"></head>
 <body>
+<section id="teaser">
+  <div id="motes" aria-hidden="true"></div>
+  <div class="t-copy">
+    <div class="t-eyebrow"><i></i> HFOT PRESENTS · BY CORN</div>
+    <h1 class="t-wordmark" id="t-wordmark">CARAKURI</h1>
+    <p class="t-lead">灯りを運ぶ、6体のからくり。</p>
+    <p class="t-sub">迷わないための旅人。チェーンを守る番人。声を蓄える書記官。<br>憲法の灯守。資金で築く者。そして、国庫の器。<br>すべてブラウザの中で組み上がり、動き出す。</p>
+    <button id="enter">ENTER ↓</button>
+  </div>
+  <div class="t-stage">
+    <div class="t-shot" id="t-shot"><div class="t-vignette"></div></div>
+    <div class="t-caption" id="t-caption"></div>
+  </div>
+</section>
+<div id="gallery">
 <header><div class="wordmark">CARAKURI<span>SERIES / 01–06 · BY CORN</span></div></header>
 <section class="intro"><div class="eyebrow"><i></i> SIX OF A KIND</div><h1>灯りを運ぶ、6体。</h1><p>それぞれが自分の役目を持っている。選んで、動かして、回してみてください。</p></section>
 <main id="grid" aria-label="キャラクターの一覧"></main>
 <footer><span>クリックで3Dビューアへ <b>·</b> 各キャラはブラウザ上で組み立てられます</span></footer>
+</div>
 <script type="module">
 import { SERIES } from './shared/series.js';
 const grid = document.getElementById('grid');
@@ -28,5 +44,48 @@ grid.innerHTML = SERIES.map(c => {
   </div>
 </a>`;
 }).join('');
+
+// ---- Teaser: the wordmark lights up letter by letter, embers drift, and the
+// six carakuri step into the lantern light one after another.
+const wm = document.getElementById('t-wordmark');
+wm.innerHTML = [...wm.textContent].map((ch, i) => `<span style="--i:${i}">${ch}</span>`).join('');
+const motes = document.getElementById('motes');
+for (let i = 0; i < 18; i++) {
+  const m = document.createElement('i');
+  const cyan = Math.random() < .3;
+  m.style.cssText = `left:${Math.random() * 100}%;bottom:${-10 + Math.random() * 50}%;animation-duration:${9 + Math.random() * 14}s;animation-delay:${-Math.random() * 20}s;--mc:${cyan ? '#7fd8f0' : '#ffd98c'};--ms:${cyan ? '#3ec2ff' : '#ffc564'};transform:scale(${.5 + Math.random() * .9})`;
+  motes.append(m);
+}
+const shot = document.getElementById('t-shot');
+const caption = document.getElementById('t-caption');
+const layers = [new Image(), new Image()];
+for (const img of layers) { img.alt = ''; shot.prepend(img); }
+let front = 0, ti = -1;
+function showTeaser(idx) {
+  const c = SERIES[idx], f = framed(c);
+  const next = layers[1 - front], curr = layers[front];
+  next.src = `./${c.id}/preview.png`;
+  next.style.width = (IMG.w / f.w * 100).toFixed(2) + '%';
+  next.style.left = (-f.x / f.w * 100).toFixed(2) + '%';
+  next.style.top = (-f.y / f.h * 100).toFixed(2) + '%';
+  next.classList.remove('lit');
+  next.style.opacity = 0;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    next.style.opacity = 1;
+    next.classList.add('lit');
+    curr.style.opacity = 0;
+    curr.classList.remove('lit');
+  }));
+  caption.innerHTML = `<b>${c.no}</b><span class="t-name" style="color:${c.accent}">${c.name}</span><span class="t-eye">${c.eyebrow}</span><span class="t-title">${c.title}</span>`;
+  caption.classList.remove('show');
+  requestAnimationFrame(() => requestAnimationFrame(() => caption.classList.add('show')));
+  front = 1 - front;
+}
+function nextTeaser() { ti = (ti + 1) % SERIES.length; showTeaser(ti); }
+nextTeaser();
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (!reduced) setInterval(nextTeaser, 4600);
+shot.addEventListener('click', nextTeaser);
+document.getElementById('enter').onclick = () => document.getElementById('gallery').scrollIntoView({behavior: reduced ? 'auto' : 'smooth'});
 </script>
 </body></html>
