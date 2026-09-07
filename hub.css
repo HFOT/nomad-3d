@@ -164,9 +164,9 @@ a:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
 .g-cold .c-live video{filter:brightness(.68) saturate(.35) hue-rotate(165deg)}
 
 /* PIP's lane: a strip across the foot of the teaser, behind the copy. */
-#courier{position:absolute;left:0;right:0;bottom:0;height:min(30vh,240px);z-index:0;opacity:0;transition:opacity 1.6s ease;pointer-events:none}
+#courier{position:absolute;left:0;right:0;bottom:0;height:min(46vh,400px);z-index:0;opacity:0;transition:opacity 1.6s ease;pointer-events:none}
 #courier.ready{opacity:1}
 #courier canvas{display:block;width:100%;height:100%}
 .t-copy,.t-stage{z-index:1}
-@media(max-width:900px){#courier{height:min(22vh,170px)}}
+@media(max-width:900px){#courier{height:min(30vh,240px)}}
 @media(prefers-reduced-motion:reduce){#courier{display:none}}

@@ -14,13 +14,13 @@ export async function runCourier(host){
 
  const scene=new T.Scene();
  const camera=new T.PerspectiveCamera(30,W()/H(),.1,60);
- camera.position.set(0,.75,7.4);camera.lookAt(0,.55,0);
+ camera.position.set(0,.62,4.2);camera.lookAt(0,.52,0);
  scene.add(new T.HemisphereLight(0xbcd2dd,0x1a2018,1.5));
  const key=new T.DirectionalLight(0xffe2b0,1.5);key.position.set(-3,4,3);scene.add(key);
  const rim=new T.DirectionalLight(0x8fd8f0,.8);rim.position.set(4,2,-3);scene.add(rim);
 
  const pip=buildMouse();
- pip.root.scale.setScalar(.62);
+ pip.root.scale.setScalar(1);
  scene.add(pip.root);
 
  // Lane limits in world units, derived from the camera frustum at z=0.
