@@ -48,4 +48,15 @@ export const SERIES = [
     tagline: '憲法を携え、判断の基準を守る。',
     accent: '#e0cb87',
   },
+  {
+    id: 'catalyst',
+    crop: {x: 489, y: 371, w: 443, h: 590},
+    no: '05',
+    name: 'CATALYST',
+    role: 'PROJECT BUILDER',
+    eyebrow: 'FUNDED TO BUILD',
+    title: '築く者。',
+    tagline: '受け取った資金が、形になる。',
+    accent: '#e08d4f',
+  },
 ];
