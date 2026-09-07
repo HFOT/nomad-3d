@@ -33,7 +33,7 @@ const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCan
 // dark plane with a drifting texture reads as canal at this distance for free.
 const waterMat=new T.MeshStandardMaterial({color:0x0a1a22,metalness:.75,roughness:.28,normalMap:normal,normalScale:new T.Vector2(.6,.6)});
 normal.repeat.set(6,36);
-const water=new T.Mesh(new T.PlaneGeometry(20,120),waterMat);water.rotation.x=-Math.PI/2;water.position.set(30,-.05,0);scene.add(water);
+const water=new T.Mesh(new T.PlaneGeometry(16,120),waterMat);water.rotation.x=-Math.PI/2;water.position.set(38,-.05,0);scene.add(water);
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
@@ -43,13 +43,42 @@ for(let j=0;j<5;j++){
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
  const light=new T.PointLight(0xffa324,.35,6);light.position.set(x,2.6,z);scene.add(light);
 }
-// The two buildings. The gate opens onto the road; the depot sits by the canal.
-const gate=buildGate();gate.root.position.set(0,0,24);gate.root.rotation.y=Math.PI;gate.root.scale.setScalar(1.6);scene.add(gate.root);
-const depot=buildDepot();depot.root.position.set(14,0,-12);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+// Six watch gates ring the town, one per relay-health signal, each burning in
+// that signal's colour. Fronts face outward: the wall greets whoever arrives.
+const SIGNALS=[
+ {name:'到達不足',    color:0xe8384f},
+ {name:'IP共有',      color:0xf0a848},
+ {name:'KES同期',     color:0xffe14a},
+ {name:'Tip未同期',   color:0x4ae08a},
+ {name:'endpoint共有',color:0x4ad8f0},
+ {name:'冗長性不足',  color:0xb48af0},
+];
+function tintGate(g,signal){
+ const base=new T.Color(signal.color);
+ g.root.traverse(o=>{
+  if(!o.isMesh||!o.material.emissive||!o.material.emissive.getHex())return;
+  const m=o.material;// flame clones: the translucent shell and the bright core
+  if(m.transparent){m.color.copy(base).lerp(new T.Color(0xffffff),.35);m.emissive.copy(base);}
+  else{m.color.copy(base).lerp(new T.Color(0xffffff),.65);m.emissive.copy(base).lerp(new T.Color(0xffffff),.25);}
+ });
+ for(const l of g.lights)l.color.set(signal.color);
+}
+const gates=[];
+for(let k=0;k<6;k++){
+ const g=buildGate();
+ const a=Math.PI-k*Math.PI/3,R=25;// north gate first, then clockwise like the radar chart
+ g.root.position.set(Math.sin(a)*R,0,Math.cos(a)*R);
+ g.root.rotation.y=a;
+ g.root.scale.setScalar(1.4);
+ tintGate(g,SIGNALS[k]);
+ scene.add(g.root);gates.push(g);
+}
+const depot=buildDepot();depot.root.position.set(13,0,-10);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(gate.root,t=>gate.tick(t,.016)),optimize(depot.root,t=>depot.tick(t))];
+const baked=[optimize(depot.root,t=>depot.tick(t))];
+for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
 // Click to follow: pick a walker with a ray, keep the target on it while set.
@@ -68,7 +97,7 @@ const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
-  gate.tick(elapsed,dt);depot.tick(elapsed);
+  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
