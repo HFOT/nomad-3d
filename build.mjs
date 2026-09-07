@@ -13,8 +13,13 @@ for(const file of ['hub.css','theater.js','theme.mp3'])await copyFile(path.join(
 await copyFile(path.join(root,'index.html'),path.join(dist,'index.html'));
 await cp(path.join(root,'shared'),path.join(dist,'shared'),{recursive:true});
 
+const built=[];
 for(const id of characters){
   const src=path.join(root,id),out=path.join(dist,id);
+  // A listed character that is not in this checkout (work in progress on
+  // another machine) is skipped instead of failing the whole build.
+  if(!await exists(path.join(src,'index.html'))){console.warn('skipping '+id+': no source in this checkout');continue;}
+  built.push(id);
   await mkdir(out,{recursive:true});
   for(const file of ['viewer.js','model.js','ward.js','style.css','concept.png','preview.png']){
     if(await exists(path.join(src,file)))await copyFile(path.join(src,file),path.join(out,file));
@@ -27,4 +32,4 @@ await cp(path.join(root,'node_modules/three/build'),path.join(dist,'vendor/three
 await cp(path.join(root,'node_modules/three/examples/jsm'),path.join(dist,'vendor/three/examples/jsm'),{recursive:true});
 await copyFile(path.join(root,'node_modules/three/LICENSE'),path.join(dist,'vendor/three/LICENSE'));
 await writeFile(path.join(dist,'.nojekyll'),'');
-console.log('Built static CARAKURI viewer in dist/ ('+characters.join(', ')+')');
+console.log('Built static CARAKURI viewer in dist/ ('+built.join(', ')+')');
