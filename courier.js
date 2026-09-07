@@ -14,18 +14,24 @@ export async function runCourier(host){
 
  const scene=new T.Scene();
  const camera=new T.PerspectiveCamera(30,W()/H(),.1,60);
- camera.position.set(0,.62,4.2);camera.lookAt(0,.52,0);
+ camera.position.set(0,.70,3.6);camera.lookAt(0,.50,0);
  scene.add(new T.HemisphereLight(0xbcd2dd,0x1a2018,1.5));
  const key=new T.DirectionalLight(0xffe2b0,1.5);key.position.set(-3,4,3);scene.add(key);
  const rim=new T.DirectionalLight(0x8fd8f0,.8);rim.position.set(4,2,-3);scene.add(rim);
 
  const pip=buildMouse();
- pip.root.scale.setScalar(1);
- scene.add(pip.root);
+ // The mixer owns pip.root's transform, so steering happens on a carrier
+ // group above it.
+ const carrier=new T.Group();carrier.add(pip.root);scene.add(carrier);
 
- // Lane limits in world units, derived from the camera frustum at z=0.
- const halfWidth=()=>Math.tan(camera.fov*Math.PI/360)*camera.position.z*camera.aspect;
- let dir=1,x=-halfWidth()*.9,t=0,dash=0,dashTimer=4+Math.random()*5;
+ const bounds=()=>{
+  const halfW=Math.tan(camera.fov*Math.PI/360)*camera.position.z*camera.aspect;
+  return {x:halfW*.80,near:.7,far:-1.8};
+ };
+ const pick=()=>{const b=bounds();return new T.Vector3((Math.random()*2-1)*b.x,0,b.far+Math.random()*(b.near-b.far))};
+ let target=pick(),heading=Math.PI/2,dash=0,dashTimer=3+Math.random()*4,t=0;
+ carrier.position.copy(pick());
+
  const clock=new T.Clock();
  let running=true;
  const resize=()=>{renderer.setSize(W(),H());camera.aspect=W()/H();camera.updateProjectionMatrix()};
@@ -34,31 +40,43 @@ export async function runCourier(host){
  const io=new IntersectionObserver(([e])=>{running=e.isIntersecting},{threshold:0});
  io.observe(host);
 
+ const mixer=new T.AnimationMixer(pip.root);
+ const actions={};
+ for(const clip of pip.clips)actions[clip.name]=mixer.clipAction(clip);
+ let motion='Run';
+ const setMotion=name=>{
+  if(name===motion)return;
+  actions[motion]?.fadeOut(.25);
+  actions[name]?.reset().fadeIn(.25).play();
+  motion=name;
+ };
+ actions.Run?.play();
+
+ const step=new T.Vector3();
  renderer.setAnimationLoop(()=>{
   const dt=Math.min(clock.getDelta(),.05);
   if(!running||document.hidden)return;
   t+=dt;
   dashTimer-=dt;
-  if(dashTimer<=0){dash=1.4;dashTimer=5+Math.random()*7;}
+  if(dashTimer<=0){dash=1.6;dashTimer=5+Math.random()*7;}
   if(dash>0)dash-=dt;
-  const motion=dash>0?'Dash':'Run';
-  const speed=dash>0?3.1:1.35;
-  x+=dir*speed*dt;
-  const edge=halfWidth()*.95;
-  if(x>edge){x=edge;dir=-1;}
-  if(x<-edge){x=-edge;dir=1;}
-  pip.root.position.set(x,0,0);
-  // Face the way it runs, with a little lean into the turn-around.
-  pip.root.rotation.y=T.MathUtils.lerp(pip.root.rotation.y,dir>0?Math.PI/2:-Math.PI/2,1-Math.exp(-dt*6));
-  pip.tick(t,motion,0);
-  const clip=pip.clips.find(c=>c.name===motion);
-  if(clip){
-   if(!pip._mixer){pip._mixer=new T.AnimationMixer(pip.root);pip._actions={};}
-   if(!pip._actions[motion]){pip._actions[motion]=pip._mixer.clipAction(clip);}
-   for(const [name,action] of Object.entries(pip._actions))
-    action.enabled=name===motion,action.setEffectiveWeight(name===motion?1:0),action.play();
-   pip._mixer.update(dt);
+  setMotion(dash>0?'Dash':'Run');
+
+  // Head for the current mark; on arrival, choose another anywhere in the lane.
+  step.copy(target).sub(carrier.position);
+  const distance=step.length();
+  if(distance<.25){target=pick();}
+  else{
+   step.divideScalar(distance);
+   carrier.position.addScaledVector(step,(dash>0?3.4:1.5)*dt);
+   // Turn toward the way it is going, the long way never taken.
+   const want=Math.atan2(step.x,step.z);
+   let delta=(want-heading+Math.PI*3)%(Math.PI*2)-Math.PI;
+   heading+=delta*(1-Math.exp(-dt*5));
+   carrier.rotation.y=heading;
   }
+  pip.tick(t,motion,0);
+  mixer.update(dt);
   renderer.render(scene,camera);
  });
  host.classList.add('ready');
