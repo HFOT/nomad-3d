@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';import{makeBuilders}from'./buildings.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -108,11 +108,29 @@ for(let k=0;k<6;k++){
 }
 // Curtain walls close the ring: brick courses and merlons in the gate's stone,
 // spanning each hexagon edge between neighbouring gatehouses.
-// Civic quarter: assembly hall at the head of the approach, vault and archive flanking.
+// Master-plan view: structures that exist as real deployed pages stand solid;
+// everything still to be built renders as a pale ghost, so the remaining work
+// can be read at a glance.
+const ghostMat=new T.MeshStandardMaterial({color:0x9fc6e8,transparent:true,opacity:.15,roughness:.6,metalness:0,depthWrite:false});
+function ghost(root){root.traverse(o=>{if(o.isMesh){o.material=ghostMat;o.castShadow=o.receiveShadow=false;}if(o.isLight)o.intensity=0;});return root;}
+// Floating name labels: warm fire for the real, cold ghost-light for the planned.
+const labelTicks=[];
+function label(text,x,y,z,real,size=1){
+ const c=document.createElement('canvas');c.width=512;c.height=128;const g=c.getContext('2d');
+ g.font='500 52px "Segoe UI","Yu Gothic UI",sans-serif';g.textAlign='center';g.textBaseline='middle';
+ g.shadowColor=real?'#ff8c28':'#4ab6ff';g.shadowBlur=26;
+ g.fillStyle=real?'#ffe2b0':'#cfeaff';g.fillText(text,256,64);g.fillText(text,256,64);
+ const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;
+ const mat=new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false});
+ const sp=new T.Sprite(mat);sp.position.set(x,y,z);sp.scale.set(12*size,3*size,1);scene.add(sp);
+ labelTicks.push(t=>{mat.opacity=.82+.18*Math.sin(t*(real?7:3)+x);});
+}
+// Civic quarter: the REAL delegates assembly at the head of the approach;
+// vault and archive are still plans, so they stand as ghosts.
 const civic=new T.Group();scene.add(civic);
-{const assembly=B.buildHall('assembly');assembly.root.position.set(0,0,-40);civic.add(assembly.root);
- const vault=B.buildHall('vault');vault.root.position.set(-18,0,-28);vault.root.rotation.y=.5;civic.add(vault.root);
- const archive=B.buildHall('archive');archive.root.position.set(18,0,-28);archive.root.rotation.y=-.5;civic.add(archive.root);}
+{const assembly=buildAssembly();assembly.root.scale.setScalar(1.7);assembly.root.position.set(0,0,-40);civic.add(assembly.root);
+ const vault=ghost(B.buildHall('vault').root);vault.position.set(-18,0,-28);vault.rotation.y=.5;civic.add(vault);
+ const archive=ghost(B.buildHall('archive').root);archive.position.set(18,0,-28);archive.rotation.y=-.5;civic.add(archive);}
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();scene.add(shops);
 {let n=0;
@@ -133,6 +151,21 @@ const houses=new T.Group();scene.add(houses);
   const h=B.buildHouse(500+n*37);h.root.position.set(x,0,z);h.root.rotation.y=(n*2.4)%(Math.PI*2);houses.add(h.root);n++;
  }}
 const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
+// Everything not yet deployed as a real page becomes a ghost of the plan.
+ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
+// Names float over each structure — fire for the built, ghost-light for the planned.
+label('大灯台(仮)',0,40,0,false,1.4);
+label('議事堂',0,17,-40,true,1.2);
+label('金庫堂(仮)',-18,13,-28,false);
+label('憲法堂(仮)',18,13,-28,false);
+label('商店街(仮)',7,9,38,false);
+label('裏街道(仮)',-14,7,44,false,.85);
+label('民家(仮)',-30,7,32,false,.85);
+label('民家(仮)',31,7,32,false,.85);
+label('民家(仮)',34,7,-36,false,.85);
+label('鍛冶場(仮)',-34,8,-14,false,.85);
+label('配送所',26,11,-20,true);
+for(let k=0;k<6;k++)label(SIGNALS[k].name+'の門',gatePos[k].x,24,gatePos[k].z,true,1.1);
 function buildWallSegment(len){
  const wall=new T.Group();
  const bh=.8,bd=1.6,rows=12;let seed=13;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -191,7 +224,7 @@ const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
-  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);lighthouse.tick(elapsed);forgeWorks.tick(elapsed);
+  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
