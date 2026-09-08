@@ -21,7 +21,7 @@ function front(){camera.position.set(0,74,224);controls.target.set(0,2,-10);cont
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
-const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:155,bottom:-155});scene.add(sun);
+const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:240,bottom:-155});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.
 const ground=new T.Mesh(new T.PlaneGeometry(560,560),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
@@ -50,11 +50,11 @@ pave(paveMat,0,70,8,116);
 pave(paveMat,0,-70,7,116);
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
-pave(alleyMat,-10.5,51,2.8,16,.22,.08);
-pave(alleyMat,-12.5,36,2.8,16,-.14,.08);
-pave(alleyMat,-11,23,2.8,12,.1,.08);
-pave(alleyMat,-6.5,56,7,2.2,0,.08);
-pave(alleyMat,-6.5,30,7,2.2,0,.08);
+pave(alleyMat,-10.5,115,2.8,16,.22,.08);
+pave(alleyMat,-12.5,100,2.8,16,-.14,.08);
+pave(alleyMat,-11,87,2.8,12,.1,.08);
+pave(alleyMat,-6.5,120,7,2.2,0,.08);
+pave(alleyMat,-6.5,94,7,2.2,0,.08);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
 // A reflective Water pass would render the whole town twice; a normal-mapped
@@ -65,7 +65,7 @@ const water=new T.Mesh(new T.PlaneGeometry(24,400),waterMat);water.rotation.x=-M
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
-for(let j=0;j<10;j++){
+for(let j=0;j<4;j++){// stop at z=87: the great stair owns everything closer
  const x=(j%2?4:-4),z=120-j*11;
  const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,2.6,10),lampMat);pole.position.set(x,1.3,z);pole.castShadow=true;scene.add(pole);
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
@@ -135,7 +135,7 @@ const assemblyB=buildAssembly();
  const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
  }
 // Main-street shops face the paving; shady fronts face the back alley instead.
-const shops=new T.Group();scene.add(shops);
+const shops=new T.Group();shops.position.z=64;scene.add(shops);// the whole street shifts south of the great stair
 {let n=0;
  for(const z of [22,32,42,52]){const sh=B.buildShop(100+n++,false);sh.root.position.set(6.8,0,z);sh.root.rotation.y=-Math.PI/2;shops.add(sh.root);}
  for(const z of [26,38,50]){const sh=B.buildShop(200+n++,false);sh.root.position.set(-6.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
@@ -145,29 +145,29 @@ const shops=new T.Group();scene.add(shops);
 const houses=new T.Group();scene.add(houses);
 {let n=0;
  const clusters=[
-  [[-30,26],[-24,32],[-34,34],[-26,42],[-36,20]],
-  [[26,30],[33,24],[30,38],[38,32],[24,44]],
+  [[-48,26],[-42,32],[-52,34],[-44,42],[-54,20]],
+  [[44,30],[51,24],[48,38],[56,32],[42,44]],
   [[30,-34],[37,-28],[33,-42],[41,-38]],
   [[-26,-38],[-33,-32],[-30,-46]],
  ];
  for(const cluster of clusters)for(const [x,z] of cluster){
   const h=B.buildHouse(500+n*37);h.root.position.set(x,0,z);h.root.rotation.y=(n*2.4)%(Math.PI*2);houses.add(h.root);n++;
  }}
-const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
+const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-52,0,-16);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
 // Everything not yet deployed as a real page becomes a ghost of the plan.
 ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 // Names float over each structure — fire for the built, ghost-light for the planned.
 label('大灯台(仮)',40,40,-22,false,1.4);
 label('議事堂',-44,30,-26,true,1.4);
 label('大金庫',0,26,-52,true,1.2);
-label('憲法の書庫',0,44,0,true,1.4);
-label('商店街(仮)',7,9,38,false);
-label('裏街道(仮)',-14,7,44,false,.85);
-label('民家(仮)',-30,7,32,false,.85);
-label('民家(仮)',31,7,32,false,.85);
+label('憲法の書庫',0,205,0,true,2);
+label('商店街(仮)',7,9,102,false);
+label('裏街道(仮)',-14,7,108,false,.85);
+label('民家(仮)',-48,7,32,false,.85);
+label('民家(仮)',49,7,32,false,.85);
 label('民家(仮)',34,7,-36,false,.85);
-label('鍛冶場(仮)',-34,8,-14,false,.85);
-label('配送所',26,11,-20,true);
+label('鍛冶場(仮)',-52,8,-16,false,.85);
+label('配送所',54,11,-34,true);
 for(let k=0;k<6;k++)label(SIGNALS[k].name+'の門',gatePos[k].x,24,gatePos[k].z,true,1.1);
 function buildWallSegment(len){
  const wall=new T.Group();
@@ -199,10 +199,10 @@ for(let k=0;k<6;k++){
  wallRing.add(seg);
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
-const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+const depot=buildDepot();depot.root.position.set(54,0,-34);depot.root.rotation.y=-1.0;scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
-const archiveB=buildArchive();archiveB.root.scale.setScalar(1.5);scene.add(archiveB.root);// monumental against the 2.4m cast
+const archiveB=buildArchive();archiveB.root.scale.setScalar(4.5);scene.add(archiveB.root);// 200m-class: the town's centre and its brain
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
@@ -285,7 +285,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
   if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
   if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
-  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<260)archiveB.tick(dt*2);
+  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<420)archiveB.tick(dt*2);
   for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
@@ -315,8 +315,9 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
      dnRay.set(new T.Vector3(np.x,pos.y+2.5,np.z),new T.Vector3(0,-1,0));
      const hit=dnRay.intersectObjects(walkables,true)[0];
      const hy=hit?pos.y+2.5-hit.distance:0;
-     if(hy-pos.y<=.75){
-      const dy=(hy-pos.y)*.5;
+     if(hy-pos.y<=1.15){// one 0.77m riser plus climb lag
+      // climb snaps up (long stairs accumulate lag under damping); descent stays smooth
+      const dy=hy>pos.y?Math.min(hy-pos.y,.8):(hy-pos.y)*.5;
       pos.set(np.x,pos.y+dy,np.z);
       camera.position.add(mv);camera.position.y+=dy;
      }
