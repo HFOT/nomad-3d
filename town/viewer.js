@@ -1,5 +1,8 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
 import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';import{makeBuilders}from'./buildings.js';
+import {buildDistrictInfrastructure} from './districts.js';
+import {buildNeighborhood} from './neighborhood.js';
+import {createAssembly,createVault,createDepot,createArchive} from './landmarks.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -14,21 +17,24 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
 const phase=m=>{const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
- try{renderer.render(scene,camera);l?.classList.add('lift');}catch(e){}
+ // Keep the loading overlay responsive without compiling every unbatched
+ // construction mesh. The first actual render uses the finished batches.
  return new Promise(r=>{const d=setTimeout(r,150);requestAnimationFrame(()=>{clearTimeout(d);r();});});};
-const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0055);
-const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
+const scene=new T.Scene();scene.background=new T.Color('#344955');scene.fog=new T.FogExp2('#344955',.0018);
+const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.7,900);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
-function front(){camera.position.set(0,74,224);controls.target.set(0,2,-10);controls.update();}
+function front(){camera.position.set(12,185,248);controls.target.set(0,0,0);controls.update();}
 // The boot watches from the boulevard: a ground camera plus dusk fog keeps
 // construction renders cheap (only nearby structures resolve) and the town
 // reveals itself the way the player will first see it.
 camera.position.set(6,4.2,118);controls.target.set(0,30,0);controls.update();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
-scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
+scene.environmentIntensity=.65;
+scene.add(new T.HemisphereLight(0xe1ecff,0x61503d,1.7));
 const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:160,bottom:-155});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
+sun.shadow.bias=-.00035;sun.shadow.normalBias=.24;sun.intensity=2.6;sun.color.set(0xffd2a0);
 // Ground, road and plaza.
 const ground=new T.Mesh(new T.PlaneGeometry(560,560),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
 // Brick floor fills the whole walled hexagon; the dark earth stays outside.
@@ -52,10 +58,10 @@ floor.rotation.x=-Math.PI/2;floor.position.y=.04;floor.receiveShadow=true;scene.
 const paveMat=new T.MeshStandardMaterial({color:0xd8c7a4,roughness:.92});
 const alleyMat=new T.MeshStandardMaterial({color:0x84786c,roughness:.98});
 function pave(mat,x,z,w,len,ry=0,y=.07){const p=new T.Mesh(new T.BoxGeometry(w,.06,len),mat);p.position.set(x,y,z);p.rotation.y=ry;p.receiveShadow=true;scene.add(p);return p;}
-pave(paveMat,0,70,8,116);
-pave(paveMat,0,-70,7,116);
+// The district module owns all streets; the old two-road scaffold is retired.
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
+ringRoad.visible=false;
 pave(alleyMat,-10.5,79,2.8,16,.22,.08);
 pave(alleyMat,-12.5,64,2.8,16,-.14,.08);
 pave(alleyMat,-11,51,2.8,12,.1,.08);
@@ -101,6 +107,7 @@ function tintGate(g,signal){
 // stone textures are expensive, so they are generated exactly once.
 const WM=gateMaterials();
 const B=makeBuilders(WM);
+const cityWorks=buildDistrictInfrastructure(WM);scene.add(cityWorks.root);
 const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));lighthouse.root.position.set(40,0,-22);scene.add(lighthouse.root);
 await phase('城門を建てています…');
 const RING=132,gates=[],gatePos=[];
@@ -130,7 +137,7 @@ function label(text,x,y,z,real,size=1){
  g.fillStyle=real?'#ffe2b0':'#cfeaff';g.fillText(text,256,64);g.fillText(text,256,64);
  const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;
  const mat=new T.SpriteMaterial({map:tex,transparent:true,depthWrite:false});
- const sp=new T.Sprite(mat);sp.position.set(x,y,z);sp.scale.set(12*size,3*size,1);scene.add(sp);
+ const sp=new T.Sprite(mat);sp.position.set(x,y,z);sp.scale.set(12*size,3*size,1);sp.visible=false;scene.add(sp);
  labelTicks.push(t=>{mat.opacity=.82+.18*Math.sin(t*(real?7:3)+x);});
 }
 // Civic quarter: the REAL delegates assembly at the head of the approach;
@@ -138,10 +145,9 @@ function label(text,x,y,z,real,size=1){
 const civic=new T.Group();scene.add(civic);
 // The town is a hub: heavy real models live on their own pages, and the town
 // shows lite stand-ins — click one to enter the real building.
-const assemblyB={root:B.buildHall('assembly').root};
-{const assembly=assemblyB;assembly.root.scale.setScalar(2.6);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
- const vaultB={root:B.buildHall('vault').root};window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
- }
+const assemblyB=createAssembly();civic.add(assemblyB.root);
+await phase('大金庫の実物を設置しています…');
+const vaultB=createVault();window.__vaultB=vaultB;civic.add(vaultB.root);
 await phase('商店街と民家を建てています…');
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();shops.position.z=28;scene.add(shops);// the street sits just south of the great stair (tip ~z39)
@@ -164,18 +170,18 @@ const houses=new T.Group();scene.add(houses);
  }}
 const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
 // Everything not yet deployed as a real page becomes a ghost of the plan.
-ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
+ghost(lighthouse.root);shops.visible=false;houses.visible=false;forgeWorks.root.visible=false;
 // Names float over each structure — fire for the built, ghost-light for the planned.
-label('大灯台(仮)',40,40,-22,false,1.4);
+
 label('議事堂',-44,30,-26,true,1.4);
 label('大金庫',0,26,-52,true,1.2);
 label('憲法の書庫',0,104,0,true,1.6);
-label('商店街(仮)',7,9,66,false);
-label('裏街道(仮)',-14,7,72,false,.85);
-label('民家(仮)',-48,7,32,false,.85);
-label('民家(仮)',49,7,32,false,.85);
-label('民家(仮)',34,7,-36,false,.85);
-label('鍛冶場(仮)',-34,8,-14,false,.85);
+
+
+
+
+
+
 label('配送所',26,11,-20,true);
 for(let k=0;k<6;k++)label(SIGNALS[k].name+'の門',gatePos[k].x,24,gatePos[k].z,true,1.1);
 function buildWallSegment(len){
@@ -208,15 +214,17 @@ for(let k=0;k<6;k++){
  wallRing.add(seg);
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
-const depot=B.buildDepotLite();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+const depot=createDepot();scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
 await phase('書庫塔を建てています…');
-const archiveB=B.buildArchiveLite();archiveB.root.scale.setScalar(2.2);scene.add(archiveB.root);// ~97m silhouette at a few thousand triangles
+const archiveB=createArchive();scene.add(archiveB.root);
+const landmarkModels=[assemblyB,vaultB,depot,archiveB];
+const neighborhood=buildNeighborhood(landmarkModels.map(m=>new T.Box3().setFromObject(m.root)));scene.add(neighborhood.root);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
-const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
-const walkables=[ground,floor,...solids];
+const solids=[neighborhood.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
+const walkables=[ground,floor,cityWorks.root,...solids];
 const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
 const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
 const INR=RING*Math.cos(Math.PI/6)-1.8;
@@ -232,17 +240,17 @@ console.log('[T] cast done',performance.now()|0);
 scene.updateMatrixWorld(true);
 const lod=[];const lodAdd=(o,d,track)=>lod.push({o,p:track?null:o.getWorldPosition(new T.Vector3()),d2:d*d});
 for(const g of gates)lodAdd(g.root,280);
-lodAdd(depot.root,220);lodAdd(assemblyB.root,260);lodAdd(window.__vaultB.root,240);
-lodAdd(lighthouse.root,220);lodAdd(forgeWorks.root,190);
-for(const c of shops.children)lodAdd(c,180);
-for(const c of houses.children)lodAdd(c,170);
+
+
+// Old placeholder shops remain hidden; detailed neighborhoods own the street.
+
 for(const w of walkers)lodAdd(w.root,130,true);
 // Bake every rigid run of meshes down to one draw call per joint and material.
 console.log('[T] opt start',performance.now()|0);
-await phase('配送所を磨いています…');const baked=[optimize(depot.root,()=>{})];
+await phase('配送所を磨いています…');const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(cityWorks.root,t=>cityWorks.tick(t))];
 await phase('城壁を磨いています…');for(const seg of wallRing.children)baked.push(optimize(seg,()=>{}));// per edge: frustum culling can drop the far walls
 await phase('灯台を磨いています…');baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));
-await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,()=>{}));
+await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t),o=>o.userData.base));
 await phase('商店街を磨いています…');for(const c of shops.children)baked.push(optimize(c,()=>{}));
 for(const c of houses.children)baked.push(optimize(c,()=>{}));
 baked.push(optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
@@ -266,7 +274,8 @@ await phase('城門を磨いています…');console.log('[T] opt gates',perfor
  }
 }
 await phase('書庫塔を磨いています…');console.log('[T] opt archive',performance.now()|0);
-baked.push(optimize(archiveB.root,t=>archiveB.tick(t)));// drums rotate; detection keeps them out
+// Archive and vault batch their own static architecture. Do not re-bake their
+// vertex-driven crystal seams, vault shutters or furnace steam.
 await phase('官庁街を磨いています…');console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(let i=0;i<walkers.length;i++){const w=walkers[i];baked.push(optimize(w.root,t=>w.update(.1,t)));if(i%3===2)await phase('住人を磨いています… '+(i+1)+'/'+walkers.length);}
@@ -288,7 +297,7 @@ renderer.domElement.addEventListener('pointerdown',e=>{downT=performance.now();d
 renderer.domElement.addEventListener('pointerup',e=>{
  if(performance.now()-downT>400||Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY)>6)return;// that was a drag
  pointer.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(pointer,camera);
- for(const p of portals)if(ray.intersectObject(p.root,true).length){location.href=p.href;return;}
+ for(const p of portals)if(civicLayer.visible&&ray.intersectObject(p.root,true).length){location.href=p.href;return;}
  if(player)return;// walker picking stays off while walking as NOMAD
  let best=null,bd=1e9;
  for(const w of walkers){
@@ -317,9 +326,35 @@ function exitPlayer(){
 $('#walk').onclick=()=>player?exitPlayer():enterPlayer();
 const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
+const civicLayer=new T.Group();scene.add(civicLayer);civicLayer.add(civic,archiveB.root,depot.root,lighthouse.root);
+lighthouse.root.visible=false;
+const aside=document.querySelector('aside');
+const switches=document.createElement('div');switches.innerHTML='<label><input id="civilian" type="checkbox" checked> 民家・商店街</label><label><input id="landmarks" type="checkbox" checked> 大型建造物</label><button id="market-view">商店街へ</button><button id="bridge-view">橋と水路へ</button>';
+aside.insertBefore(switches,document.querySelector('#pause').parentElement);
+const landmarkSelect=document.createElement('select');landmarkSelect.setAttribute('aria-label','建造物へ移動');landmarkSelect.style.cssText='width:100%;padding:9px;background:#453341;color:#f6dfc6;border:1px solid #a5826866;border-radius:6px;margin:6px 0';
+landmarkSelect.innerHTML='<option value="">建造物へ移動…</option><option value="3">憲法書庫</option><option value="0">DRep議事堂</option><option value="1">大金庫</option><option value="2">配送所</option>';
+switches.append(landmarkSelect);
+landmarkSelect.onchange=()=>{if(landmarkSelect.value==='')return;if(player)exitPlayer();civicLayer.visible=true;$('#landmarks').checked=true;const m=landmarkModels[+landmarkSelect.value],b=new T.Box3().setFromObject(m.root),c=b.getCenter(new T.Vector3()),size=b.getSize(new T.Vector3()),d=Math.max(size.x,size.y,size.z);controls.target.copy(c);camera.position.copy(c).add(new T.Vector3(d*.45,d*.28,d*1.5).applyAxisAngle(new T.Vector3(0,1,0),m.root.rotation.y));controls.update();};
+const vaultButton=document.createElement('button');vaultButton.textContent='金庫を開く';switches.append(vaultButton);let vaultLocked=true;
+vaultButton.onclick=()=>{vaultLocked=!vaultLocked;vaultB.setLock(vaultLocked);vaultButton.textContent=vaultLocked?'金庫を開く':'金庫を閉じる';};
+$('#civilian').onchange=e=>{neighborhood.root.visible=e.target.checked;renderer.shadowMap.needsUpdate=true;};
+$('#landmarks').onchange=e=>{civicLayer.visible=e.target.checked;renderer.shadowMap.needsUpdate=true;};
+$('#market-view').onclick=()=>{if(player)exitPlayer();camera.position.set(-39,7,80);controls.target.set(-39,3,36);controls.update();};
+$('#bridge-view').onclick=()=>{if(player)exitPlayer();camera.position.set(15,6,38);controls.target.set(0,1,25);controls.update();};
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
-const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth/2,innerHeight/2),.35,.4,1.1));// half-res bloom: a soft glow needs no full-res blur chaincomposer.addPass(new OutputPass());
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth/2,innerHeight/2),.35,.4,1.1));// half-res bloom: a soft glow needs no full-res blur chain
+composer.addPass(new OutputPass());
 const clock=new T.Clock();let elapsed=0,frames=0;
+// Full character models each carry local lights. At nation scale, dozens of
+// overlapping point-light shader loops overwhelm even distant street views.
+// Six movable lamps illuminate the camera neighborhood; emissive fire remains
+// on every fixture and character independently.
+const localLights=[];scene.updateMatrixWorld(true);
+scene.traverse(o=>{if(o.isPointLight)localLights.push({source:o,position:o.getWorldPosition(new T.Vector3()),color:o.color.clone(),power:o.intensity});});
+for(const l of localLights)l.source.removeFromParent();
+const activeLights=Array.from({length:6},()=>{const l=new T.PointLight(0xffb16c,0,16,2);scene.add(l);return l;});
+function updateLocalLights(){const nearest=localLights.slice().sort((a,b)=>camera.position.distanceToSquared(a.position)-camera.position.distanceToSquared(b.position));for(let i=0;i<activeLights.length;i++){const l=nearest[i];if(l){activeLights[i].position.copy(l.position);activeLights[i].color.copy(l.color);activeLights[i].intensity=Math.min(8,l.power*3);}}}
+updateLocalLights();
 // Adaptive render scale: the 200m tower is heavy on integrated GPUs, so the
 // internal resolution follows measured frame time (0.6x .. native, 0.1 steps).
 // ?px=0.8 in the URL pins the scale by hand.
@@ -327,17 +362,22 @@ const pxForced=+new URLSearchParams(location.search).get('px')||0;
 const pxCap=Math.min(devicePixelRatio,1.3);let px=pxForced||pxCap,ftAcc=0,ftN=0;
 if(pxForced){renderer.setPixelRatio(px);composer.setPixelRatio(px);renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
 function tune(dt){if(pxForced)return;ftAcc+=dt;if(++ftN<50)return;const avg=ftAcc/ftN;ftAcc=0;ftN=0;
- const want=avg>.042?Math.max(.6,px-.1):(avg<.024?Math.min(pxCap,px+.1):px);
+ const want=avg>.042?Math.max(1,px-.1):(avg<.024?Math.min(pxCap,px+.1):px);
  if(Math.abs(want-px)>.01){px=want;renderer.setPixelRatio(px);composer.setPixelRatio(px);renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}}
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed,camera.position.distanceTo(w.root.position)>90);
+  cityWorks.tick(elapsed);
   // Flame vertex morphs are the CPU hogs: near gates tick on alternate frames, far ones rest.
   gates.forEach((g,i)=>{if((frames+i)%2===0&&camera.position.distanceTo(g.root.position)<170)g.tick(elapsed,dt*2);});
-  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<300)archiveB.tick(elapsed);
+  if(civicLayer.visible){
+   archiveB.tick(dt,camera.position.distanceTo(archiveB.root.position));
+   depot.tick(elapsed);
+   if(frames%2===0){assemblyB.tick(elapsed);vaultB.tick(elapsed,dt*2);}
+  }
   if(frames%15===0){const ground=camera.position.y<40;
    for(const e of lod)e.o.visible=!ground||camera.position.distanceToSquared(e.p||e.o.position)<e.d2;}
-  scene.fog.density=T.MathUtils.lerp(.0058,.0036,Math.min(1,camera.position.y/70));
+  scene.fog.density=T.MathUtils.lerp(.0028,.0012,Math.min(1,camera.position.y/70));
   for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
@@ -358,11 +398,11 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
    let dr=ty-nomadW.root.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));
    nomadW.root.rotation.y+=dr*.2;
    fwdRay.set(new T.Vector3(pos.x,pos.y+1,pos.z),mv);
-   const blocked=fwdRay.intersectObjects(solids,true).length>0;
+   const blocked=fwdRay.intersectObjects(solids.filter(o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;}),true).length>0;
    if(!blocked){
     mv.multiplyScalar(dt*6);
     const np=pos.clone().add(mv);
-    const inside=HEXN.every(([nx,nz])=>np.x*nx+np.z*nz<INR);
+    const inside=HEXN.every(([nx,nz])=>np.x*nx+np.z*nz<INR)&&!cityWorks.isWater(np.x,np.z);
     if(inside){
      dnRay.set(new T.Vector3(np.x,pos.y+2.5,np.z),new T.Vector3(0,-1,0));
      const hit=dnRay.intersectObjects(walkables,true)[0];
@@ -379,10 +419,10 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   controls.target.lerp(new T.Vector3(nomadW.root.position.x,nomadW.root.position.y+1.2,nomadW.root.position.z),.3);
  }else if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
  if(!paused)tune(dt);
- controls.update();composer.render();frames++;
+ if(frames%30===0)updateLocalLights();controls.update();composer.render();frames++;
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
-enterPlayer();
-window.town={scene,camera,controls,walkers,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
+front();
+window.town={scene,camera,controls,walkers,cityWorks,neighborhood,civicLayer,landmarkModels,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
