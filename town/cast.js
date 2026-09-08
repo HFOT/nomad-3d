@@ -14,7 +14,7 @@ import {buildMouse} from '../pip/model.js';
 // Territories: everyone patrols their own patch of the town. WARD walks the
 // top of the curtain wall itself, all the way around the hexagon.
 const ROUTES={
- nomad:   {cx:0,  cz:38,  rx:4.2,rz:20, speed:.16, phase:0,   dir:1},
+ nomad:   {cx:0,  cz:42,  rx:4.2,rz:17, speed:.16, phase:0,   dir:1},
  ward:    {wall:true,     speed:.0035,phase:.08,dir:1},
  quorum:  {cx:-40, cz:-16, rx:9, rz:7,  speed:.10, phase:1,   dir:1},
  lex:     {cx:38, cz:-14, rx:7,  rz:6,  speed:.09, phase:4,   dir:-1},

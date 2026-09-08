@@ -1,0 +1,38 @@
+import * as T from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { buildArchive, CATALOGUE } from './model.js';
+
+const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;
+document.querySelector('#scene').append(renderer.domElement);
+const scene=new T.Scene();scene.background=new T.Color(0x101b2b);scene.fog=new T.FogExp2(0x101b2b,.003);
+const camera=new T.PerspectiveCamera(38,innerWidth/innerHeight,.1,240),controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.minDistance=3;controls.maxDistance=130;controls.maxPolarAngle=1.55;
+function overview(){controls.target.set(0,21,0);camera.position.set(innerWidth<600?49:42,innerWidth<600?29:30,innerWidth<600?101:74);controls.update();}overview();
+const env=new T.PMREMGenerator(renderer);scene.environment=env.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.36;
+scene.add(new T.HemisphereLight(0xc4dafa,0x67503a,.55));
+const key=new T.DirectionalLight(0xffdfb3,2.3);key.position.set(-14,32,24);key.castShadow=true;key.shadow.mapSize.set(4096,4096);Object.assign(key.shadow.camera,{left:-16,right:16,top:42,bottom:-12,far:110});key.shadow.bias=-.00015;key.shadow.normalBias=.035;scene.add(key);
+const rim=new T.DirectionalLight(0x9bbaff,2.0);rim.position.set(15,22,-18);scene.add(rim);
+const archive=buildArchive();scene.add(archive.root);
+const ground=new T.Mesh(new T.PlaneGeometry(800,800),new T.MeshStandardMaterial({color:0x111923,roughness:.7,metalness:.1}));ground.rotation.x=-Math.PI/2;ground.position.y=-.71;ground.receiveShadow=true;scene.add(ground);
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.38,.45,1.15));composer.addPass(new OutputPass());
+const floorSelect=document.querySelector('#floor');CATALOGUE.forEach((title,i)=>{const opt=document.createElement('option');opt.value=i;opt.textContent=`${i+1}F · ${title}`;floorSelect.append(opt);});
+floorSelect.onchange=()=>{if(floorSelect.value==='auto')archive.setAuto();else archive.selectFloor(Number(floorSelect.value));};
+document.querySelector('#shell').onchange=e=>archive.setShell(!e.target.checked);
+document.querySelector('#overview').onclick=overview;
+document.querySelector('#inside').onclick=()=>{controls.target.set(0,20.8,0);camera.position.set(7,21.8,16);controls.update();};
+document.querySelector('#codex').onclick=()=>{controls.target.set(0,7.8,0);camera.position.set(3,10.4,7);controls.update();};
+document.querySelector('#crown').onclick=()=>{controls.target.set(0,41,0);camera.position.set(8,42.8,12);controls.update();};
+document.querySelector('#export').onclick=async e=>{const button=e.target;button.disabled=true;button.textContent='書き出し中…';try{
+ const exportRoot=archive.root.clone(true);exportRoot.traverse(o=>{if(o.isMesh&&o.material.isShaderMaterial)o.material=new T.MeshStandardMaterial({color:0x9fb9ff,emissive:0x839bff,emissiveIntensity:2,transparent:true,opacity:.5});});
+ const data=await new GLTFExporter().parseAsync(exportRoot,{binary:true,animations:archive.clips,onlyVisible:false});const url=URL.createObjectURL(new Blob([data],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download='CARAKURI-Constitutional-Archive.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);
+}catch(err){document.querySelector('#status').textContent='書き出しに失敗しました';console.error(err);}finally{button.disabled=false;button.textContent='3Dモデル保存';}};
+const clock=new T.Clock(),status=document.querySelector('#status');let frames=0;
+renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.06);if(!document.querySelector('#pause').checked)archive.tick(dt);controls.update();composer.render();if(++frames%12===0){const s=archive.stats();status.textContent=s.selected<0?'索引受付が書庫を巡回中':s.arrived?`${s.selected+1}F · 資料位置に到着`:`${s.selected+1}F · 昇降・書架を位置合わせ中`;}});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+window.archive={...archive,scene,camera,renderer,controls};document.querySelector('#loading').remove();

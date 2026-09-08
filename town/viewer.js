@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js?v=2';import{makeBuilders}from'./buildings.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{buildArchive}from'../archive/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js?v=2';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -95,7 +95,7 @@ function tintGate(g,signal){
 // stone textures are expensive, so they are generated exactly once.
 const WM=gateMaterials();
 const B=makeBuilders(WM);
-const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
+const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));lighthouse.root.position.set(40,0,-22);scene.add(lighthouse.root);
 await phase('城門を建てています…');
 const RING=132,gates=[],gatePos=[];
 for(let k=0;k<6;k++){
@@ -133,7 +133,7 @@ const civic=new T.Group();scene.add(civic);
 const assemblyB=buildAssembly();
 {const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
  const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
- const archive=ghost(B.buildHall('archive').root);archive.position.set(40,0,-22);archive.rotation.y=-.7;civic.add(archive);}
+ }
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();scene.add(shops);
 {let n=0;
@@ -157,10 +157,10 @@ const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);for
 // Everything not yet deployed as a real page becomes a ghost of the plan.
 ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 // Names float over each structure — fire for the built, ghost-light for the planned.
-label('大灯台(仮)',0,40,0,false,1.4);
+label('大灯台(仮)',40,40,-22,false,1.4);
 label('議事堂',-44,30,-26,true,1.4);
 label('大金庫',0,26,-52,true,1.2);
-label('憲法堂(仮)',40,13,-22,false);
+label('憲法の書庫',0,28,0,true,1.4);
 label('商店街(仮)',7,9,38,false);
 label('裏街道(仮)',-14,7,44,false,.85);
 label('民家(仮)',-30,7,32,false,.85);
@@ -200,9 +200,12 @@ for(let k=0;k<6;k++){
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
 const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+// The constitutional archive stands at the heart of the town. It batches its
+// own statics and rewrites seam vertices every tick, so it skips optimize().
+const archiveB=buildArchive();scene.add(archiveB.root);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
-const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,...gates.map(g=>g.root)];
+const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
 const walkables=[ground,floor,...solids];
 const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
 const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
@@ -282,6 +285,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
   if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
   if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
+  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<260)archiveB.tick(dt*2);
   for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
