@@ -106,6 +106,11 @@ for(let k=0;k<6;k++){
 const WM=gateMaterials();
 const B=makeBuilders(WM);
 const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
+// Civic quarter: assembly hall at the head of the approach, vault and archive flanking.
+const civic=new T.Group();scene.add(civic);
+{const assembly=B.buildHall('assembly');assembly.root.position.set(0,0,-40);civic.add(assembly.root);
+ const vault=B.buildHall('vault');vault.root.position.set(-18,0,-28);vault.root.rotation.y=.5;civic.add(vault.root);
+ const archive=B.buildHall('archive');archive.root.position.set(18,0,-28);archive.root.rotation.y=-.5;civic.add(archive.root);}
 function buildWallSegment(len){
  const wall=new T.Group();
  const bh=.8,bd=1.6,rows=12;let seed=13;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -138,7 +143,7 @@ const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t))];
+const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{})];
 for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));

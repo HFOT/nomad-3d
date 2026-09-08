@@ -53,5 +53,48 @@ export function makeBuilders(M){
   }};
  }
 
- return{buildLighthouse,helpers:{g,m,box,cyl,stone,windowLit,warm}};
+ // ---- Civic halls: three distinct stone silhouettes north of the plaza.
+ // Fronts face +z (toward the plaza when placed on the north side).
+ function buildHall(kind){
+  const root=new T.Group();root.name='Hall_'+kind;
+  if(kind==='assembly'){// governance: colonnade front, central dome, violet windows
+   const lit=windowLit(0xb48af0);
+   stone(root,0,.5,0,16,1,12);
+   stone(root,0,4,0,14,6,10);
+   for(let j=0;j<4;j++)cyl(root,M.stone,-4.5+j*3,4,5.6,.5,.55,6,12);
+   stone(root,0,7.4,5.6,15,.8,1.6);
+   box(root,M.slate,0,8.2,0,14.6,1,10.6);
+   m(root,new T.SphereGeometry(3.4,24,16,0,Math.PI*2,0,Math.PI/2),M.slate,0,8.6,0);
+   cyl(root,M.brass,0,12.2,0,.1,.25,1.4,10);
+   for(const s of [-1,1])for(let j=0;j<3;j++){const w=box(root,lit,s*7.05,4.4,-3+j*3,.14,1.8,1.1);w.castShadow=false;}
+   for(let j=0;j<2;j++){const w=box(root,lit,-1.5+j*3,5.4,5.05,1.1,1.6,.14);w.castShadow=false;}
+  }else if(kind==='vault'){// treasury: thick walls, tiny windows, round brass door, cyan glow
+   const lit=windowLit(0x4ad8f0);
+   stone(root,0,.5,0,12,1,10);
+   stone(root,0,3.8,0,10,6.6,8);
+   box(root,M.slate,0,7.6,0,10.8,1.2,8.8);
+   stone(root,0,8.8,0,7,1.6,5.6);
+   box(root,M.slate,0,9.9,0,7.6,.7,6.2);
+   cyl(root,M.brass,0,3.2,4.05,2.1,2.1,.4,28).rotation.x=Math.PI/2;
+   cyl(root,M.dark,0,3.2,4.22,1.7,1.7,.2,28).rotation.x=Math.PI/2;
+   cyl(root,M.brass,0,3.2,4.34,.5,.5,.25,16).rotation.x=Math.PI/2;
+   for(const s of [-1,1])for(let j=0;j<2;j++){const w=box(root,lit,s*5.05,5.2,-2+j*3,.14,.9,.7);w.castShadow=false;}
+   const w2=box(root,lit,0,9,2.85,1.2,.8,.14);w2.castShadow=false;
+  }else{// archive: three tall arched windows, book-spine cornice, amber glow
+   const lit=windowLit(0xffb84a);
+   stone(root,0,.5,0,13,1,10);
+   stone(root,0,4.2,0,11,7,8);
+   box(root,M.slate,0,8.1,0,11.8,.9,8.8);
+   for(let j=0;j<7;j++){const b=box(root,M.wood,-4.2+j*1.4,9,.5,1.1,1.6-(j%3)*.25,5.5);b.rotation.z=(j%2?.04:-.04);}
+   for(let j=0;j<3;j++){
+    const x=-3+j*3;
+    const w=box(root,lit,x,4.4,4.05,1.5,3.4,.16);w.castShadow=false;
+    cyl(root,M.stone,x,6.1,4.05,.95,.95,.5,18).rotation.x=Math.PI/2;
+   }
+   box(root,M.wood,0,2,4.15,1.8,3,.3);
+  }
+  return{root};
+ }
+
+ return{buildLighthouse,buildHall,helpers:{g,m,box,cyl,stone,windowLit,warm}};
 }
