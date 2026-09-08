@@ -166,7 +166,7 @@ export function buildArchive() {
       const edge=[];for(let u=0;u<=nu;u++)edge.push(u);for(let v=1;v<=nv;v++)edge.push(v*(nu+1)+nu);for(let u=nu-1;u>=0;u--)edge.push(nv*(nu+1)+u);for(let v=nv-1;v>0;v--)edge.push(v*(nu+1));for(let k=0;k<edge.length;k++){const q=edge[k],n=edge[(k+1)%edge.length];indices.push(q,q+stride,n,n,q+stride,n+stride);}
       const geo = new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();mesh(geo,crystal,0,0,0,shellTier);
       const path = []; for (let k = 0; k <= 12; k++) { const t = k / 12; path.push([Math.sin(a) * r0, T.MathUtils.lerp(y0,y1,t), Math.cos(a) * r0]); }
-      const seam = pipe(path, .021, seamMat, shellTier); seams.push({ seam, base: seam.geometry.attributes.position.array.slice(), seed: j });
+      const seam = pipe(path, .021, seamMat, shellTier); seam.userData.live = true; seams.push({ seam, base: seam.geometry.attributes.position.array.slice(), seed: j });
     }
     ring(r0, y0, cool, .027, shellTier);ring(r0,y1,cool,.021,shellTier);
     annulus(r0,r1,y1-.045,.045,crystal,shellTier);
@@ -191,7 +191,7 @@ export function buildArchive() {
   box(M.wood,0,1.47,0,2.8,.22,1.95);box(gold,0,1.37,0,2.92,.07,2.05);
   const cv=document.createElement('canvas');cv.width=1024;cv.height=1024;const c=cv.getContext('2d');c.fillStyle='#e4d4aa';c.fillRect(0,0,1024,1024);c.fillStyle='#514332';c.textAlign='center';c.font='46px Georgia';c.fillText('CONSTITUTION',512,130);c.font='22px Georgia';c.fillText('CARAKURI · PUBLIC ARCHIVE',512,180);for(let j=0;j<26;j++){c.fillStyle=j%5===0?'#9b814f':'#75644c';c.fillRect(100,240+j*24,820-(j%4)*55,3);}const pt=new T.CanvasTexture(cv);pt.colorSpace=T.SRGBColorSpace;const pageM=new T.MeshStandardMaterial({map:pt,roughness:.95,side:T.DoubleSide});
   for(const side of [-1,1]){for(let i=0;i<7;i++)box(paper,side*.69,1.59+i*.014,0,1.34,.018,1.89);const geo=new T.PlaneGeometry(1.35,1.9,18,1),p=geo.attributes.position;for(let k=0;k<p.count;k++){const x=p.getX(k);p.setXYZ(k,side*(x+.68),1.75+Math.sin((x+.675)/1.35*Math.PI)*.16,p.getY(k));}geo.computeVertexNormals();mesh(geo,pageM);}
-  const barriers=[];for(let j=0;j<3;j++){const m=new T.MeshBasicMaterial({color:0xa1b9ff,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});const wall=mesh(new T.CylinderGeometry(2.3+j*.22,2.3+j*.22,3.5,64,1,true),m,0,2.25,0);barriers.push(wall);ring(2.3+j*.22,.5,cool,.024);ring(2.3+j*.22,4.0,cool,.016);}
+  const barriers=[];for(let j=0;j<3;j++){const m=new T.MeshBasicMaterial({color:0xa1b9ff,transparent:true,opacity:.06,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});const wall=mesh(new T.CylinderGeometry(2.3+j*.22,2.3+j*.22,3.5,64,1,true),m,0,2.25,0);wall.userData.live=true;barriers.push(wall);ring(2.3+j*.22,.5,cool,.024);ring(2.3+j*.22,4.0,cool,.016);}
 
   // Crown without horns: a low stabiliser cradle supports a floating plasma light.
   const crownRotor=new T.Group();crownRotor.name='Plasma_Levitation_Turntable';root.add(crownRotor);

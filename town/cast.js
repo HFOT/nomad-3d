@@ -72,31 +72,33 @@ function pipWalker(def,route){
  }};
 }
 
-export function loadCast(scene){
- const walkers=[
-  robotWalker(Nomad,   {id:'nomad',   name:'NOMAD',   accent:'#d8b669'}),
-  robotWalker(Ward,    {id:'ward',    name:'WARD',    accent:'#7fb4dd'}),
-  robotWalker(Quorum,  {id:'quorum',  name:'QUORUM',  accent:'#b28fd0'}),
-  robotWalker(Lex,     {id:'lex',     name:'LEX',     accent:'#e0cb87'}),
-  robotWalker(Catalyst,{id:'catalyst',name:'CATALYST',accent:'#e08d4f'}),
-  robotWalker(Treasury,{id:'treasury',name:'TREASURY',accent:'#6fd2f2'}),
-  robotWalker(Forge,   {id:'forge',   name:'FORGE',   accent:'#f0a848'}),
-  pipWalker(           {id:'pip',     name:'PIP',     accent:'#e2705f'}),
-  // The depot's delivery runners: more PIPs streaming blocks out of the
-  // courier depot at (26,-20) and around the town.
-  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:14,cz:-8, rx:16,rz:14,speed:.15,phase:2.1,dir:-1}),
-  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:20,cz:6,  rx:12,rz:26,speed:.13,phase:4.4,dir:1}),
-  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:27,cz:-17,rx:8, rz:8, speed:.18,phase:0,  dir:1}),
- ];
- // Real shadow casting across ~3000 character meshes doubles the frame cost,
- // so the cast opts out of the shadow pass and carries a soft blob instead.
+// The town raises its cast one figure at a time: castBuilders returns thunks
+// so the boot can paint between builds; loadCast keeps the one-shot form.
+export function castBuilders(scene){
  const blobGeo=new T.CircleGeometry(.55,24);
  const blobMat=new T.MeshBasicMaterial({color:0x000000,transparent:true,opacity:.28,depthWrite:false});
- for(const w of walkers){
+ // Real shadow casting across ~3000 character meshes doubles the frame cost,
+ // so the cast opts out of the shadow pass and carries a soft blob instead.
+ const finish=w=>{
   w.root.scale.setScalar(.8);
   w.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=false;});
   const blob=new T.Mesh(blobGeo,blobMat);blob.rotation.x=-Math.PI/2;blob.position.y=.02;w.root.add(blob);
-  w.update(0,0);scene.add(w.root);
- }
- return walkers;
+  w.update(0,0);scene.add(w.root);return w;
+ };
+ return [
+  ()=>finish(robotWalker(Nomad,   {id:'nomad',   name:'NOMAD',   accent:'#d8b669'})),
+  ()=>finish(robotWalker(Ward,    {id:'ward',    name:'WARD',    accent:'#7fb4dd'})),
+  ()=>finish(robotWalker(Quorum,  {id:'quorum',  name:'QUORUM',  accent:'#b28fd0'})),
+  ()=>finish(robotWalker(Lex,     {id:'lex',     name:'LEX',     accent:'#e0cb87'})),
+  ()=>finish(robotWalker(Catalyst,{id:'catalyst',name:'CATALYST',accent:'#e08d4f'})),
+  ()=>finish(robotWalker(Treasury,{id:'treasury',name:'TREASURY',accent:'#6fd2f2'})),
+  ()=>finish(robotWalker(Forge,   {id:'forge',   name:'FORGE',   accent:'#f0a848'})),
+  ()=>finish(pipWalker(           {id:'pip',     name:'PIP',     accent:'#e2705f'})),
+  // The depot's delivery runners: more PIPs streaming blocks out of the
+  // courier depot and around the town.
+  ()=>finish(pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:14,cz:-8, rx:16,rz:14,speed:.15,phase:2.1,dir:-1})),
+  ()=>finish(pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:20,cz:6,  rx:12,rz:26,speed:.13,phase:4.4,dir:1})),
+  ()=>finish(pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:27,cz:-17,rx:8, rz:8, speed:.18,phase:0,  dir:1})),
+ ];
 }
+export function loadCast(scene){return castBuilders(scene).map(b=>b());}

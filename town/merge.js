@@ -38,7 +38,7 @@ export function optimize(root,animate,skip,dynNames){
  }
  const groups=new Map(),removable=[];
  root.traverse(o=>{
-  if(!o.isMesh||o.isInstancedMesh||dyn.has(o))return;
+  if(!o.isMesh||o.isInstancedMesh||!o.visible||dyn.has(o))return;
   if(skip&&skip(o))return;// e.g. flames animated by rewriting vertices, invisible to matrix diffing
   if(o.geometry.morphAttributes&&Object.keys(o.geometry.morphAttributes).length)return;
   let anc=o.parent;while(anc&&anc!==root&&!dyn.has(anc))anc=anc.parent;if(!anc)anc=root;

@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{buildArchive}from'../archive/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js?v=2';import{makeBuilders}from'./buildings.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{buildArchive}from'../archive/model.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -13,7 +13,9 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
-const phase=m=>{const el=document.querySelector('#loading span');if(el)el.textContent=m;return new Promise(r=>setTimeout(r,0));};
+const phase=m=>{const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
+ try{renderer.render(scene,camera);l?.classList.add('lift');}catch(e){}
+ return new Promise(r=>{const d=setTimeout(r,150);requestAnimationFrame(()=>{clearTimeout(d);r();});});};
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0038);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
@@ -134,6 +136,7 @@ const assemblyB=buildAssembly();
 {const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
  const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
  }
+await phase('商店街と民家を建てています…');
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();shops.position.z=64;scene.add(shops);// the whole street shifts south of the great stair
 {let n=0;
@@ -202,6 +205,7 @@ console.log('[T] walls done',performance.now()|0);await phase('官庁街を建�
 const depot=buildDepot();depot.root.position.set(54,0,-34);depot.root.rotation.y=-1.0;scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
+await phase('書庫塔を建てています…');
 const archiveB=buildArchive();archiveB.root.scale.setScalar(4.5);scene.add(archiveB.root);// 200m-class: the town's centre and its brain
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
@@ -212,11 +216,18 @@ const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([
 const INR=RING*Math.cos(Math.PI/6)-1.8;
 // The cast walks in.
 console.log('[T] cast start',performance.now()|0);await phase('住人を起こしています…');
-const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
+const walkers=[];
+{const builders=castBuilders(scene);
+ for(let i=0;i<builders.length;i++){walkers.push(builders[i]());if(i%2===1)await phase('住人を起こしています… '+(i+1)+'/'+builders.length);}}
+console.log('[T] cast done',performance.now()|0);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-console.log('[T] opt depot',performance.now()|0);await phase('町を磨いています…');
-const baked=[optimize(depot.root,t=>depot.tick(t))];console.log('[T] opt walls',performance.now()|0);baked.push(optimize(wallRing,()=>{}));console.log('[T] opt lighthouse',performance.now()|0);baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));console.log('[T] opt assembly',performance.now()|0);baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));console.log('[T] opt shops',performance.now()|0);baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
-console.log('[T] opt gates',performance.now()|0);
+console.log('[T] opt start',performance.now()|0);
+await phase('配送所を磨いています…');const baked=[optimize(depot.root,t=>depot.tick(t))];
+await phase('城壁を磨いています…');baked.push(optimize(wallRing,()=>{}));
+await phase('灯台を磨いています…');baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));
+await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));
+await phase('商店街を磨いています…');baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
+await phase('城門を磨いています…');console.log('[T] opt gates',performance.now()|0);
 // The six gatehouses are identical masonry, so only the first is merged for
 // real. The other five drop the same bricks (matched by their deterministic
 // GatePart names) and re-hang gate one's merged shells — geometry and
@@ -235,9 +246,13 @@ console.log('[T] opt gates',performance.now()|0);
   }
  }
 }
-console.log('[T] opt walkers',performance.now()|0);
+await phase('書庫塔を磨いています…');console.log('[T] opt archive',performance.now()|0);
+// The archive's rotating floors, gears and lift are matrix-dynamic (detected);
+// its seams and barriers animate vertices/materials and carry userData.live.
+baked.push(optimize(archiveB.root,()=>archiveB.tick(.5),o=>o.userData.live));
+await phase('官庁街を磨いています…');console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
-for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
+for(let i=0;i<walkers.length;i++){const w=walkers[i];baked.push(optimize(w.root,t=>w.update(.1,t)));if(i%3===2)await phase('住人を磨いています… '+(i+1)+'/'+walkers.length);}
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
 // Click to follow: pick a walker with a ray, keep the target on it while set.
 const ray=new T.Raycaster(),pointer=new T.Vector2(),clickTmp=new T.Vector3();let following=null;
