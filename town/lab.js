@@ -51,22 +51,18 @@ function miniGate(p,x,z,ry,strength){
  if(strength>.3){const l=new T.PointLight(0xffa324,.4+strength*1.2,16);l.position.set(0,6.4,.6);gg.add(l);}
  return gg;
 }
-// The pool lighthouse, scaled by output; a weak one keeps its scaffolding on.
-function miniLighthouse(p,x,z,power,scaffolded){
+// The catalyst brazier: the flame this operator carried home from the great
+// treasury lighthouse. Fund level sets the fire; the lighthouse itself never
+// stands in a town — the treasury is a shared source, not private property.
+function brazier(p,x,z,fund){
  const g=new T.Group();g.position.set(x,0,z);p.add(g);
- const h=7+power*15;
- mesh(g,new T.CylinderGeometry(1.6,2.4,h,16),M.stone,0,h/2,0);
- mesh(g,new T.CylinderGeometry(1.9,1.9,.5,16),M.brass,0,h,0);
- const fl=new T.MeshStandardMaterial({color:0xfff1d8,emissive:0xffa324,emissiveIntensity:.25+power*2.8});
- const flame=mesh(g,new T.SphereGeometry(.9,14,10),fl,0,h+1.1,0);flame.scale.set(1,1.4,1);flame.castShadow=false;
- mesh(g,new T.ConeGeometry(2,1.6,14),M.slate,0,h+2.6,0);
- const l=new T.PointLight(0xffa324,.3+power*2.4,40);l.position.set(0,h+1,0);g.add(l);
- ticks.push(t=>{fl.emissiveIntensity=(.25+power*2.8)*(1+.18*Math.sin(t*11+x));});
- if(scaffolded){
-  for(const s of [-1,1]){mesh(g,new T.BoxGeometry(.22,h+3,.22),M.wood,s*2.9,(h+3)/2,2.6);mesh(g,new T.BoxGeometry(.22,h+3,.22),M.wood,s*2.9,(h+3)/2,-2.6);}
-  for(let y=2;y<h+2;y+=2.4){mesh(g,new T.BoxGeometry(6.2,.16,.2),M.wood,0,y,2.6);mesh(g,new T.BoxGeometry(6.2,.16,.2),M.wood,0,y,-2.6);}
- }
- return h;
+ const r=1.2+fund*1.6;
+ mesh(g,new T.CylinderGeometry(r*.8,r,1.2,14),M.stone,0,.6,0);
+ mesh(g,new T.CylinderGeometry(r*.95,r*.7,.7,14),M.brass,0,1.5,0);
+ const fl=new T.MeshStandardMaterial({color:0xfff1d8,emissive:0xffa324,emissiveIntensity:.4+fund*2.8});
+ const flame=mesh(g,new T.SphereGeometry(r*.62,14,10),fl,0,2.2+fund*1.1,0);flame.scale.set(1,1.5+fund,1);flame.castShadow=false;
+ const l=new T.PointLight(0xffa324,.4+fund*2.6,18+fund*30);l.position.set(0,2.6,0);g.add(l);
+ ticks.push(t=>{fl.emissiveIntensity=(.4+fund*2.8)*(1+.2*Math.sin(t*10+x));});
 }
 function cratePile(p,x,z,seed,big){
  const rand=seedRand(seed);const n=big?5+Math.floor(rand()*4):2+Math.floor(rand()*2);
@@ -92,7 +88,7 @@ function buildOperatorTown(p){
    const cx=(i-(p.pools-1)/2)*R*1.9;
    const enc=new T.Group();enc.position.set(cx,0,0);town.add(enc);
    wallHex(enc,R,p.poolHealth,.6,k=>i>0&&k===4||i<p.pools-1&&k===1);
-   miniLighthouse(enc,0,-2,p.lighthouse,p.lighthouse<.4);
+   brazier(enc,0,-2,p.catalystIn??.1);
   }
   miniGate(town,0,R+1.5,0,p.poolHealth[0]);
  }else{
@@ -103,7 +99,7 @@ function buildOperatorTown(p){
    const a=Math.PI-k*Math.PI/3;
    miniGate(town,Math.sin(a)*R,Math.cos(a)*R,a,p.poolHealth[k%p.poolHealth.length]);
   }
-  const lh=miniLighthouse(town,0,0,p.lighthouse,p.lighthouse<.4);
+  brazier(town,0,2,p.catalystIn??.1);
   // The assembly hall: DRep power sets its scale. Past ~.6 it out-grows the lighthouse.
   if(p.drep>0){
    const hall=B.buildHall('assembly');const s=.5+p.drep*1.8;
@@ -129,8 +125,11 @@ const PROFILES=[
  {seed:11,pools:1,relays:3,gates:6,poolHealth:[.9,.85,.9,.8,.9,.85],lighthouse:.8,drep:.3,catalystIn:.2,catalystBuilt:.2,delegators:.7,stake:.35},
  {seed:23,pools:1,relays:1,gates:2,poolHealth:[.35,.3,.4,.25,.3,.35],lighthouse:.25,drep:1,catalystIn:.15,catalystBuilt:.05,delegators:.5,stake:.8},
  {seed:37,pools:1,relays:2,gates:3,poolHealth:[.55,.5,.6,.5,.55,.5],lighthouse:.4,drep:.35,catalystIn:1,catalystBuilt:.1,delegators:.3,stake:.5},
- {seed:53,pools:3,relays:1,poolHealth:[.3,.25,.35,.3,.25,.3],lighthouse:.3,drep:.2},
+ {seed:53,pools:3,relays:1,poolHealth:[.3,.25,.35,.3,.25,.3],catalystIn:.15,drep:.2},
 ];
+// The treasury: one great lighthouse for the whole world, far behind the towns.
+const treasury=B.buildLighthouse([0xffa324,0xffc964]);treasury.root.position.set(0,0,-120);treasury.root.scale.setScalar(1.7);scene.add(treasury.root);
+ticks.push(t=>treasury.tick(t));
 const X=[-150,-50,50,150];
 PROFILES.forEach((p,i)=>{const t=buildOperatorTown(p);t.position.x=X[i];scene.add(t);optimize(t,()=>{});});
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.4,.4,1.15));composer.addPass(new OutputPass());
