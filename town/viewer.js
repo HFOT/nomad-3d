@@ -213,8 +213,26 @@ const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
 // Bake every rigid run of meshes down to one draw call per joint and material.
 console.log('[T] opt depot',performance.now()|0);await phase('町を磨いています…');
 const baked=[optimize(depot.root,t=>depot.tick(t))];console.log('[T] opt walls',performance.now()|0);baked.push(optimize(wallRing,()=>{}));console.log('[T] opt lighthouse',performance.now()|0);baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));console.log('[T] opt assembly',performance.now()|0);baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));console.log('[T] opt shops',performance.now()|0);baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
-console.log('[T] opt gates',performance.now()|0);let gateDyn=null;
-for(const g of gates){const r=optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base,gateDyn);gateDyn=gateDyn||r.dynNames;baked.push(r);}console.log('[T] opt walkers',performance.now()|0);
+console.log('[T] opt gates',performance.now()|0);
+// The six gatehouses are identical masonry, so only the first is merged for
+// real. The other five drop the same bricks (matched by their deterministic
+// GatePart names) and re-hang gate one's merged shells — geometry and
+// materials shared by reference, so five gates' vertices never touch the heap.
+{
+ const g0=gates[0],r0=optimize(g0.root,t=>g0.tick(t,.016),o=>o.userData.base);
+ baked.push(r0);
+ for(const g of gates.slice(1)){
+  const byName=new Map(),doomed=[];
+  g.root.traverse(o=>{if(o.name)byName.set(o.name,o);if(o.isMesh&&o.name&&r0.removedNames.has(o.name))doomed.push(o);});
+  for(const o of doomed){o.removeFromParent();o.geometry.dispose();}
+  for(const {mesh,ancName} of r0.merged){
+   const twin=new T.Mesh(mesh.geometry,mesh.material);
+   twin.castShadow=mesh.castShadow;twin.receiveShadow=mesh.receiveShadow;
+   (byName.get(ancName)||g.root).add(twin);
+  }
+ }
+}
+console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));

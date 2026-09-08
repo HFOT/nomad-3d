@@ -48,7 +48,7 @@ export function optimize(root,animate,skip,dynNames){
   groups.get(key).items.push(o);
  });
  const inv=new T.Matrix4(),rel=new T.Matrix4();
- let before=0,after=0;
+ let before=0,after=0;const mergedOut=[];
  for(const {anc,castShadow,items} of groups.values()){
   before+=items.length;
   if(items.length<2){after+=items.length;continue;}
@@ -70,9 +70,10 @@ export function optimize(root,animate,skip,dynNames){
   if(tinted){material=material.clone();material.color.set(0xffffff);material.vertexColors=true;}
   const mesh=new T.Mesh(merged,material);
   mesh.castShadow=castShadow;mesh.receiveShadow=castShadow;
-  anc.add(mesh);after++;
+  anc.add(mesh);after++;mergedOut.push({mesh,ancName:anc.name});
   for(const o of items){o.removeFromParent();o.geometry.dispose();removable.push(o);}
   for(const g of parts)g.dispose();
  }
- return {before,after,dynamic:dyn.size,dynNames:new Set([...dyn].map(o=>o.name))};
+ return {before,after,dynamic:dyn.size,dynNames:new Set([...dyn].map(o=>o.name)),
+  merged:mergedOut,removedNames:new Set(removable.map(o=>o.name).filter(Boolean))};
 }
