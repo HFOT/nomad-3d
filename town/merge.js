@@ -12,8 +12,8 @@ export function optimize(root,animate,skip){
  root.updateMatrixWorld(true);
  root.traverse(o=>snap.set(o,o.matrix.clone()));
  const dyn=new Set([root]);
- for(let i=1;i<=50;i++){
-  animate(i*.1);
+ for(let i=1;i<=24;i++){
+  animate(i*.21);
   root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
   root.traverse(o=>{if(dyn.has(o))return;const sn=snap.get(o);if(!sn||!sn.equals(o.matrix))dyn.add(o);});
  }

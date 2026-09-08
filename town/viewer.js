@@ -13,17 +13,17 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
-const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.006);
-const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,500);
-const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=260;
-function front(){camera.position.set(0,48,142);controls.target.set(0,2,-8);controls.update();}front();
+const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0038);
+const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
+function front(){camera.position.set(0,74,224);controls.target.set(0,2,-10);controls.update();}front();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
-const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-92,right:92,top:92,bottom:-92});scene.add(sun);
+const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:155,bottom:-155});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.
-const ground=new T.Mesh(new T.PlaneGeometry(320,320),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const ground=new T.Mesh(new T.PlaneGeometry(560,560),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
 // Brick floor fills the whole walled hexagon; the dark earth stays outside.
 function brickTexture(){
  const c=document.createElement('canvas');c.width=c.height=1024;const g=c.getContext('2d');
@@ -36,8 +36,8 @@ function brickTexture(){
  const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;
  return tex;
 }
-const floorTex=brickTexture();floorTex.repeat.set(20,20);
-const floor=new T.Mesh(new T.CircleGeometry(69.5,6,Math.PI/2),new T.MeshStandardMaterial({color:0xcabc9f,map:floorTex,bumpMap:floorTex,bumpScale:.05,roughness:.95}));
+const floorTex=brickTexture();floorTex.repeat.set(36,36);
+const floor=new T.Mesh(new T.CircleGeometry(131.5,6,Math.PI/2),new T.MeshStandardMaterial({color:0xcabc9f,map:floorTex,bumpMap:floorTex,bumpScale:.05,roughness:.95}));
 floor.rotation.x=-Math.PI/2;floor.position.y=.04;floor.receiveShadow=true;scene.add(floor);
 // Streets: lighter paving over the brick ground. Main street runs in from the
 // south gate, the civic approach out to the north; a crooked, darker back
@@ -45,8 +45,8 @@ floor.rotation.x=-Math.PI/2;floor.position.y=.04;floor.receiveShadow=true;scene.
 const paveMat=new T.MeshStandardMaterial({color:0xd8c7a4,roughness:.92});
 const alleyMat=new T.MeshStandardMaterial({color:0x84786c,roughness:.98});
 function pave(mat,x,z,w,len,ry=0,y=.07){const p=new T.Mesh(new T.BoxGeometry(w,.06,len),mat);p.position.set(x,y,z);p.rotation.y=ry;p.receiveShadow=true;scene.add(p);return p;}
-pave(paveMat,0,38,7,52);
-pave(paveMat,0,-38,6,52);
+pave(paveMat,0,70,8,116);
+pave(paveMat,0,-70,7,116);
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
 pave(alleyMat,-10.5,51,2.8,16,.22,.08);
@@ -60,12 +60,12 @@ const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCan
 // dark plane with a drifting texture reads as canal at this distance for free.
 const waterMat=new T.MeshStandardMaterial({color:0x0a1a22,metalness:.75,roughness:.28,normalMap:normal,normalScale:new T.Vector2(.6,.6)});
 normal.repeat.set(6,36);
-const water=new T.Mesh(new T.PlaneGeometry(20,280),waterMat);water.rotation.x=-Math.PI/2;water.position.set(74,-.05,0);scene.add(water);
+const water=new T.Mesh(new T.PlaneGeometry(24,400),waterMat);water.rotation.x=-Math.PI/2;water.position.set(128,-.05,0);scene.add(water);
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
-for(let j=0;j<6;j++){
- const x=(j%2?4:-4),z=58-j*7;
+for(let j=0;j<10;j++){
+ const x=(j%2?4:-4),z=120-j*11;
  const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,2.6,10),lampMat);pole.position.set(x,1.3,z);pole.castShadow=true;scene.add(pole);
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
  const light=new T.PointLight(0xffa324,.35,6);light.position.set(x,2.6,z);scene.add(light);
@@ -95,7 +95,7 @@ function tintGate(g,signal){
 const WM=gateMaterials();
 const B=makeBuilders(WM);
 const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
-const RING=70,gates=[],gatePos=[];
+const RING=132,gates=[],gatePos=[];
 for(let k=0;k<6;k++){
  const g=buildGate(WM);
  const a=Math.PI-k*Math.PI/3;// north gate first, then clockwise like the radar chart
@@ -129,9 +129,9 @@ function label(text,x,y,z,real,size=1){
 // vault and archive are still plans, so they stand as ghosts.
 const civic=new T.Group();scene.add(civic);
 const assemblyB=buildAssembly();
-{const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(0,0,-48);civic.add(assembly.root);
- const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(-26,0,-30);vaultB.root.rotation.y=.5;civic.add(vaultB.root);
- const archive=ghost(B.buildHall('archive').root);archive.position.set(26,0,-30);archive.rotation.y=-.5;civic.add(archive);}
+{const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
+ const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
+ const archive=ghost(B.buildHall('archive').root);archive.position.set(40,0,-22);archive.rotation.y=-.7;civic.add(archive);}
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();scene.add(shops);
 {let n=0;
@@ -156,9 +156,9 @@ const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);for
 ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 // Names float over each structure — fire for the built, ghost-light for the planned.
 label('大灯台(仮)',0,40,0,false,1.4);
-label('議事堂',0,30,-48,true,1.4);
-label('大金庫',-26,26,-30,true,1.2);
-label('憲法堂(仮)',26,13,-30,false);
+label('議事堂',-44,30,-26,true,1.4);
+label('大金庫',0,26,-52,true,1.2);
+label('憲法堂(仮)',40,13,-22,false);
 label('商店街(仮)',7,9,38,false);
 label('裏街道(仮)',-14,7,44,false,.85);
 label('民家(仮)',-30,7,32,false,.85);
@@ -186,7 +186,7 @@ function buildWallSegment(len){
  return wall;
 }
 const GATE_SPAN=9;// the gatehouse is asymmetric (round vs square tower), so both wall ends bury deep in the flanks
-const wallRing=new T.Group();scene.add(wallRing);
+console.log('[T] walls start',performance.now()|0);const wallRing=new T.Group();scene.add(wallRing);
 for(let k=0;k<6;k++){
  const p1=gatePos[k],p2=gatePos[(k+1)%6];
  const v=new T.Vector3().subVectors(p2,p1),len=v.length(),dir=v.clone().divideScalar(len);
@@ -195,12 +195,12 @@ for(let k=0;k<6;k++){
  seg.rotation.y=Math.atan2(-dir.z,dir.x);
  wallRing.add(seg);
 }
-const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+console.log('[T] walls done',performance.now()|0);const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
-const walkers=loadCast(scene);
+console.log('[T] cast start',performance.now()|0);const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base),optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t))];
-for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
+console.log('[T] opt depot',performance.now()|0);const baked=[optimize(depot.root,t=>depot.tick(t))];console.log('[T] opt walls',performance.now()|0);baked.push(optimize(wallRing,()=>{}));console.log('[T] opt lighthouse',performance.now()|0);baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));console.log('[T] opt assembly',performance.now()|0);baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));console.log('[T] opt shops',performance.now()|0);baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
+console.log('[T] opt gates',performance.now()|0);for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));

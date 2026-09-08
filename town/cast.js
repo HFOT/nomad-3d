@@ -15,16 +15,16 @@ import {buildMouse} from '../pip/model.js';
 // top of the curtain wall itself, all the way around the hexagon.
 const ROUTES={
  nomad:   {cx:0,  cz:38,  rx:4.2,rz:20, speed:.16, phase:0,   dir:1},
- ward:    {wall:true,     speed:.006,phase:.08,dir:1},
- quorum:  {cx:0,  cz:-31, rx:8,  rz:5,  speed:.10, phase:1,   dir:1},
- lex:     {cx:17, cz:-24, rx:6,  rz:5,  speed:.09, phase:4,   dir:-1},
+ ward:    {wall:true,     speed:.0035,phase:.08,dir:1},
+ quorum:  {cx:-40, cz:-16, rx:9, rz:7,  speed:.10, phase:1,   dir:1},
+ lex:     {cx:38, cz:-14, rx:7,  rz:6,  speed:.09, phase:4,   dir:-1},
  catalyst:{cx:30, cz:32,  rx:8,  rz:8,  speed:.10, phase:3,   dir:-1},
- treasury:{cx:-17,cz:-24, rx:6,  rz:5,  speed:.08, phase:5,   dir:1},
+ treasury:{cx:0,cz:-38, rx:9,  rz:6,  speed:.08, phase:5,   dir:1},
  forge:   {cx:-32,cz:-16, rx:7,  rz:6,  speed:.09, phase:2.5, dir:-1},
- pip:     {cx:0,  cz:0,   rx:40, rz:42, speed:.17, phase:.7,  dir:1},
+ pip:     {cx:0,  cz:0,   rx:64, rz:68, speed:.11, phase:.7,  dir:1},
 };
 
-const WALL_R=70,WALL_Y=9.75;
+const WALL_R=132,WALL_Y=9.75;
 const HEX=[];for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3;HEX.push([Math.sin(a)*WALL_R,Math.cos(a)*WALL_R]);}
 function walk(w,dt){
  w.u+=dt*w.speed;
