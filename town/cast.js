@@ -59,14 +59,14 @@ function robotWalker(mod,def){
  }};
 }
 
-function pipWalker(def){
+function pipWalker(def,route){
  const figure=buildMouse();
  const mixer=new T.AnimationMixer(figure.root);
  mixer.clipAction(figure.clips.find(c=>c.name==='Run')).play();
- return {...def,...ROUTES[def.id],u:0,root:figure.root,update(dt,elapsed){
+ return {...def,...(route||ROUTES[def.id]),u:0,root:figure.root,manual:false,setMoving(){},update(dt,elapsed){
   mixer.update(dt);
   figure.tick(elapsed,'Run',0);
-  walk(this,dt);
+  if(!this.manual)walk(this,dt);
  }};
 }
 
@@ -80,6 +80,11 @@ export function loadCast(scene){
   robotWalker(Treasury,{id:'treasury',name:'TREASURY',accent:'#6fd2f2'}),
   robotWalker(Forge,   {id:'forge',   name:'FORGE',   accent:'#f0a848'}),
   pipWalker(           {id:'pip',     name:'PIP',     accent:'#e2705f'}),
+  // The depot's delivery runners: more PIPs streaming blocks out of the
+  // courier depot at (26,-20) and around the town.
+  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:14,cz:-8, rx:16,rz:14,speed:.15,phase:2.1,dir:-1}),
+  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:20,cz:6,  rx:12,rz:26,speed:.13,phase:4.4,dir:1}),
+  pipWalker({id:'pip',name:'PIP',accent:'#e2705f'},{cx:27,cz:-17,rx:8, rz:8, speed:.18,phase:0,  dir:1}),
  ];
  // Real shadow casting across ~3000 character meshes doubles the frame cost,
  // so the cast opts out of the shadow pass and carries a soft blob instead.

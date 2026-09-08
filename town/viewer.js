@@ -200,6 +200,13 @@ for(let k=0;k<6;k++){
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
 const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+// Player collision: solid structures block, stairs carry you up, ghosts are
+// holograms you can walk through, and the hexagon of walls is a hard border.
+const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,...gates.map(g=>g.root)];
+const walkables=[ground,floor,...solids];
+const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
+const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
+const INR=RING*Math.cos(Math.PI/6)-1.8;
 // The cast walks in.
 console.log('[T] cast start',performance.now()|0);await phase('住人を起こしています…');
 const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
@@ -266,14 +273,30 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   const moving=mv.lengthSq()>0;
   nomadW.setMoving(moving);
   if(moving){
-   mv.normalize().multiplyScalar(dt*6);
-   const np=nomadW.root.position.clone().add(mv);
-   if(Math.hypot(np.x,np.z)<112){nomadW.root.position.copy(np);camera.position.add(mv);}
+   mv.normalize();
+   const pos=nomadW.root.position;
    const ty=Math.atan2(mv.x,mv.z);
    let dr=ty-nomadW.root.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));
    nomadW.root.rotation.y+=dr*.2;
+   fwdRay.set(new T.Vector3(pos.x,pos.y+1,pos.z),mv);
+   const blocked=fwdRay.intersectObjects(solids,true).length>0;
+   if(!blocked){
+    mv.multiplyScalar(dt*6);
+    const np=pos.clone().add(mv);
+    const inside=HEXN.every(([nx,nz])=>np.x*nx+np.z*nz<INR);
+    if(inside){
+     dnRay.set(new T.Vector3(np.x,pos.y+2.5,np.z),new T.Vector3(0,-1,0));
+     const hit=dnRay.intersectObjects(walkables,true)[0];
+     const hy=hit?pos.y+2.5-hit.distance:0;
+     if(hy-pos.y<=.75){
+      const dy=(hy-pos.y)*.5;
+      pos.set(np.x,pos.y+dy,np.z);
+      camera.position.add(mv);camera.position.y+=dy;
+     }
+    }
+   }
   }
-  controls.target.lerp(new T.Vector3(nomadW.root.position.x,1.2,nomadW.root.position.z),.3);
+  controls.target.lerp(new T.Vector3(nomadW.root.position.x,nomadW.root.position.y+1.2,nomadW.root.position.z),.3);
  }else if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
  controls.update();composer.render();frames++;
  if(frames===2)$('#loading')?.classList.add('done');}
