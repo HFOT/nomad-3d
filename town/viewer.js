@@ -27,7 +27,7 @@ camera.position.set(6,4.2,118);controls.target.set(0,30,0);controls.update();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
-const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:240,bottom:-155});scene.add(sun);
+const sun=new T.DirectionalLight(0xffb36b,2.0);sun.position.set(-30,12,8);sun.castShadow=true;sun.shadow.mapSize.set(4096,4096);Object.assign(sun.shadow.camera,{left:-155,right:155,top:160,bottom:-155});scene.add(sun);
 const rim=new T.DirectionalLight(0x5a6bd8,.8);rim.position.set(3,10,-20);scene.add(rim);
 // Ground, road and plaza.
 const ground=new T.Mesh(new T.PlaneGeometry(560,560),new T.MeshStandardMaterial({color:0x3a3433,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
@@ -56,11 +56,11 @@ pave(paveMat,0,70,8,116);
 pave(paveMat,0,-70,7,116);
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
-pave(alleyMat,-10.5,115,2.8,16,.22,.08);
-pave(alleyMat,-12.5,100,2.8,16,-.14,.08);
-pave(alleyMat,-11,87,2.8,12,.1,.08);
-pave(alleyMat,-6.5,120,7,2.2,0,.08);
-pave(alleyMat,-6.5,94,7,2.2,0,.08);
+pave(alleyMat,-10.5,79,2.8,16,.22,.08);
+pave(alleyMat,-12.5,64,2.8,16,-.14,.08);
+pave(alleyMat,-11,51,2.8,12,.1,.08);
+pave(alleyMat,-6.5,84,7,2.2,0,.08);
+pave(alleyMat,-6.5,58,7,2.2,0,.08);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
 // A reflective Water pass would render the whole town twice; a normal-mapped
@@ -71,7 +71,7 @@ const water=new T.Mesh(new T.PlaneGeometry(24,400),waterMat);water.rotation.x=-M
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
-for(let j=0;j<4;j++){// stop at z=87: the great stair owns everything closer
+for(let j=0;j<8;j++){// stop at z=43: clear of the stair's foot
  const x=(j%2?4:-4),z=120-j*11;
  const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,2.6,10),lampMat);pole.position.set(x,1.3,z);pole.castShadow=true;scene.add(pole);
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
@@ -142,7 +142,7 @@ const assemblyB=buildAssembly();
  }
 await phase('商店街と民家を建てています…');
 // Main-street shops face the paving; shady fronts face the back alley instead.
-const shops=new T.Group();shops.position.z=64;scene.add(shops);// the whole street shifts south of the great stair
+const shops=new T.Group();shops.position.z=28;scene.add(shops);// the street sits just south of the great stair (tip ~z39)
 {let n=0;
  for(const z of [22,32,42,52]){const sh=B.buildShop(100+n++,false);sh.root.position.set(6.8,0,z);sh.root.rotation.y=-Math.PI/2;shops.add(sh.root);}
  for(const z of [26,38,50]){const sh=B.buildShop(200+n++,false);sh.root.position.set(-6.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
@@ -160,21 +160,21 @@ const houses=new T.Group();scene.add(houses);
  for(const cluster of clusters)for(const [x,z] of cluster){
   const h=B.buildHouse(500+n*37);h.root.position.set(x,0,z);h.root.rotation.y=(n*2.4)%(Math.PI*2);houses.add(h.root);n++;
  }}
-const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-52,0,-16);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
+const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
 // Everything not yet deployed as a real page becomes a ghost of the plan.
 ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 // Names float over each structure — fire for the built, ghost-light for the planned.
 label('大灯台(仮)',40,40,-22,false,1.4);
 label('議事堂',-44,30,-26,true,1.4);
 label('大金庫',0,26,-52,true,1.2);
-label('憲法の書庫',0,205,0,true,2);
-label('商店街(仮)',7,9,102,false);
-label('裏街道(仮)',-14,7,108,false,.85);
+label('憲法の書庫',0,104,0,true,1.6);
+label('商店街(仮)',7,9,66,false);
+label('裏街道(仮)',-14,7,72,false,.85);
 label('民家(仮)',-48,7,32,false,.85);
 label('民家(仮)',49,7,32,false,.85);
 label('民家(仮)',34,7,-36,false,.85);
-label('鍛冶場(仮)',-52,8,-16,false,.85);
-label('配送所',54,11,-34,true);
+label('鍛冶場(仮)',-34,8,-14,false,.85);
+label('配送所',26,11,-20,true);
 for(let k=0;k<6;k++)label(SIGNALS[k].name+'の門',gatePos[k].x,24,gatePos[k].z,true,1.1);
 function buildWallSegment(len){
  const wall=new T.Group();
@@ -206,11 +206,11 @@ for(let k=0;k<6;k++){
  wallRing.add(seg);
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
-const depot=buildDepot();depot.root.position.set(54,0,-34);depot.root.rotation.y=-1.0;scene.add(depot.root);
+const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
 await phase('書庫塔を建てています…');
-const archiveB=buildArchive();archiveB.root.scale.setScalar(4.5);scene.add(archiveB.root);// 200m-class: the town's centre and its brain
+const archiveB=buildArchive();archiveB.root.scale.setScalar(2.2);scene.add(archiveB.root);// ~100m: still the town's brain, no longer its whole sky
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
@@ -326,7 +326,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
   if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
   if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
-  if(frames%2===0){const d=camera.position.distanceTo(archiveB.root.position);if(d<420)archiveB.tick(dt*2,d);}
+  if(frames%2===0){const d=camera.position.distanceTo(archiveB.root.position);if(d<300)archiveB.tick(dt*2,d);}
   if(frames%15===0){const ground=camera.position.y<40;
    for(const e of lod)e.o.visible=!ground||camera.position.distanceToSquared(e.p||e.o.position)<e.d2;}
   scene.fog.density=T.MathUtils.lerp(.0058,.0036,Math.min(1,camera.position.y/70));
