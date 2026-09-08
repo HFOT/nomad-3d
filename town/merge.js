@@ -15,7 +15,7 @@ export function optimize(root,animate,skip){
  for(let i=1;i<=50;i++){
   animate(i*.1);
   root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
-  root.traverse(o=>{if(!dyn.has(o)&&!snap.get(o).equals(o.matrix))dyn.add(o);});
+  root.traverse(o=>{if(dyn.has(o))return;const sn=snap.get(o);if(!sn||!sn.equals(o.matrix))dyn.add(o);});
  }
  root.updateMatrixWorld(true);
  // Models here often clone a material per brick just to nudge its colour, so
@@ -24,6 +24,7 @@ export function optimize(root,animate,skip){
  // one white-tinted material draws the whole run. Emissive materials keep
  // their identity — tick() and tinting write to those at runtime.
  function matKey(m){
+  if(!m.color||m.isShaderMaterial)return m.uuid;// exotic materials merge only with themselves
   if(m.emissive&&m.emissive.getHex())return m.uuid;
   return [m.type,m.map?.uuid,m.bumpMap?.uuid,m.roughnessMap?.uuid,m.normalMap?.uuid,
    m.transparent,m.opacity,m.side,m.metalness?.toFixed(2),m.roughness?.toFixed(2)].join('/');
@@ -44,7 +45,7 @@ export function optimize(root,animate,skip){
  for(const {anc,castShadow,items} of groups.values()){
   before+=items.length;
   if(items.length<2){after+=items.length;continue;}
-  const tinted=items.some(o=>!o.material.color.equals(items[0].material.color));
+  const tinted=items.some(o=>o.material.color&&items[0].material.color&&!o.material.color.equals(items[0].material.color));
   inv.copy(anc.matrixWorld).invert();
   const parts=items.map(o=>{
    rel.multiplyMatrices(inv,o.matrixWorld);

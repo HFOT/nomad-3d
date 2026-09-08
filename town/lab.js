@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{materials as gateMaterials}from'../gate/materials.js';import{makeBuilders}from'./buildings.js';import{optimize}from'./merge.js';
+import{materials as gateMaterials}from'../gate/materials.js';import{makeBuilders}from'./buildings.js';import{optimize}from'./merge.js?v=2';
 // Structure-grammar lab: one generator, four operator profiles, side by side.
 // The question on trial: can you tell them apart by silhouette alone?
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);

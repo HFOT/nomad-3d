@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';import{makeBuilders}from'./buildings.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js?v=2';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -128,9 +128,10 @@ function label(text,x,y,z,real,size=1){
 // Civic quarter: the REAL delegates assembly at the head of the approach;
 // vault and archive are still plans, so they stand as ghosts.
 const civic=new T.Group();scene.add(civic);
-{const assembly=buildAssembly();assembly.root.scale.setScalar(1.7);assembly.root.position.set(0,0,-40);civic.add(assembly.root);
- const vault=ghost(B.buildHall('vault').root);vault.position.set(-18,0,-28);vault.rotation.y=.5;civic.add(vault);
- const archive=ghost(B.buildHall('archive').root);archive.position.set(18,0,-28);archive.rotation.y=-.5;civic.add(archive);}
+const assemblyB=buildAssembly();
+{const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(0,0,-48);civic.add(assembly.root);
+ const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(-26,0,-30);vaultB.root.rotation.y=.5;civic.add(vaultB.root);
+ const archive=ghost(B.buildHall('archive').root);archive.position.set(26,0,-30);archive.rotation.y=-.5;civic.add(archive);}
 // Main-street shops face the paving; shady fronts face the back alley instead.
 const shops=new T.Group();scene.add(shops);
 {let n=0;
@@ -155,9 +156,9 @@ const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);for
 ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 // Names float over each structure — fire for the built, ghost-light for the planned.
 label('大灯台(仮)',0,40,0,false,1.4);
-label('議事堂',0,17,-40,true,1.2);
-label('金庫堂(仮)',-18,13,-28,false);
-label('憲法堂(仮)',18,13,-28,false);
+label('議事堂',0,30,-48,true,1.4);
+label('大金庫',-26,26,-30,true,1.2);
+label('憲法堂(仮)',26,13,-30,false);
 label('商店街(仮)',7,9,38,false);
 label('裏街道(仮)',-14,7,44,false,.85);
 label('民家(仮)',-30,7,32,false,.85);
@@ -198,8 +199,9 @@ const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{}),optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t))];
+const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base),optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t))];
 for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
+baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
 // Click to follow: pick a walker with a ray, keep the target on it while set.
@@ -224,7 +226,7 @@ const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
-  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);for(const f of labelTicks)f(elapsed);
+  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);assemblyB.tick(elapsed,dt);window.__vaultB.tick(elapsed,dt,camera);for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
