@@ -160,7 +160,7 @@ ghost(lighthouse.root);ghost(shops);ghost(houses);ghost(forgeWorks.root);
 label('大灯台(仮)',40,40,-22,false,1.4);
 label('議事堂',-44,30,-26,true,1.4);
 label('大金庫',0,26,-52,true,1.2);
-label('憲法の書庫',0,28,0,true,1.4);
+label('憲法の書庫',0,44,0,true,1.4);
 label('商店街(仮)',7,9,38,false);
 label('裏街道(仮)',-14,7,44,false,.85);
 label('民家(仮)',-30,7,32,false,.85);
@@ -202,7 +202,7 @@ console.log('[T] walls done',performance.now()|0);await phase('官庁街を建�
 const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
-const archiveB=buildArchive();scene.add(archiveB.root);
+const archiveB=buildArchive();archiveB.root.scale.setScalar(1.5);scene.add(archiveB.root);// monumental against the 2.4m cast
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
