@@ -208,6 +208,7 @@ console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked
 const ray=new T.Raycaster(),pointer=new T.Vector2(),clickTmp=new T.Vector3();let following=null;
 function setFollow(w){following=w;$('#follow-name').textContent=w?w.name+' を追跡中':'';$('#follow-name').style.color=w?w.accent:'';}
 renderer.domElement.addEventListener('pointerdown',e=>{
+ if(player)return;// clicking picks nothing while walking as NOMAD
  pointer.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(pointer,camera);
  // A generous hitbox: an exact mesh hit wins, otherwise the walker whose body
  // passes within 1.4 units of the ray — distant figures are only a few pixels.
@@ -218,7 +219,25 @@ renderer.domElement.addEventListener('pointerdown',e=>{
  }
  setFollow(bd<1.4?best:null);
 });
-$('#unfollow').onclick=()=>setFollow(null);$('#front').onclick=front;
+$('#unfollow').onclick=()=>setFollow(null);$('#front').onclick=()=>{if(player)exitPlayer();front();};
+// NOMAD mode: borrow the wanderer, walk it with WASD/arrows, orbit stays on the mouse.
+let player=null;const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&player)exitPlayer();});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+const nomadW=walkers.find(w=>w.id==='nomad');
+function enterPlayer(){
+ player={};nomadW.manual=true;nomadW.setMoving(false);setFollow(null);
+ $('#walk').classList.add('active');
+ $('#follow-name').textContent='NOMAD視点 · WASD/矢印キーで移動 · Escで俯瞰へ';$('#follow-name').style.color='#d8b669';
+ const p=nomadW.root.position;
+ camera.position.set(p.x,3.4,p.z+8);controls.target.set(p.x,1.2,p.z);controls.update();
+}
+function exitPlayer(){
+ player=null;nomadW.manual=false;nomadW.setMoving(true);
+ $('#walk').classList.remove('active');$('#follow-name').textContent='';front();
+}
+$('#walk').onclick=()=>player?exitPlayer():enterPlayer();
+const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.35,.4,1.1));composer.addPass(new OutputPass());
@@ -229,7 +248,26 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);assemblyB.tick(elapsed,dt);window.__vaultB.tick(elapsed,dt,camera);for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
- if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
+ if(player&&!paused){
+  camera.getWorldDirection(camF);camF.y=0;camF.normalize();
+  camR.set(-camF.z,0,camF.x);
+  mv.set(0,0,0);
+  if(keys.KeyW||keys.ArrowUp)mv.add(camF);
+  if(keys.KeyS||keys.ArrowDown)mv.sub(camF);
+  if(keys.KeyD||keys.ArrowRight)mv.add(camR);
+  if(keys.KeyA||keys.ArrowLeft)mv.sub(camR);
+  const moving=mv.lengthSq()>0;
+  nomadW.setMoving(moving);
+  if(moving){
+   mv.normalize().multiplyScalar(dt*6);
+   const np=nomadW.root.position.clone().add(mv);
+   if(Math.hypot(np.x,np.z)<112){nomadW.root.position.copy(np);camera.position.add(mv);}
+   const ty=Math.atan2(mv.x,mv.z);
+   let dr=ty-nomadW.root.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));
+   nomadW.root.rotation.y+=dr*.2;
+  }
+  controls.target.lerp(new T.Vector3(nomadW.root.position.x,1.2,nomadW.root.position.z),.3);
+ }else if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
  controls.update();composer.render();frames++;
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);

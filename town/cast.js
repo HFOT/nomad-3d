@@ -44,12 +44,18 @@ function walk(w,dt){
 function robotWalker(mod,def){
  const M=mod.createMaterials(),r=mod.buildRobot(M);
  const mixer=new T.AnimationMixer(r.root);
- mixer.clipAction(r.clips.find(c=>c.name==='Walk')).play();
- return {...def,...ROUTES[def.id],u:0,root:r.root,update(dt,elapsed){
+ const walkA=mixer.clipAction(r.clips.find(c=>c.name==='Walk'));
+ const idleA=mixer.clipAction(r.clips.find(c=>c.name==='Idle'));
+ walkA.play();let current=walkA;
+ return {...def,...ROUTES[def.id],u:0,root:r.root,manual:false,
+  // Player mode borrows a walker: manual=true stops the route, and
+  // setMoving() crossfades between the Walk and Idle clips.
+  setMoving(m){const next=m?walkA:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.3,true);current=next;},
+  update(dt,elapsed){
   mixer.update(dt);
   if(r.rig.flame&&r.rig.fire){r.rig.flame.scale.set(1+.08*Math.sin(elapsed*19),1+.12*Math.sin(elapsed*13),1);r.rig.fire.intensity=2.5+.2*Math.sin(elapsed*17);}
   if(r.ward)r.ward.tick(elapsed,dt,'Walk');
-  walk(this,dt);
+  if(!this.manual)walk(this,dt);
  }};
 }
 
