@@ -1,5 +1,5 @@
 import * as T from 'three';import{RoundedBoxGeometry}from'three/addons/geometries/RoundedBoxGeometry.js';import{materials}from'./materials.js';
-export function buildGate(){const root=new T.Group();root.name='SPOWatchGate';root.userData={author:'CORN',description:'Fictional Cardano SPO gatehouse; three simulated relay lights'};const M=materials();let id=0;const lights=[],flames=[],doors=[];
+export function buildGate(sharedM){const root=new T.Group();root.name='SPOWatchGate';root.userData={author:'CORN',description:'Fictional Cardano SPO gatehouse; three simulated relay lights'};const M=sharedM||materials();let id=0;const lights=[],flames=[],doors=[];
 function mesh(p,g,m,x=0,y=0,z=0){const o=new T.Mesh(g,m);o.name='GatePart'+id++;o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;}
 function box(p,m,x,y,z,w,h,d){return mesh(p,new RoundedBoxGeometry(w,h,d,2,Math.min(w,h,d)*.075),m,x,y,z);}
 function rod(p,m,a,b,r=.025){const av=new T.Vector3(...a),v=new T.Vector3(...b).sub(av),o=mesh(p,new T.CylinderGeometry(r,r,v.length(),16),m);o.position.copy(av).addScaledVector(v,.5);o.quaternion.setFromUnitVectors(new T.Vector3(0,1,0),v.normalize());return o;}

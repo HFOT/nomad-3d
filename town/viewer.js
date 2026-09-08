@@ -90,9 +90,14 @@ function tintGate(g,signal){
  });
  for(const l of g.lights)l.color.set(signal.color);
 }
+// One shared material set for the six gates and every wall: the procedural
+// stone textures are expensive, so they are generated exactly once.
+const WM=gateMaterials();
+const B=makeBuilders(WM);
+const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
 const RING=70,gates=[],gatePos=[];
 for(let k=0;k<6;k++){
- const g=buildGate();
+ const g=buildGate(WM);
  const a=Math.PI-k*Math.PI/3;// north gate first, then clockwise like the radar chart
  const p=new T.Vector3(Math.sin(a)*RING,0,Math.cos(a)*RING);
  g.root.position.copy(p);
@@ -103,9 +108,6 @@ for(let k=0;k<6;k++){
 }
 // Curtain walls close the ring: brick courses and merlons in the gate's stone,
 // spanning each hexagon edge between neighbouring gatehouses.
-const WM=gateMaterials();
-const B=makeBuilders(WM);
-const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
 // Civic quarter: assembly hall at the head of the approach, vault and archive flanking.
 const civic=new T.Group();scene.add(civic);
 {const assembly=B.buildHall('assembly');assembly.root.position.set(0,0,-40);civic.add(assembly.root);
@@ -193,7 +195,8 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
- controls.update();composer.render();frames++;}
+ controls.update();composer.render();frames++;
+ if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 window.town={scene,camera,controls,walkers,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
