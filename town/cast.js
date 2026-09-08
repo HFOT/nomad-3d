@@ -51,10 +51,12 @@ function robotWalker(mod,def){
   // Player mode borrows a walker: manual=true stops the route, and
   // setMoving() crossfades between the Walk and Idle clips.
   setMoving(m){const next=m?walkA:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.3,true);current=next;},
-  update(dt,elapsed){
+  update(dt,elapsed,lite){
   mixer.update(dt);
-  if(r.rig.flame&&r.rig.fire){r.rig.flame.scale.set(1+.08*Math.sin(elapsed*19),1+.12*Math.sin(elapsed*13),1);r.rig.fire.intensity=2.5+.2*Math.sin(elapsed*17);}
-  if(r.ward)r.ward.tick(elapsed,dt,'Walk');
+  if(!lite){// distant walkers skip the decorative work
+   if(r.rig.flame&&r.rig.fire){r.rig.flame.scale.set(1+.08*Math.sin(elapsed*19),1+.12*Math.sin(elapsed*13),1);r.rig.fire.intensity=2.5+.2*Math.sin(elapsed*17);}
+   if(r.ward)r.ward.tick(elapsed,dt,'Walk');
+  }
   if(!this.manual)walk(this,dt);
  }};
 }
@@ -63,9 +65,9 @@ function pipWalker(def,route){
  const figure=buildMouse();
  const mixer=new T.AnimationMixer(figure.root);
  mixer.clipAction(figure.clips.find(c=>c.name==='Run')).play();
- return {...def,...(route||ROUTES[def.id]),u:0,root:figure.root,manual:false,setMoving(){},update(dt,elapsed){
+ return {...def,...(route||ROUTES[def.id]),u:0,root:figure.root,manual:false,setMoving(){},update(dt,elapsed,lite){
   mixer.update(dt);
-  figure.tick(elapsed,'Run',0);
+  if(!lite)figure.tick(elapsed,'Run',0);
   if(!this.manual)walk(this,dt);
  }};
 }

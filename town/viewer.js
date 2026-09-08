@@ -12,7 +12,7 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.textContent='⚠ ソフトウェア描画で動いています。ブラウザの「グラフィック アクセラレーション」を有効にすると滑らかになります。';
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
- }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
+ }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
 const phase=m=>{const el=document.querySelector('#loading span');if(el)el.textContent=m;return new Promise(r=>setTimeout(r,0));};
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0038);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
@@ -250,7 +250,8 @@ function exitPlayer(){
  player=null;nomadW.manual=false;nomadW.setMoving(true);
  $('#walk').classList.remove('active');$('#follow-name').textContent='';front();
 }
-$('#walk').onclick=()=>player?exitPlayer():enterPlayer();
+$('#walk').onclick=()=>player?exitPlayer():renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
+enterPlayer();
 const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
@@ -258,8 +259,13 @@ const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scen
 const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
-  for(const w of walkers)w.update(dt,elapsed);
-  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);assemblyB.tick(elapsed,dt);window.__vaultB.tick(elapsed,dt,camera);for(const f of labelTicks)f(elapsed);
+  for(const w of walkers)w.update(dt,elapsed,camera.position.distanceTo(w.root.position)>90);
+  // Flame vertex morphs are the CPU hogs: near gates tick on alternate frames, far ones rest.
+  gates.forEach((g,i)=>{if((frames+i)%2===0&&camera.position.distanceTo(g.root.position)<170)g.tick(elapsed,dt*2);});
+  if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
+  if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
+  if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
+  for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(player&&!paused){
@@ -302,5 +308,6 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
 enterPlayer();
 window.town={scene,camera,controls,walkers,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
