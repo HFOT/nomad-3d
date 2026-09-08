@@ -7,17 +7,24 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 // matrix actually changes, and then bakes all meshes that stay rigid under the
 // same moving ancestor into one mesh per material. Materials are reused, so
 // emissive flicker written by tick() keeps working on the merged surfaces.
-export function optimize(root,animate,skip){
- const snap=new Map();
- root.updateMatrixWorld(true);
- root.traverse(o=>snap.set(o,o.matrix.clone()));
+export function optimize(root,animate,skip,dynNames){
  const dyn=new Set([root]);
- for(let i=1;i<=24;i++){
-  animate(i*.21);
-  root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
-  root.traverse(o=>{if(dyn.has(o))return;const sn=snap.get(o);if(!sn||!sn.equals(o.matrix))dyn.add(o);});
+ if(dynNames){
+  // Identical models (the six gates) share one detection pass: reuse the
+  // dynamic-node names found on the first instead of re-simulating.
+  root.traverse(o=>{if(dynNames.has(o.name))dyn.add(o);});
+  root.updateMatrixWorld(true);
+ }else{
+  const snap=new Map();
+  root.updateMatrixWorld(true);
+  root.traverse(o=>snap.set(o,o.matrix.clone()));
+  for(let i=1;i<=10;i++){
+   animate(i*.5);
+   root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
+   root.traverse(o=>{if(dyn.has(o))return;const sn=snap.get(o);if(!sn||!sn.equals(o.matrix))dyn.add(o);});
+  }
+  root.updateMatrixWorld(true);
  }
- root.updateMatrixWorld(true);
  // Models here often clone a material per brick just to nudge its colour, so
  // grouping by material identity merges nothing. Materials that differ only in
  // colour share a bucket instead: the colour is baked into vertex colours and
@@ -67,5 +74,5 @@ export function optimize(root,animate,skip){
   for(const o of items){o.removeFromParent();o.geometry.dispose();removable.push(o);}
   for(const g of parts)g.dispose();
  }
- return {before,after,dynamic:dyn.size};
+ return {before,after,dynamic:dyn.size,dynNames:new Set([...dyn].map(o=>o.name))};
 }

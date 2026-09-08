@@ -13,6 +13,7 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
+const phase=m=>{const el=document.querySelector('#loading span');if(el)el.textContent=m;return new Promise(r=>setTimeout(r,0));};
 const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0038);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
@@ -95,6 +96,7 @@ function tintGate(g,signal){
 const WM=gateMaterials();
 const B=makeBuilders(WM);
 const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
+await phase('城門を建てています…');
 const RING=132,gates=[],gatePos=[];
 for(let k=0;k<6;k++){
  const g=buildGate(WM);
@@ -186,7 +188,8 @@ function buildWallSegment(len){
  return wall;
 }
 const GATE_SPAN=9;// the gatehouse is asymmetric (round vs square tower), so both wall ends bury deep in the flanks
-console.log('[T] walls start',performance.now()|0);const wallRing=new T.Group();scene.add(wallRing);
+console.log('[T] walls start',performance.now()|0);await phase('城壁を積んでいます…');
+const wallRing=new T.Group();scene.add(wallRing);
 for(let k=0;k<6;k++){
  const p1=gatePos[k],p2=gatePos[(k+1)%6];
  const v=new T.Vector3().subVectors(p2,p1),len=v.length(),dir=v.clone().divideScalar(len);
@@ -195,12 +198,16 @@ for(let k=0;k<6;k++){
  seg.rotation.y=Math.atan2(-dir.z,dir.x);
  wallRing.add(seg);
 }
-console.log('[T] walls done',performance.now()|0);const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
+const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The cast walks in.
-console.log('[T] cast start',performance.now()|0);const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
+console.log('[T] cast start',performance.now()|0);await phase('住人を起こしています…');
+const walkers=loadCast(scene);console.log('[T] cast done',performance.now()|0);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-console.log('[T] opt depot',performance.now()|0);const baked=[optimize(depot.root,t=>depot.tick(t))];console.log('[T] opt walls',performance.now()|0);baked.push(optimize(wallRing,()=>{}));console.log('[T] opt lighthouse',performance.now()|0);baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));console.log('[T] opt assembly',performance.now()|0);baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));console.log('[T] opt shops',performance.now()|0);baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
-console.log('[T] opt gates',performance.now()|0);for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));console.log('[T] opt walkers',performance.now()|0);
+console.log('[T] opt depot',performance.now()|0);await phase('町を磨いています…');
+const baked=[optimize(depot.root,t=>depot.tick(t))];console.log('[T] opt walls',performance.now()|0);baked.push(optimize(wallRing,()=>{}));console.log('[T] opt lighthouse',performance.now()|0);baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));console.log('[T] opt assembly',performance.now()|0);baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));console.log('[T] opt shops',performance.now()|0);baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
+console.log('[T] opt gates',performance.now()|0);let gateDyn=null;
+for(const g of gates){const r=optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base,gateDyn);gateDyn=gateDyn||r.dynNames;baked.push(r);}console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
@@ -272,4 +279,5 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+enterPlayer();
 window.town={scene,camera,controls,walkers,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
