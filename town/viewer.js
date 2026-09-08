@@ -250,8 +250,7 @@ function exitPlayer(){
  player=null;nomadW.manual=false;nomadW.setMoving(true);
  $('#walk').classList.remove('active');$('#follow-name').textContent='';front();
 }
-$('#walk').onclick=()=>player?exitPlayer():renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
-enterPlayer();
+$('#walk').onclick=()=>player?exitPlayer():enterPlayer();
 const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
