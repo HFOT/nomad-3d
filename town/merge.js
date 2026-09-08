@@ -18,7 +18,7 @@ export function optimize(root,animate,skip,dynNames){
   const snap=new Map();
   root.updateMatrixWorld(true);
   root.traverse(o=>snap.set(o,o.matrix.clone()));
-  for(let i=1;i<=10;i++){
+  for(let i=1;i<=4;i++){// 4 samples catch every mixer- and tick-driven joint (verified identical to 10)
    animate(i*.5);
    root.updateMatrixWorld(true);// recompose local matrices; the mixer only writes position/quaternion
    root.traverse(o=>{if(dyn.has(o))return;const sn=snap.get(o);if(!sn||!sn.equals(o.matrix))dyn.add(o);});

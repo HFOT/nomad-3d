@@ -5,8 +5,8 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 let seed=71031;
 const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
 const clamp=T.MathUtils.clamp;
-export function createMaterials(){
-  function texture(kind,base,size=1024){
+export function createMaterials(texSize){
+  function texture(kind,base,size=texSize||1024){
     const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');g.fillStyle=base;g.fillRect(0,0,size,size);
     const im=g.getImageData(0,0,size,size),d=im.data;
     for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4;let n=(rand()-.5)*(kind==='cloth'?29:kind==='leather'?24:15);if(kind==='cloth')n+=((x%4===0?1:-.3)+(y%4===0?1:-.3))*10;for(let k=0;k<3;k++)d[i+k]=clamp(d[i+k]+n,0,255)}g.putImageData(im,0,0);

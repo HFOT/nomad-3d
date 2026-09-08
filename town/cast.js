@@ -42,7 +42,7 @@ function walk(w,dt){
 }
 
 function robotWalker(mod,def){
- const M=mod.createMaterials(),r=mod.buildRobot(M);
+ const M=mod.createMaterials(256),r=mod.buildRobot(M);// town-scale figures: quarter-res skins load 16x faster
  const mixer=new T.AnimationMixer(r.root);
  const walkA=mixer.clipAction(r.clips.find(c=>c.name==='Walk'));
  const idleA=mixer.clipAction(r.clips.find(c=>c.name==='Idle'));
