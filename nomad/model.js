@@ -6,15 +6,15 @@ let seed=71031;
 const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296};
 const clamp=T.MathUtils.clamp;
 export function createMaterials(texSize){
-  function texture(kind,base,size=texSize||1024){
+  function texture(kind,base,size=texSize||1024){const s=size/1024;
     const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');g.fillStyle=base;g.fillRect(0,0,size,size);
     const im=g.getImageData(0,0,size,size),d=im.data;
     for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4;let n=(rand()-.5)*(kind==='cloth'?29:kind==='leather'?24:15);if(kind==='cloth')n+=((x%4===0?1:-.3)+(y%4===0?1:-.3))*10;for(let k=0;k<3;k++)d[i+k]=clamp(d[i+k]+n,0,255)}g.putImageData(im,0,0);
     if(kind==='paint'||kind==='ivory'||kind==='brass'){
-      for(let i=0;i<1900;i++){let x=rand()*size,y=rand()*size,r=rand()*3+.3;g.fillStyle=kind==='ivory'?`rgba(93,65,32,${rand()*.25})`:`rgba(42,33,21,${rand()*.65})`;g.beginPath();g.ellipse(x,y,r,r*(.25+rand()),rand()*6.28,0,6.28);g.fill();if(kind==='paint'&&i%6===0){g.strokeStyle='#b4a48277';g.lineWidth=.7;g.beginPath();g.moveTo(x-r,y+r);g.lineTo(x+r*2,y+r*.8);g.stroke()}}
-      for(let i=0;i<105;i++){let x=rand()*size,y=rand()*size;g.strokeStyle=kind==='ivory'?'#55432925':'#e3d5a335';g.lineWidth=rand()*1.4+.3;g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*34,y+rand()*12);g.stroke()}
+      for(let i=0;i<1900;i++){let x=rand()*size,y=rand()*size,r=(rand()*3+.3)*s;g.fillStyle=kind==='ivory'?`rgba(93,65,32,${rand()*.25})`:`rgba(42,33,21,${rand()*.65})`;g.beginPath();g.ellipse(x,y,r,r*(.25+rand()),rand()*6.28,0,6.28);g.fill();if(kind==='paint'&&i%6===0){g.strokeStyle='#b4a48277';g.lineWidth=.7*s;g.beginPath();g.moveTo(x-r,y+r);g.lineTo(x+r*2,y+r*.8);g.stroke()}}
+      for(let i=0;i<105;i++){let x=rand()*size,y=rand()*size;g.strokeStyle=kind==='ivory'?'#55432925':'#e3d5a335';g.lineWidth=(rand()*1.4+.3)*s;g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*34*s,y+rand()*12*s);g.stroke()}
     }
-    if(kind==='leather'){for(let i=0;i<1200;i++){const x=rand()*size,y=rand()*size;g.strokeStyle='#d8a77518';g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*10,y+rand()*3);g.stroke()}}
+    if(kind==='leather'){for(let i=0;i<1200;i++){const x=rand()*size,y=rand()*size;g.strokeStyle='#d8a77518';g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*10*s,y+rand()*3*s);g.stroke()}}
     const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;return tex;
   }
   function normalFromTexture(tex,kind){

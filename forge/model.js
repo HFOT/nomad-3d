@@ -11,14 +11,14 @@ const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/429496
 const clamp=T.MathUtils.clamp;
 
 export function createMaterials(texSize){
-  function texture(kind,base,size=texSize||512){
+  function texture(kind,base,size=texSize||512){const s=size/512;
     const c=document.createElement('canvas');c.width=c.height=size;const g=c.getContext('2d');g.fillStyle=base;g.fillRect(0,0,size,size);
     const im=g.getImageData(0,0,size,size),d=im.data;
     for(let y=0;y<size;y++)for(let x=0;x<size;x++){const i=(y*size+x)*4;let n=(rand()-.5)*(kind==='apron'?30:16);if(kind==='apron')n+=((x%5===0?1:-.3)+(y%5===0?1:-.3))*9;for(let k=0;k<3;k++)d[i+k]=clamp(d[i+k]+n,0,255)}
     g.putImageData(im,0,0);
     // Soot, scale and hammer scars: a forge surface is never clean.
-    for(let i=0;i<1500;i++){const x=rand()*size,y=rand()*size,r=rand()*3.2+.3;g.fillStyle=kind==='brass'?`rgba(44,34,20,${rand()*.6})`:`rgba(12,11,10,${rand()*.55})`;g.beginPath();g.ellipse(x,y,r,r*(.25+rand()),rand()*6.28,0,6.28);g.fill()}
-    for(let i=0;i<120;i++){const x=rand()*size,y=rand()*size;g.strokeStyle=kind==='brass'?'#e3d5a330':'#c9cbc522';g.lineWidth=rand()*1.5+.3;g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*40,y+rand()*14);g.stroke()}
+    for(let i=0;i<1500;i++){const x=rand()*size,y=rand()*size,r=(rand()*3.2+.3)*s;g.fillStyle=kind==='brass'?`rgba(44,34,20,${rand()*.6})`:`rgba(12,11,10,${rand()*.55})`;g.beginPath();g.ellipse(x,y,r,r*(.25+rand()),rand()*6.28,0,6.28);g.fill()}
+    for(let i=0;i<120;i++){const x=rand()*size,y=rand()*size;g.strokeStyle=kind==='brass'?'#e3d5a330':'#c9cbc522';g.lineWidth=(rand()*1.5+.3)*s;g.beginPath();g.moveTo(x,y);g.lineTo(x+rand()*40*s,y+rand()*14*s);g.stroke()}
     const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.anisotropy=8;return tex;
   }
   function normalFromTexture(tex,kind){
