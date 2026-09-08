@@ -118,6 +118,19 @@ const shops=new T.Group();scene.add(shops);
  for(const z of [26,38,50]){const sh=B.buildShop(200+n++,false);sh.root.position.set(-6.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
  for(const z of [30,44,54]){const sh=B.buildShop(300+n++,true);sh.root.position.set(-15.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
  for(const [x,z] of [[2.6,28],[-2.6,34],[2.6,40]]){const st=B.buildStall(400+n++);st.root.position.set(x,0,z);st.root.rotation.y=(n%2?.4:-.5);shops.add(st.root);}}
+// House clusters fill the residential wedges; the smithy works the west side.
+const houses=new T.Group();scene.add(houses);
+{let n=0;
+ const clusters=[
+  [[-30,26],[-24,32],[-34,34],[-26,42],[-36,20]],
+  [[26,30],[33,24],[30,38],[38,32],[24,44]],
+  [[30,-34],[37,-28],[33,-42],[41,-38]],
+  [[-26,-38],[-33,-32],[-30,-46]],
+ ];
+ for(const cluster of clusters)for(const [x,z] of cluster){
+  const h=B.buildHouse(500+n*37);h.root.position.set(x,0,z);h.root.rotation.y=(n*2.4)%(Math.PI*2);houses.add(h.root);n++;
+ }}
+const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
 function buildWallSegment(len){
  const wall=new T.Group();
  const bh=.8,bd=1.6,rows=12;let seed=13;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -150,17 +163,23 @@ const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{}),optimize(shops,()=>{})];
+const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{}),optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t))];
 for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
 // Click to follow: pick a walker with a ray, keep the target on it while set.
-const ray=new T.Raycaster(),pointer=new T.Vector2();let following=null;
+const ray=new T.Raycaster(),pointer=new T.Vector2(),clickTmp=new T.Vector3();let following=null;
 function setFollow(w){following=w;$('#follow-name').textContent=w?w.name+' を追跡中':'';$('#follow-name').style.color=w?w.accent:'';}
 renderer.domElement.addEventListener('pointerdown',e=>{
  pointer.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(pointer,camera);
- for(const w of walkers){if(ray.intersectObject(w.root,true).length){setFollow(w);return;}}
- setFollow(null);
+ // A generous hitbox: an exact mesh hit wins, otherwise the walker whose body
+ // passes within 1.4 units of the ray — distant figures are only a few pixels.
+ let best=null,bd=1e9;
+ for(const w of walkers){
+  const d=ray.intersectObject(w.root,true).length?0:ray.ray.distanceToPoint(clickTmp.copy(w.root.position).setY(w.root.position.y+.5));
+  if(d<bd){bd=d;best=w;}
+ }
+ setFollow(bd<1.4?best:null);
 });
 $('#unfollow').onclick=()=>setFollow(null);$('#front').onclick=front;
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
@@ -170,7 +189,7 @@ const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
-  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);lighthouse.tick(elapsed);
+  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);lighthouse.tick(elapsed);forgeWorks.tick(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);

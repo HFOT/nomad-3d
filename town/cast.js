@@ -11,19 +11,30 @@ import {buildMouse} from '../pip/model.js';
 // Each walker owns a closed ellipse route: centre, radii, angular speed, phase
 // and direction. Routes thread the plaza, the road and the building fronts
 // without crossing a footprint (gate ~z22, depot ~(14,-12), canal x>20).
+// Territories: everyone patrols their own patch of the town. WARD walks the
+// top of the curtain wall itself, all the way around the hexagon.
 const ROUTES={
- nomad:   {cx:0,  cz:0,   rx:18, rz:18, speed:.11, phase:0,   dir:1},
- ward:    {cx:0,  cz:40,  rx:15, rz:11, speed:.13, phase:2,   dir:-1},
- quorum:  {cx:-18,cz:-13, rx:15, rz:14, speed:.09, phase:1,   dir:1},
- lex:     {cx:-30,cz:11,  rx:13, rz:19, speed:.08, phase:4,   dir:1},
- catalyst:{cx:18, cz:18,  rx:14, rz:15, speed:.10, phase:3,   dir:-1},
- treasury:{cx:24, cz:-14, rx:11, rz:11, speed:.08, phase:5,   dir:1},
- forge:   {cx:-11,cz:-37, rx:19, rz:11, speed:.09, phase:2.5, dir:-1},
+ nomad:   {cx:0,  cz:38,  rx:4.2,rz:20, speed:.16, phase:0,   dir:1},
+ ward:    {wall:true,     speed:.006,phase:.08,dir:1},
+ quorum:  {cx:0,  cz:-31, rx:8,  rz:5,  speed:.10, phase:1,   dir:1},
+ lex:     {cx:17, cz:-24, rx:6,  rz:5,  speed:.09, phase:4,   dir:-1},
+ catalyst:{cx:30, cz:32,  rx:8,  rz:8,  speed:.10, phase:3,   dir:-1},
+ treasury:{cx:-17,cz:-24, rx:6,  rz:5,  speed:.08, phase:5,   dir:1},
+ forge:   {cx:-32,cz:-16, rx:7,  rz:6,  speed:.09, phase:2.5, dir:-1},
  pip:     {cx:0,  cz:0,   rx:40, rz:42, speed:.17, phase:.7,  dir:1},
 };
 
+const WALL_R=70,WALL_Y=9.75;
+const HEX=[];for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3;HEX.push([Math.sin(a)*WALL_R,Math.cos(a)*WALL_R]);}
 function walk(w,dt){
  w.u+=dt*w.speed;
+ if(w.wall){
+  const p=((w.phase+w.u*w.dir)%1+1)%1,i=Math.floor(p*6),f=p*6-i;
+  const [x1,z1]=HEX[i],[x2,z2]=HEX[(i+1)%6];
+  w.root.position.set(x1+(x2-x1)*f,WALL_Y,z1+(z2-z1)*f);
+  w.root.rotation.y=Math.atan2((x2-x1)*w.dir,(z2-z1)*w.dir);
+  return;
+ }
  const a=w.phase+w.u*w.dir;
  w.root.position.set(w.cx+Math.sin(a)*w.rx,0,w.cz+Math.cos(a)*w.rz);
  const dx=Math.cos(a)*w.rx*w.dir,dz=-Math.sin(a)*w.rz*w.dir;

@@ -132,5 +132,37 @@ export function makeBuilders(M){
   return{root};
  }
 
- return{buildLighthouse,buildHall,buildShop,buildStall,helpers:{g,m,box,cyl,stone,windowLit,warm}};
+ // ---- Houses: small gabled homes in three variants, warm windows, some chimneys.
+ function buildHouse(seed){
+  let s=seed>>>0;const rand=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+  const root=new T.Group();root.name='House';
+  const two=rand()<.35,w=3.4+rand()*1.4,d=3+rand()*1.2,h=two?4.4:2.6;
+  stone(root,0,.25,0,w+.5,.5,d+.4);
+  box(root,rand()<.5?M.wood:M.stone,0,.5+h/2,0,w,h,d);
+  const roofH=1.4+rand()*.6;
+  const roof=m(root,new T.CylinderGeometry(.01,Math.max(w,d)*.62,roofH,4),M.slate,0,.5+h+roofH/2,0);roof.rotation.y=Math.PI/4;roof.scale.set(w/Math.max(w,d),1,d/Math.max(w,d));
+  const lit=warm();
+  const win=box(root,lit,-w*.18,1.5,d/2+.02,.8,.7,.08);win.castShadow=false;
+  if(two){const w2=box(root,lit,w*.2,3.2,d/2+.02,.7,.7,.08);w2.castShadow=false;}
+  box(root,M.wood,w*.24,1.2,d/2+.04,.8,1.6,.1);
+  if(rand()<.5)box(root,M.stone,w*.3,.5+h+roofH*.6,-d*.15,.5,roofH*1.2,.5);
+  return{root};
+ }
+ // ---- Forge works: an open smithy with a glowing hearth and a fat chimney.
+ function buildForgeWorks(){
+  const root=new T.Group();root.name='ForgeWorks';
+  stone(root,0,.3,0,9,.6,7);
+  for(const sx of [-1,1])for(const sz of [-1,1])box(root,M.wood,sx*3.8,2.2,sz*2.8,.35,3.6,.35);
+  m(root,new T.BoxGeometry(10,.3,8),M.slate,0,4.3,0).rotation.z=.06;
+  stone(root,-2.6,1.5,-1.5,2.6,2.4,2.2);
+  const ember=new T.MeshStandardMaterial({color:0xffd0a0,emissive:0xff5a20,emissiveIntensity:2});
+  const glow=box(root,ember,-2.6,1.9,-.35,1.6,.8,.12);glow.castShadow=false;
+  const hearthLight=new T.PointLight(0xff6a28,1.2,10);hearthLight.position.set(-2.4,2,0);root.add(hearthLight);
+  cyl(root,M.stone,-2.6,5.4,-1.5,.7,.9,5,10);
+  box(root,M.wood,1.6,1,0,2.4,.8,1.2);
+  cyl(root,M.dark,1.6,1.55,0,.45,.5,.3,10);
+  return{root,tick(t){ember.emissiveIntensity=1.6+.6*Math.sin(t*7)+.3*Math.sin(t*17);hearthLight.intensity=1+.4*Math.sin(t*9);}};
+ }
+
+ return{buildLighthouse,buildHall,buildShop,buildStall,buildHouse,buildForgeWorks,helpers:{g,m,box,cyl,stone,windowLit,warm}};
 }
