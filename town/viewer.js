@@ -111,6 +111,13 @@ const civic=new T.Group();scene.add(civic);
 {const assembly=B.buildHall('assembly');assembly.root.position.set(0,0,-40);civic.add(assembly.root);
  const vault=B.buildHall('vault');vault.root.position.set(-18,0,-28);vault.root.rotation.y=.5;civic.add(vault.root);
  const archive=B.buildHall('archive');archive.root.position.set(18,0,-28);archive.root.rotation.y=-.5;civic.add(archive.root);}
+// Main-street shops face the paving; shady fronts face the back alley instead.
+const shops=new T.Group();scene.add(shops);
+{let n=0;
+ for(const z of [22,32,42,52]){const sh=B.buildShop(100+n++,false);sh.root.position.set(6.8,0,z);sh.root.rotation.y=-Math.PI/2;shops.add(sh.root);}
+ for(const z of [26,38,50]){const sh=B.buildShop(200+n++,false);sh.root.position.set(-6.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
+ for(const z of [30,44,54]){const sh=B.buildShop(300+n++,true);sh.root.position.set(-15.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
+ for(const [x,z] of [[2.6,28],[-2.6,34],[2.6,40]]){const st=B.buildStall(400+n++);st.root.position.set(x,0,z);st.root.rotation.y=(n%2?.4:-.5);shops.add(st.root);}}
 function buildWallSegment(len){
  const wall=new T.Group();
  const bh=.8,bd=1.6,rows=12;let seed=13;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -143,7 +150,7 @@ const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{})];
+const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t)),optimize(civic,()=>{}),optimize(shops,()=>{})];
 for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));

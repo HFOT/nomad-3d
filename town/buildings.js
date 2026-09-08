@@ -96,5 +96,41 @@ export function makeBuilders(M){
   return{root};
  }
 
- return{buildLighthouse,buildHall,helpers:{g,m,box,cyl,stone,windowLit,warm}};
+ // ---- Shops. Bright awned storefronts for the main street; dim, signless
+ // fronts with cold lantern light for the back alley. Front faces +z.
+ function buildShop(seed,shady){
+  let s=seed>>>0;const rand=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+  const root=new T.Group();root.name=shady?'ShadyShop':'Shop';
+  const w=4+rand()*1.2,d=3.6+rand(),h=2.6+rand()*.8;
+  stone(root,0,.3,0,w+.6,.6,d+.4);
+  box(root,M.wood,0,.6+h/2,0,w,h,d);
+  for(const x of [-w/2+.15,w/2-.15])box(root,M.dark,x,.6+h/2,d/2-.02,.22,h,.22);
+  box(root,M.slate,0,.6+h+.45,0,w+.8,.9,d+.8).rotation.x=0;
+  m(root,new T.BoxGeometry(w+1,.16,1.6),shady?M.dark:M.wood,0,.6+h*.72,d/2+.75).rotation.x=-.35;
+  if(shady){
+   const lit=windowLit(0x4ac8b8);
+   const win=box(root,lit,-w*.22,1.6,d/2+.02,.9,.7,.1);win.castShadow=false;
+   box(root,M.dark,w*.22,1.4,d/2+.05,1,1.7,.12);
+   const lamp=m(root,new T.SphereGeometry(.12,10,8),lit,w/2-.3,2.1,d/2+.4);lamp.castShadow=false;
+  }else{
+   const lit=warm();
+   const win=box(root,lit,-w*.2,1.5,d/2+.02,1.4,1,.1);win.castShadow=false;
+   box(root,M.wood,w*.25,1.3,d/2+.05,.9,1.8,.12);
+   for(const x of [-w/2+.4,w/2-.4]){const l=m(root,new T.SphereGeometry(.14,10,8),lit,x,2.4,d/2+.5);l.castShadow=false;}
+   box(root,M.wood,w/2+.45,1,d/2+.3,.5,.9,.08);
+  }
+  return{root};
+ }
+ function buildStall(seed){
+  let s=seed>>>0;const rand=()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296;};
+  const root=new T.Group();root.name='Stall';
+  const cloth=new T.MeshStandardMaterial({color:rand()<.5?0x9e3438:0x38609e,roughness:.95});
+  box(root,M.wood,0,.55,0,2.2,.5,1.3);
+  for(const sx of [-1,1])for(const sz of [-1,1])box(root,M.wood,sx*.95,1.2,sz*.5,.12,1.6,.12);
+  m(root,new T.BoxGeometry(2.7,.1,1.9),cloth,0,2.05,0).rotation.z=.08;
+  box(root,warm(),0,.95,.35,.5,.3,.3).castShadow=false;
+  return{root};
+ }
+
+ return{buildLighthouse,buildHall,buildShop,buildStall,helpers:{g,m,box,cyl,stone,windowLit,warm}};
 }
