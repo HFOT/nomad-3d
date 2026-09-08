@@ -24,7 +24,7 @@ for(const id of characters){
   if(!await exists(path.join(src,'index.html'))){console.warn('skipping '+id+': no source in this checkout');continue;}
   built.push(id);
   await mkdir(out,{recursive:true});
-  for(const file of ['viewer.js','materials.js','cast.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
+  for(const file of ['viewer.js','materials.js','buildings.js','cast.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
     if(await exists(path.join(src,file)))await copyFile(path.join(src,file),path.join(out,file));
   }
   await writeFile(path.join(out,'index.html'),forDist(await readFile(path.join(src,'index.html'),'utf8')));

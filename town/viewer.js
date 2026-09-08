@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{loadCast}from'./cast.js';import{optimize}from'./merge.js';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -39,6 +39,21 @@ function brickTexture(){
 const floorTex=brickTexture();floorTex.repeat.set(20,20);
 const floor=new T.Mesh(new T.CircleGeometry(69.5,6,Math.PI/2),new T.MeshStandardMaterial({color:0xcabc9f,map:floorTex,bumpMap:floorTex,bumpScale:.05,roughness:.95}));
 floor.rotation.x=-Math.PI/2;floor.position.y=.04;floor.receiveShadow=true;scene.add(floor);
+// Streets: lighter paving over the brick ground. Main street runs in from the
+// south gate, the civic approach out to the north; a crooked, darker back
+// alley shadows the main street one block west; a ring road ties it together.
+const paveMat=new T.MeshStandardMaterial({color:0xd8c7a4,roughness:.92});
+const alleyMat=new T.MeshStandardMaterial({color:0x84786c,roughness:.98});
+function pave(mat,x,z,w,len,ry=0,y=.07){const p=new T.Mesh(new T.BoxGeometry(w,.06,len),mat);p.position.set(x,y,z);p.rotation.y=ry;p.receiveShadow=true;scene.add(p);return p;}
+pave(paveMat,0,38,7,52);
+pave(paveMat,0,-38,6,52);
+const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
+const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
+pave(alleyMat,-10.5,51,2.8,16,.22,.08);
+pave(alleyMat,-12.5,36,2.8,16,-.14,.08);
+pave(alleyMat,-11,23,2.8,12,.1,.08);
+pave(alleyMat,-6.5,56,7,2.2,0,.08);
+pave(alleyMat,-6.5,30,7,2.2,0,.08);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
 // A reflective Water pass would render the whole town twice; a normal-mapped
@@ -89,6 +104,8 @@ for(let k=0;k<6;k++){
 // Curtain walls close the ring: brick courses and merlons in the gate's stone,
 // spanning each hexagon edge between neighbouring gatehouses.
 const WM=gateMaterials();
+const B=makeBuilders(WM);
+const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));scene.add(lighthouse.root);
 function buildWallSegment(len){
  const wall=new T.Group();
  const bh=.8,bd=1.6,rows=12;let seed=13;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -121,7 +138,7 @@ const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y
 // The cast walks in.
 const walkers=loadCast(scene);
 // Bake every rigid run of meshes down to one draw call per joint and material.
-const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{})];
+const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(wallRing,()=>{}),optimize(lighthouse.root,t=>lighthouse.tick(t))];
 for(const g of gates)baked.push(optimize(g.root,t=>g.tick(t,.016),o=>o.userData.base));
 for(const w of walkers)baked.push(optimize(w.root,t=>w.update(.1,t)));
 console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked.reduce((s,b)=>s+b.after,0));
@@ -141,7 +158,7 @@ const clock=new T.Clock();let elapsed=0,frames=0;
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed);
-  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);
+  for(const g of gates)g.tick(elapsed,dt);depot.tick(elapsed);lighthouse.tick(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
  if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
