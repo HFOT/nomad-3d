@@ -130,6 +130,26 @@ const PROFILES=[
 // The treasury: one great lighthouse for the whole world, far behind the towns.
 const treasury=B.buildLighthouse([0xffa324,0xffc964]);treasury.root.position.set(0,0,-120);treasury.root.scale.setScalar(1.7);scene.add(treasury.root);
 ticks.push(t=>treasury.tick(t));
+// The world's civic centre at the lighthouse's feet: the governance assembly
+// where DRep voices land, the treasury vault, the constitution archive, and
+// the Catalyst flame office where the shared fire is handed out.
+{const centre=new T.Group();centre.position.set(0,0,-104);scene.add(centre);
+ const assembly=B.buildHall('assembly');assembly.root.scale.setScalar(2.2);assembly.root.position.set(-52,0,-8);centre.add(assembly.root);
+ const vault=B.buildHall('vault');vault.root.scale.setScalar(1.9);vault.root.position.set(-20,0,6);vault.root.rotation.y=.25;centre.add(vault.root);
+ const archive=B.buildHall('archive');archive.root.scale.setScalar(1.9);archive.root.position.set(22,0,6);archive.root.rotation.y=-.25;centre.add(archive.root);
+ // Flame office: an open colonnade with a row of small flames waiting to be carried away.
+ const fo=new T.Group();fo.position.set(52,0,-6);centre.add(fo);
+ mesh(fo,new T.BoxGeometry(26,1.2,12),M.stone,0,.6,0);
+ for(let j=0;j<5;j++)for(const sz of [-1,1])mesh(fo,new T.CylinderGeometry(.65,.7,7,12),M.stone,-10+j*5,4.7,sz*4.6);
+ mesh(fo,new T.BoxGeometry(28,1.4,13.5),M.slate,0,8.9,0);
+ for(let j=0;j<4;j++){
+  mesh(fo,new T.CylinderGeometry(.7,.9,1.4,12),M.brass,-7.5+j*5,1.9,0);
+  const fl=new T.MeshStandardMaterial({color:0xfff1d8,emissive:0xffa324,emissiveIntensity:2.2});
+  mesh(fo,new T.SphereGeometry(.55,12,10),fl,-7.5+j*5,3.1,0).castShadow=false;
+  ticks.push(t=>{fl.emissiveIntensity=2+.5*Math.sin(t*9+j*2);});
+ }
+ const fol=new T.PointLight(0xffa324,1.6,40);fol.position.set(0,4,0);fo.add(fol);
+ optimize(centre,t=>{for(const f of ticks)f(t);});}
 const X=[-150,-50,50,150];
 PROFILES.forEach((p,i)=>{const t=buildOperatorTown(p);t.position.x=X[i];scene.add(t);optimize(t,()=>{});});
 const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.4,.4,1.15));composer.addPass(new OutputPass());
