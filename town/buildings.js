@@ -164,5 +164,54 @@ export function makeBuilders(M){
   return{root,tick(t){ember.emissiveIntensity=1.6+.6*Math.sin(t*7)+.3*Math.sin(t*17);hearthLight.intensity=1+.4*Math.sin(t*9);}};
  }
 
- return{buildLighthouse,buildHall,buildShop,buildStall,buildHouse,buildForgeWorks,helpers:{g,m,box,cyl,stone,windowLit,warm}};
+
+ // ---- Lite landmarks. The town is a light hub: clicking a landmark opens its
+ // full ARCHITECTURE page, so these only echo the real silhouettes cheaply.
+ function buildArchiveLite(){
+  const root=new T.Group();root.name='ArchiveLite';
+  const lit=warm();
+  const cool=new T.MeshStandardMaterial({color:0xb8e7ff,emissive:0x36b9ff,emissiveIntensity:1.8});
+  const books=new T.MeshStandardMaterial({color:0x6e4c30,roughness:.92});
+  // two stone storeys, like the real lower halls
+  cyl(root,M.stone,0,.35,0,9.5,9.5,.7,40);
+  cyl(root,M.stone,0,3.6,0,8.9,9.3,6,40);
+  cyl(root,M.brass,0,6.8,0,9.4,9.4,.45,40);
+  cyl(root,M.stone,0,9.6,0,8.2,8.6,5,40);
+  cyl(root,M.slate,0,12.3,0,8.9,8.9,.5,40);
+  for(let j=0;j<12;j++){const a=j*Math.PI/6,w=box(root,lit,Math.sin(a)*8.75,3.8,Math.cos(a)*8.75,1.1,2.4,.35);w.rotation.y=a;w.castShadow=false;}
+  box(root,M.dark,0,3.1,9.15,3.4,4.8,.8);
+  const arch=box(root,cool,0,3.2,9.2,2.2,3.6,.5);arch.castShadow=false;
+  // five catalogue tiers: slowly turning book drums inside crystal sleeves
+  const tiers=[[7.6,15.8],[6.7,21.6],[5.8,27.2],[4.9,32.4],[4.0,37.2]];
+  const spin=[];
+  for(const [r,y] of tiers){
+   spin.push(cyl(root,books,0,y,0,r-.7,r-.7,4.6,28));
+   cyl(root,M.glass,0,y,0,r+.35,r+.35,5.4,28).castShadow=false;
+   cyl(root,M.brass,0,y+2.85,0,r+.42,r+.42,.22,28);
+  }
+  cyl(root,M.brass,0,40.6,0,.6,2.2,3.4,20);
+  const orb=m(root,new T.SphereGeometry(1.7,20,14),cool,0,43.2,0);orb.castShadow=false;
+  const lamp=new T.PointLight(0x66d4ff,2,60);lamp.position.set(0,43.2,0);root.add(lamp);
+  // short ceremonial steps toward the south boulevard (climbable at town scale)
+  for(let j=0;j<6;j++){const h=(6-j)*.32;box(root,M.stone,0,h/2-.05,9.6+j*.5,4.6,h,.55);}
+  return{root,tick(t){for(let i=0;i<spin.length;i++)spin[i].rotation.y=t*(i%2?-.05:.04);orb.material.emissiveIntensity=1.5+.5*Math.sin(t*2);}};
+ }
+ function buildDepotLite(){
+  const root=new T.Group();root.name='DepotLite';
+  const lit=warm();
+  stone(root,0,.4,0,12,.8,9);
+  box(root,M.wood,0,3,0,10.5,4.4,7.5);
+  box(root,M.slate,0,5.6,0,11.4,1,8.4);
+  box(root,M.dark,0,2.2,3.8,3.4,3.2,.3);
+  for(const x of [-3.4,3.4]){const w=box(root,lit,x,3.2,3.79,1.3,1.2,.12);w.castShadow=false;}
+  // the crane, sketched: mast, jib, cable, one crate
+  cyl(root,M.brass,5.4,4.5,-2.5,.22,.28,8,12);
+  box(root,M.brass,7.3,8.2,-2.5,4.2,.3,.3);
+  cyl(root,M.dark,9.2,6.7,-2.5,.05,.05,3,8);
+  box(root,M.wood,9.2,4.9,-2.5,.9,.9,.9);
+  const lamp=new T.PointLight(0xffa324,1.2,25);lamp.position.set(0,4.5,4.5);root.add(lamp);
+  return{root};
+ }
+
+ return{buildLighthouse,buildHall,buildShop,buildStall,buildHouse,buildForgeWorks,buildArchiveLite,buildDepotLite,helpers:{g,m,box,cyl,stone,windowLit,warm}};
 }

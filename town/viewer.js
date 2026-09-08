@@ -1,5 +1,5 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{buildDepot}from'../depot/model.js';import{buildAssembly}from'../assembly/model.js';import{buildVault}from'../vault/model.js';import{buildArchive}from'../archive/model.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';import{makeBuilders}from'./buildings.js';
+import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';import{makeBuilders}from'./buildings.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -136,9 +136,11 @@ function label(text,x,y,z,real,size=1){
 // Civic quarter: the REAL delegates assembly at the head of the approach;
 // vault and archive are still plans, so they stand as ghosts.
 const civic=new T.Group();scene.add(civic);
-const assemblyB=buildAssembly();
-{const assembly=assemblyB;assembly.root.scale.setScalar(3.2);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
- const vaultB=buildVault();window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
+// The town is a hub: heavy real models live on their own pages, and the town
+// shows lite stand-ins — click one to enter the real building.
+const assemblyB={root:B.buildHall('assembly').root};
+{const assembly=assemblyB;assembly.root.scale.setScalar(2.6);assembly.root.position.set(-44,0,-26);assembly.root.rotation.y=.7;civic.add(assembly.root);
+ const vaultB={root:B.buildHall('vault').root};window.__vaultB=vaultB;vaultB.root.scale.setScalar(2.2);vaultB.root.position.set(0,0,-52);civic.add(vaultB.root);
  }
 await phase('商店街と民家を建てています…');
 // Main-street shops face the paving; shady fronts face the back alley instead.
@@ -206,11 +208,11 @@ for(let k=0;k<6;k++){
  wallRing.add(seg);
 }
 console.log('[T] walls done',performance.now()|0);await phase('官庁街を建てています…');
-const depot=buildDepot();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
+const depot=B.buildDepotLite();depot.root.position.set(26,0,-20);depot.root.rotation.y=-Math.PI/4;scene.add(depot.root);
 // The constitutional archive stands at the heart of the town. It batches its
 // own statics and rewrites seam vertices every tick, so it skips optimize().
 await phase('書庫塔を建てています…');
-const archiveB=buildArchive();archiveB.root.scale.setScalar(2.2);scene.add(archiveB.root);// ~100m: still the town's brain, no longer its whole sky
+const archiveB=B.buildArchiveLite();archiveB.root.scale.setScalar(2.2);scene.add(archiveB.root);// ~97m silhouette at a few thousand triangles
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
@@ -237,10 +239,10 @@ for(const c of houses.children)lodAdd(c,170);
 for(const w of walkers)lodAdd(w.root,130,true);
 // Bake every rigid run of meshes down to one draw call per joint and material.
 console.log('[T] opt start',performance.now()|0);
-await phase('配送所を磨いています…');const baked=[optimize(depot.root,t=>depot.tick(t))];
+await phase('配送所を磨いています…');const baked=[optimize(depot.root,()=>{})];
 await phase('城壁を磨いています…');for(const seg of wallRing.children)baked.push(optimize(seg,()=>{}));// per edge: frustum culling can drop the far walls
 await phase('灯台を磨いています…');baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));
-await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));
+await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,()=>{}));
 await phase('商店街を磨いています…');for(const c of shops.children)baked.push(optimize(c,()=>{}));
 for(const c of houses.children)baked.push(optimize(c,()=>{}));
 baked.push(optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
@@ -264,9 +266,7 @@ await phase('城門を磨いています…');console.log('[T] opt gates',perfor
  }
 }
 await phase('書庫塔を磨いています…');console.log('[T] opt archive',performance.now()|0);
-// The archive's rotating floors, gears and lift are matrix-dynamic (detected);
-// its seams and barriers animate vertices/materials and carry userData.live.
-baked.push(optimize(archiveB.root,()=>archiveB.tick(.5),o=>o.userData.live));
+baked.push(optimize(archiveB.root,t=>archiveB.tick(t)));// drums rotate; detection keeps them out
 await phase('官庁街を磨いています…');console.log('[T] opt walkers',performance.now()|0);
 baked.push(optimize(civic,()=>{},o=>{let p=o;while(p){if(p===assemblyB.root||p===window.__vaultB.root)return true;p=p.parent;}return false;}));
 for(let i=0;i<walkers.length;i++){const w=walkers[i];baked.push(optimize(w.root,t=>w.update(.1,t)));if(i%3===2)await phase('住人を磨いています… '+(i+1)+'/'+walkers.length);}
@@ -274,11 +274,22 @@ console.log('[TOWN] merged meshes:',baked.reduce((s,b)=>s+b.before,0),'->',baked
 // Click to follow: pick a walker with a ray, keep the target on it while set.
 const ray=new T.Raycaster(),pointer=new T.Vector2(),clickTmp=new T.Vector3();let following=null;
 function setFollow(w){following=w;$('#follow-name').textContent=w?w.name+' を追跡中':'';$('#follow-name').style.color=w?w.accent:'';}
-renderer.domElement.addEventListener('pointerdown',e=>{
- if(player)return;// clicking picks nothing while walking as NOMAD
+// The town is a hub: a clean click (no drag, no long-press) on a landmark
+// opens its real ARCHITECTURE page; other clicks pick a walker to follow.
+const portals=[
+ {root:archiveB.root,href:'../archive/'},
+ {root:assemblyB.root,href:'../assembly/'},
+ {root:window.__vaultB.root,href:'../vault/'},
+ {root:depot.root,href:'../depot/'},
+ ...gates.map(g=>({root:g.root,href:'../gate/'})),
+];
+let downT=0,downX=0,downY=0;
+renderer.domElement.addEventListener('pointerdown',e=>{downT=performance.now();downX=e.clientX;downY=e.clientY;});
+renderer.domElement.addEventListener('pointerup',e=>{
+ if(performance.now()-downT>400||Math.abs(e.clientX-downX)+Math.abs(e.clientY-downY)>6)return;// that was a drag
  pointer.set(e.clientX/innerWidth*2-1,-(e.clientY/innerHeight)*2+1);ray.setFromCamera(pointer,camera);
- // A generous hitbox: an exact mesh hit wins, otherwise the walker whose body
- // passes within 1.4 units of the ray — distant figures are only a few pixels.
+ for(const p of portals)if(ray.intersectObject(p.root,true).length){location.href=p.href;return;}
+ if(player)return;// walker picking stays off while walking as NOMAD
  let best=null,bd=1e9;
  for(const w of walkers){
   const d=ray.intersectObject(w.root,true).length?0:ray.ray.distanceToPoint(clickTmp.copy(w.root.position).setY(w.root.position.y+.5));
@@ -323,10 +334,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   for(const w of walkers)w.update(dt,elapsed,camera.position.distanceTo(w.root.position)>90);
   // Flame vertex morphs are the CPU hogs: near gates tick on alternate frames, far ones rest.
   gates.forEach((g,i)=>{if((frames+i)%2===0&&camera.position.distanceTo(g.root.position)<170)g.tick(elapsed,dt*2);});
-  if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
-  if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
-  if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
-  if(frames%2===0){const d=camera.position.distanceTo(archiveB.root.position);if(d<300)archiveB.tick(dt*2,d);}
+  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<300)archiveB.tick(elapsed);
   if(frames%15===0){const ground=camera.position.y<40;
    for(const e of lod)e.o.visible=!ground||camera.position.distanceToSquared(e.p||e.o.position)<e.d2;}
   scene.fog.density=T.MathUtils.lerp(.0058,.0036,Math.min(1,camera.position.y/70));
