@@ -16,10 +16,14 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
 const phase=m=>{const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
  try{renderer.render(scene,camera);l?.classList.add('lift');}catch(e){}
  return new Promise(r=>{const d=setTimeout(r,150);requestAnimationFrame(()=>{clearTimeout(d);r();});});};
-const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0038);
+const scene=new T.Scene();scene.background=new T.Color('#2b2030');scene.fog=new T.FogExp2('#2b2030',.0055);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,900);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
-function front(){camera.position.set(0,74,224);controls.target.set(0,2,-10);controls.update();}front();
+function front(){camera.position.set(0,74,224);controls.target.set(0,2,-10);controls.update();}
+// The boot watches from the boulevard: a ground camera plus dusk fog keeps
+// construction renders cheap (only nearby structures resolve) and the town
+// reveals itself the way the player will first see it.
+camera.position.set(6,4.2,118);controls.target.set(0,30,0);controls.update();
 // Dusk: a low amber sun in the west, indigo rim from the east, warm hemisphere.
 const pm=new T.PMREMGenerator(renderer);scene.environment=pm.fromScene(new RoomEnvironment(),.04).texture;scene.environmentIntensity=.24;
 scene.add(new T.HemisphereLight(0xe8a06a,0x2a2026,.68));
@@ -220,13 +224,26 @@ const walkers=[];
 {const builders=castBuilders(scene);
  for(let i=0;i<builders.length;i++){walkers.push(builders[i]());if(i%2===1)await phase('住人を起こしています… '+(i+1)+'/'+builders.length);}}
 console.log('[T] cast done',performance.now()|0);
+// LOD registry: on the ground, distant structures hide and the fog closes in;
+// from the air (camera.y>=40) the whole master plan stays visible. Static
+// entries cache their world position; walkers are tracked live.
+scene.updateMatrixWorld(true);
+const lod=[];const lodAdd=(o,d,track)=>lod.push({o,p:track?null:o.getWorldPosition(new T.Vector3()),d2:d*d});
+for(const g of gates)lodAdd(g.root,280);
+lodAdd(depot.root,220);lodAdd(assemblyB.root,260);lodAdd(window.__vaultB.root,240);
+lodAdd(lighthouse.root,220);lodAdd(forgeWorks.root,190);
+for(const c of shops.children)lodAdd(c,180);
+for(const c of houses.children)lodAdd(c,170);
+for(const w of walkers)lodAdd(w.root,130,true);
 // Bake every rigid run of meshes down to one draw call per joint and material.
 console.log('[T] opt start',performance.now()|0);
 await phase('配送所を磨いています…');const baked=[optimize(depot.root,t=>depot.tick(t))];
-await phase('城壁を磨いています…');baked.push(optimize(wallRing,()=>{}));
+await phase('城壁を磨いています…');for(const seg of wallRing.children)baked.push(optimize(seg,()=>{}));// per edge: frustum culling can drop the far walls
 await phase('灯台を磨いています…');baked.push(optimize(lighthouse.root,t=>lighthouse.tick(t)));
 await phase('議事堂を磨いています…');baked.push(optimize(assemblyB.root,t=>assemblyB.tick(t,.016),o=>o.userData.base));
-await phase('商店街を磨いています…');baked.push(optimize(shops,()=>{}),optimize(houses,()=>{}),optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
+await phase('商店街を磨いています…');for(const c of shops.children)baked.push(optimize(c,()=>{}));
+for(const c of houses.children)baked.push(optimize(c,()=>{}));
+baked.push(optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
 await phase('城門を磨いています…');console.log('[T] opt gates',performance.now()|0);
 // The six gatehouses are identical masonry, so only the first is merged for
 // real. The other five drop the same bricks (matched by their deterministic
@@ -290,8 +307,17 @@ $('#walk').onclick=()=>player?exitPlayer():enterPlayer();
 const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
-const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.35,.4,1.1));composer.addPass(new OutputPass());
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth/2,innerHeight/2),.35,.4,1.1));// half-res bloom: a soft glow needs no full-res blur chaincomposer.addPass(new OutputPass());
 const clock=new T.Clock();let elapsed=0,frames=0;
+// Adaptive render scale: the 200m tower is heavy on integrated GPUs, so the
+// internal resolution follows measured frame time (0.6x .. native, 0.1 steps).
+// ?px=0.8 in the URL pins the scale by hand.
+const pxForced=+new URLSearchParams(location.search).get('px')||0;
+const pxCap=Math.min(devicePixelRatio,1.3);let px=pxForced||pxCap,ftAcc=0,ftN=0;
+if(pxForced){renderer.setPixelRatio(px);composer.setPixelRatio(px);renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}
+function tune(dt){if(pxForced)return;ftAcc+=dt;if(++ftN<50)return;const avg=ftAcc/ftN;ftAcc=0;ftN=0;
+ const want=avg>.042?Math.max(.6,px-.1):(avg<.024?Math.min(pxCap,px+.1):px);
+ if(Math.abs(want-px)>.01){px=want;renderer.setPixelRatio(px);composer.setPixelRatio(px);renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);}}
 function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed,camera.position.distanceTo(w.root.position)>90);
@@ -300,7 +326,10 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   if(camera.position.distanceTo(depot.root.position)<120)depot.tick(elapsed);
   if(frames%2===0&&camera.position.distanceTo(assemblyB.root.position)<170)assemblyB.tick(elapsed,dt*2);
   if(camera.position.distanceTo(window.__vaultB.root.position)<200)window.__vaultB.tick(elapsed,dt,camera);
-  if(frames%2===0&&camera.position.distanceTo(archiveB.root.position)<420)archiveB.tick(dt*2);
+  if(frames%2===0){const d=camera.position.distanceTo(archiveB.root.position);if(d<420)archiveB.tick(dt*2,d);}
+  if(frames%15===0){const ground=camera.position.y<40;
+   for(const e of lod)e.o.visible=!ground||camera.position.distanceToSquared(e.p||e.o.position)<e.d2;}
+  scene.fog.density=T.MathUtils.lerp(.0058,.0036,Math.min(1,camera.position.y/70));
   for(const f of labelTicks)f(elapsed);
   normal.offset.set(elapsed*.008,elapsed*.02);
  }
@@ -341,6 +370,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   }
   controls.target.lerp(new T.Vector3(nomadW.root.position.x,nomadW.root.position.y+1.2,nomadW.root.position.z),.3);
  }else if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
+ if(!paused)tune(dt);
  controls.update();composer.render();frames++;
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);

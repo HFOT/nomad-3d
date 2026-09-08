@@ -15,7 +15,7 @@ export function buildArchive() {
   const silver = new T.MeshStandardMaterial({ color: 0xbecbd2, roughness: .26, metalness: .75 });
   const paper = new T.MeshStandardMaterial({ color: 0xe3d5ae, roughness: .92 });
   const cool = new T.MeshStandardMaterial({ color: 0xb8e7ff, emissive: 0x8bbfff, emissiveIntensity: 2.4, roughness: .28 });
-  const crystal = new T.MeshPhysicalMaterial({ color: 0xb5cbe6, metalness: 0, roughness: .18, transparent: true, opacity: .095, clearcoat: 0, specularIntensity: 0, envMapIntensity: 0, side: T.FrontSide, depthWrite: false });
+  const crystal = new T.MeshStandardMaterial({ color: 0xb5cbe6, metalness: 0, roughness: .18, transparent: true, opacity: .095, envMapIntensity: 0, side: T.FrontSide, depthWrite: false });// Standard, not Physical: the shell covers most of the frame
   const seamMat = new T.MeshBasicMaterial({ color: 0xb8c7ff, transparent: true, opacity: .46 });
   const libraryFloors = [], gears = [], seams = [], plasmaThreads = [], crystalTiers = [];
   const lift = new T.Group(); lift.name = 'Central_Index_Elevator'; root.add(lift);
@@ -343,7 +343,7 @@ export function buildArchive() {
     setShell(v){shellVisible=v;crystalShell.visible=v;},
     selectFloor(i){selected=i;targetHeight=libraryFloors[i].y+.42;arrived=false;},
     setAuto(){selected=-1;arrived=false;},
-    tick(dt){time+=dt;
+    tick(dt,camDist){time+=dt;
       for(let i=0;i<libraryFloors.length;i++){const f=libraryFloors[i];if(selected===i){const target=Math.round(f.angle/(Math.PI*2))*Math.PI*2;f.angle=T.MathUtils.damp(f.angle,target,1.3,dt);}else f.angle+=dt*(i%2?-.035:.028);f.tier.rotation.y=f.angle;f.selectedBook.visible=selected===i;}
       if(selected<0)targetHeight=16.3+Math.sin(time*.13)*8.8;
       lift.position.y=T.MathUtils.damp(lift.position.y,targetHeight,selected<0?.8:1.5,dt);
@@ -352,7 +352,8 @@ export function buildArchive() {
       crystalTiers.forEach((tier,i)=>tier.rotation.y=time*(i%2?-.018:.022)/(1+i*.12));
       gears.forEach(({g,horizontal},i)=>{if(horizontal)g.rotation.y=time*(g.userData.speed??(i%2?-.19:.19));else g.rotation.z=time*(g.userData.speed??.1);});
       circulation.forEach((o,i)=>o.scale.y=.9+Math.sin(time*2+i*.7)*.1);
-      seams.forEach(({seam,base,seed})=>{const p=seam.geometry.attributes.position;for(let k=0;k<p.count;k++){const yy=base[k*3+1];p.setX(k,base[k*3]+Math.sin(yy*9-time*2+seed)*.009);p.setZ(k,base[k*3+2]+Math.cos(yy*7-time*2+seed)*.009);}p.needsUpdate=true;});
+      // vertex ripples are invisible from afar: skip the rewrite and re-upload
+      if(!(camDist>150))seams.forEach(({seam,base,seed})=>{const p=seam.geometry.attributes.position;for(let k=0;k<p.count;k++){const yy=base[k*3+1];p.setX(k,base[k*3]+Math.sin(yy*9-time*2+seed)*.009);p.setZ(k,base[k*3+2]+Math.cos(yy*7-time*2+seed)*.009);}p.needsUpdate=true;});
       plasmaMat.uniforms.time.value=time;plasmaThreads.forEach((p,i)=>p.rotation.y+=dt*.035*(i%2?-1:1));light.intensity=125+Math.sin(time*2)*8;
       barriers.forEach((b,i)=>b.material.opacity=.05+Math.sin(time+i)*.012);
     },
