@@ -24,10 +24,12 @@ for(const id of characters){
   if(!await exists(path.join(src,'index.html'))){console.warn('skipping '+id+': no source in this checkout');continue;}
   built.push(id);
   await mkdir(out,{recursive:true});
-  for(const file of ['viewer.js','materials.js','buildings.js','cast.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
+  for(const file of ['viewer.js','materials.js','buildings.js','cast.js','lab.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
     if(await exists(path.join(src,file)))await copyFile(path.join(src,file),path.join(out,file));
   }
   await writeFile(path.join(out,'index.html'),forDist(await readFile(path.join(src,'index.html'),'utf8')));
+  // Extra standalone pages (e.g. town/lab.html) get the same vendor rewrite.
+  if(await exists(path.join(src,'lab.html')))await writeFile(path.join(out,'lab.html'),forDist(await readFile(path.join(src,'lab.html'),'utf8')));
 }
 
 await mkdir(path.join(dist,'vendor/three'),{recursive:true});
