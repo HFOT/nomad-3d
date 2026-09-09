@@ -50,6 +50,9 @@ header{position:fixed;top:22px;left:30px;right:26px;display:flex;justify-content
 .rules{list-style:none;padding:0;margin:20px 0 24px;font-size:11px;line-height:2.1;color:#9fb0b3}
 .rules b{color:#dce6e2;font-weight:500;background:#ffffff10;border-radius:4px;padding:2px 7px;margin-right:2px}
 .rules em{font-style:normal;color:#ffd79a}
+.langs{display:flex;gap:8px;align-items:center;margin:-6px 0 16px;font-size:9.5px;color:#8fa5ad;letter-spacing:1.5px}
+.langs button{border:1px solid #ffffff22;border-radius:14px;background:#ffffff08;padding:6px 13px;font-size:10px;letter-spacing:1.2px;color:#a8bdc3}
+.langs button.on{border-color:#e0cb8766;background:#e0cb871a;color:#f2e7c8}
 #start{width:100%;padding:14px;border:1px solid #e2705f55;border-radius:11px;background:#e2705f1f;color:#ffd0c4;font-size:13px;letter-spacing:4px}
 #start:hover{background:#e2705f33}
 .hint{margin-top:12px!important;font-size:9.5px;letter-spacing:1.6px;color:#7c8f94;text-align:center}

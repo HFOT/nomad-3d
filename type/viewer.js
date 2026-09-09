@@ -7,7 +7,8 @@ import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildMouse} from '../pip/model.js';
 import {buildArena,buildBlobShadow,buildSwarmer,SWARM,ARENA,SPAWN_R} from '../rush/model.js';
 import {makeLabel,buildStreak} from './model.js';
-import {WORDS,BAND} from './words.js';
+import {WORDS_JP,WORDS_EN,BAND} from './words.js';
+import {makeMatcher,minLen} from './romaji.js';
 
 const $=s=>document.querySelector(s);
 
@@ -104,15 +105,28 @@ const progress=()=>1-S.left/RUN;
 const spawnGap=()=>2.3-progress()*1.35;
 const walkSpeed=()=>2.1+progress()*1.6;
 
-// A word whose first letter no walking word already uses, so the first key
-// always names exactly one of them. When the yard is crowded enough that
-// every letter is taken, a duplicate is allowed and the nearest one answers.
+// The lists shelved by how many keystrokes the shortest spelling needs, so
+// the quick arrivals carry little and the heavy ones carry a lot.
+function shelve(list){
+ const out={short:[],mid:[],long:[]};
+ for(const w of list){
+  const n=minLen(w.k);
+  out[n<=5?'short':n<=8?'mid':'long'].push({...w,f0:makeMatcher(w.k).guide().rest[0]});
+ }
+ return out;
+}
+const LEX={jp:shelve(WORDS_JP),en:shelve(WORDS_EN)};
+let lang='jp';
+try{lang=localStorage.getItem('pip-type-lang')==='en'?'en':'jp'}catch{}
+// A word whose first keystroke no walking word already answers to, so the
+// first key always names exactly one of them. In a crowd a duplicate is
+// allowed, and the nearest one answers.
 function pickWord(kind){
- const band=WORDS[BAND[kind]];
- const used=new Set(enemies.map(e=>e.word[0]));
+ const band=LEX[lang][BAND[kind]];
+ const used=new Set(enemies.map(e=>e.f0));
  for(let i=0;i<14;i++){
   const w=band[Math.floor(Math.random()*band.length)];
-  if(!used.has(w[0])||i===13)return w;
+  if(!used.has(w.f0)||i===13)return w;
  }
  return band[0];
 }
@@ -131,12 +145,15 @@ function spawnEnemy(kind,word,x,z){
   const a=Math.random()*Math.PI*2;
   x=Math.cos(a)*SPAWN_R;z=Math.sin(a)*SPAWN_R;
  }
+ if(typeof word==='string')word={d:word,k:word};
+ const m=makeMatcher(word.k);
  const o=takeSwarm(kind);
  o.position.set(x,.5,z);
  o.scale.setScalar(.9+Math.random()*.28);
- const label=makeLabel();label.paint(word,0,false);
+ const label=makeLabel();
+ const g0=m.guide();label.paint(word.d,'',g0.rest,false);
  scene.add(label.sprite);
- const e={o,kind,word,done:0,label,seed:Math.random()*9,dying:0,mad:0};
+ const e={o,kind,d:word.d,m,f0:word.f0||g0.rest[0],first:m.first(),label,seed:Math.random()*9,dying:0,mad:0};
  enemies.push(e);
  return e;
 }
@@ -156,33 +173,37 @@ function killEnemy(e){
 }
 
 // --- typing. The one verb. ---
+function repaint(e,mad){
+ const g=e.m.guide();
+ e.label.paint(e.d,g.typed,g.rest,mad);
+}
 function keyChar(ch){
  if(S.phase!=='run')return;
  ch=ch.toLowerCase();
  if(!/^[a-z]$/.test(ch))return;
  if(target&&target.dying===0){
-  if(target.word[target.done]===ch){
-   target.done++;S.hits++;sfx.hit(target.done);
-   if(target.done>=target.word.length){
-    S.hits+=0;fire(target);
-   }else target.label.paint(target.word,target.done,false);
+  if(target.m.tryChar(ch)){
+   S.hits++;sfx.hit(target.m.guide().typed.length);
+   if(target.m.done())fire(target);
+   else repaint(target,false);
   }else{
    S.miss++;target.mad=.22;sfx.miss();
-   target.label.paint(target.word,target.done,true);
+   repaint(target,true);
   }
   hud();return;
  }
- // no lock yet: the first key chooses the nearest word that starts with it
+ // no lock yet: the first key chooses the nearest word that answers to it
  let best=null,bd=1e9;
  for(const e of enemies){
-  if(e.dying>0||e.word[0]!==ch)continue;
+  if(e.dying>0||!e.first.has(ch))continue;
   const d=Math.hypot(e.o.position.x,e.o.position.z);
   if(d<bd){bd=d;best=e;}
  }
  if(best){
-  target=best;target.done=1;S.hits++;sfx.hit(1);
-  if(target.word.length===1)fire(target);
-  else target.label.paint(target.word,1,false);
+  best.m.tryChar(ch);
+  target=best;S.hits++;sfx.hit(1);
+  if(target.m.done())fire(target);
+  else repaint(target,false);
  }else{S.miss++;sfx.miss();}
  hud();
 }
@@ -279,6 +300,15 @@ function hud(){
  $('#acc').textContent=(typed?Math.round(S.hits/typed*100):100)+'%';
 }
 $('#start').onclick=start;
+function setLang(l){
+ lang=l;
+ try{localStorage.setItem('pip-type-lang',l)}catch{}
+ $('#lang-jp').classList.toggle('on',l==='jp');
+ $('#lang-en').classList.toggle('on',l==='en');
+}
+$('#lang-jp').onclick=()=>setLang('jp');
+$('#lang-en').onclick=()=>setLang('en');
+setLang(lang);
 
 // --- loop ---
 const clock=new T.Clock();
@@ -311,7 +341,7 @@ renderer.setAnimationLoop(()=>{
    }
    p.y=.5+Math.sin(S.t*6+e.seed)*.09;
    e.o.rotation.y+=dt*1.6;e.o.rotation.x+=dt*.9;
-   if(e.mad>0){e.mad-=dt;if(e.mad<=0)e.label.paint(e.word,e.done,false);}
+   if(e.mad>0){e.mad-=dt;if(e.mad<=0)repaint(e,false);}
    e.label.sprite.position.set(p.x,p.y+SWARM[e.kind].size+.55,p.z);
   }
 
@@ -359,4 +389,4 @@ addEventListener('resize',()=>{
 camera.position.set(0,52,-24);camera.lookAt(0,0,0);
 renderChain();hud();
 $('#loading').classList.add('done');
-window.pipType={S,enemies,scene,camera,start,spawnEnemy,keyChar,chain,getTarget:()=>target};
+window.pipType={S,enemies,scene,camera,start,spawnEnemy,keyChar,chain,setLang,getTarget:()=>target};

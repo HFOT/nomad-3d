@@ -35,11 +35,11 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    pipType.spawnEnemy('rock','slot',14,0);
    pipType.spawnEnemy('rock','stake',5,0);
    pipType.keyChar('s');
-   const locked=pipType.getTarget()&&pipType.getTarget().word;
+   const locked=pipType.getTarget()&&pipType.getTarget().d;
    const missBefore=pipType.S.miss;
    pipType.keyChar('x');
    await wait(80);
-   return {locked,missAdded:pipType.S.miss-missBefore,done:pipType.getTarget().done,hits:pipType.S.hits};
+   return {locked,missAdded:pipType.S.miss-missBefore,done:pipType.getTarget().m.guide().typed.length,hits:pipType.S.hits};
   });
   assert.equal(lock.locked,'stake','the nearer of the two answers the first key');
   assert.equal(lock.missAdded,1,'a wrong key is counted');
@@ -64,6 +64,25 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   });
   assert.equal(split.count,2,'the splitter became two');
   assert.deepEqual(split.kinds,['dart','dart'],'both pieces are the quick kind');
+
+  // Japanese words through romaji, whichever spelling the fingers prefer:
+  // the doubled consonant, sho for syo, and the lone n where it is safe.
+  const jp=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   for(const e of pipType.enemies.slice()){const i=pipType.enemies.indexOf(e);if(i>=0){pipType.enemies.splice(i,1);e.o.visible=false;e.label.sprite.visible=false;}}
+   const before={kills:pipType.S.kills,miss:pipType.S.miss};
+   const say=async(word,keys)=>{
+    pipType.spawnEnemy('rock',word,6,3);
+    for(const c of keys)pipType.keyChar(c);
+    await wait(300);
+   };
+   await say({d:'国庫',k:'こっこ'},'kokko');
+   await say({d:'署名',k:'しょめい'},'shomei');
+   await say({d:'分岐',k:'ぶんき'},'bunnki');
+   return {killed:pipType.S.kills-before.kills,missed:pipType.S.miss-before.miss};
+  });
+  assert.equal(jp.killed,3,'kokko, shomei and bunnki all go down');
+  assert.equal(jp.missed,0,'and none of those spellings counts as a miss');
 
   await page.screenshot({path:'type/preview.png'});
 
