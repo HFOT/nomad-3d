@@ -15,6 +15,13 @@ function subtract(poly,rect){
  return out;
 }
 function contains(rect,p){return rect.every((a,i)=>cross(a,rect[(i+1)%4],p)>=-1e-7);}
+export function streetComponents(segments){
+ const vertices=segments.map(({a,b,width})=>{const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),nx=-dz/l*width/2,nz=dx/l*width/2;return [[a.x+nx,a.z+nz],[a.x-nx,a.z-nz],[b.x-nx,b.z-nz],[b.x+nx,b.z+nz]];});
+ const parent=segments.map((_,i)=>i),find=i=>parent[i]===i?i:(parent[i]=find(parent[i]));
+ const separated=(a,b)=>a.some((p,k)=>{const q=a[(k+1)%4],nx=q[1]-p[1],nz=p[0]-q[0],av=a.map(v=>v[0]*nx+v[1]*nz),bv=b.map(v=>v[0]*nx+v[1]*nz);return Math.max(...av)<Math.min(...bv)-1e-6||Math.max(...bv)<Math.min(...av)-1e-6;});
+ for(let i=0;i<vertices.length;i++)for(let j=0;j<i;j++)if(!separated(vertices[i],vertices[j])&&!separated(vertices[j],vertices[i]))parent[find(i)]=find(j);
+ const groups=new Map();parent.forEach((_,i)=>{const p=find(i);if(!groups.has(p))groups.set(p,[]);groups.get(p).push(i);});return [...groups.values()];
+}
 
 // Exact polygon subtraction gives the union a single surface. Intersections
 // have neither overlapping faces nor differently oriented texture islands.
@@ -29,6 +36,16 @@ export function buildStreetSurface(segments,material,curbMaterial){
  }
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();
  const root=new T.Group();root.name='ContinuousStreetNetwork';const surface=new T.Mesh(g,material);surface.receiveShadow=true;root.add(surface);
+ // Sidewalks are an inset border of the complete union. Subtract every inner
+ // carriageway so a pavement never forms a bar across a junction.
+ const inners=segments.map(({a,b,width})=>{const dx=b.x-a.x,dz=b.z-a.z,l=Math.hypot(dx,dz),half=Math.max(.5,width/2-(width>=5?.85:.42)),nx=-dz/l*half,nz=dx/l*half;return [[a.x+nx,a.z+nz],[a.x-nx,a.z-nz],[b.x-nx,b.z-nz],[b.x+nx,b.z+nz]];});
+ const sp=[],su=[];
+ for(let i=0;i<rects.length;i++){
+  let pieces=[rects[i]];for(let j=0;j<i&&pieces.length;j++)pieces=pieces.flatMap(p=>subtract(p,rects[j]));
+  for(const inner of inners){if(!pieces.length)break;pieces=pieces.flatMap(p=>subtract(p,inner));}
+  for(const poly of pieces)for(let k=1;k<poly.length-1;k++){if(Math.abs(cross(poly[0],poly[k],poly[k+1]))<1e-7)continue;for(const p of [poly[k+1],poly[k],poly[0]]){sp.push(p[0],.265,p[1]);su.push(p[0]/4,p[1]/4);}}
+ }
+ const sg=new T.BufferGeometry();sg.setAttribute('position',new T.Float32BufferAttribute(sp,3));sg.setAttribute('uv',new T.Float32BufferAttribute(su,2));sg.computeVertexNormals();const sidewalkMaterial=material.clone();sidewalkMaterial.color.multiplyScalar(.82);const sidewalk=new T.Mesh(sg,sidewalkMaterial);sidewalk.name='ContinuousSidewalks';sidewalk.receiveShadow=true;root.add(sidewalk);
  // Exposed boundary only. Cutting every edge against all other rectangles
  // leaves open junction mouths instead of kerbs crossing the carriageway.
  const blocks=[],matrix=new T.Matrix4(),q=new T.Quaternion(),scale=new T.Vector3(),center=new T.Vector3();

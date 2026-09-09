@@ -1,5 +1,7 @@
 import * as T from 'three';
 import {buildStreetSurface} from './street-surface.js';
+import {stoneSurface} from './groundwork.js';
+import {buildCanalCrossings} from './canal-crossings.js';
 import {LOTS} from './landmarks.js';
 
 // The city is deliberately built before its landmark architecture.  These are
@@ -19,7 +21,7 @@ export function buildDistrictInfrastructure(M){
   }
   const pavingMap=new T.CanvasTexture(pavingCanvas);pavingMap.colorSpace=T.SRGBColorSpace;pavingMap.wrapS=pavingMap.wrapT=T.RepeatWrapping;pavingMap.anisotropy=8;
   const stone=new T.MeshStandardMaterial({color:0x82796b,roughness:.91,metalness:.03});
-  const road=new T.MeshStandardMaterial({color:0xeee2c9,map:pavingMap,bumpMap:pavingMap,bumpScale:.12,roughness:.93,metalness:0});
+  const road=stoneSurface('street');road.color.setHex(0xded1b9);
   const alley=new T.MeshStandardMaterial({color:0x5c5651,roughness:1});
   const curb=new T.MeshStandardMaterial({color:0x544d45,roughness:.9,metalness:.04});
   const brass=new T.MeshStandardMaterial({color:0x9a7138,metalness:.83,roughness:.27});
@@ -91,23 +93,18 @@ export function buildDistrictInfrastructure(M){
     // Masonry bridge abutments descend to the water bed. Voussoirs follow a
     // shallow arch on both elevations, with a supported deck and keystone.
     for(const side of [-1,1]){
-      for(const r of [22.2,29.3]){const p=point(a,r).addScaledVector(perp,side*3.8);const ab=box(stone,p.x,-.13,p.z,1.15,.8,1.5);ab.rotation.y=a;}
+      for(const r of [22.2,29.3]){const p=point(a,r).addScaledVector(perp,side*3.8);const ab=box(stone,p.x,-.69,p.z,1.15,1.75,1.5);ab.rotation.y=a;}
       for(let j=0;j<15;j++){
         const u=j/14, r=22.4+u*6.7, p=point(a,r).addScaledVector(perp,side*4.1);
-        const v=box(stone,p.x,-.05+.34*Math.sin(u*Math.PI),p.z,.44,.42,.49);v.rotation.y=a;
+        const v=box(stone,p.x,-.55+.34*Math.sin(u*Math.PI),p.z,.44,.42,.49);v.rotation.y=a;
       }
     }
     // Service water channels split inside every wedge.  They form future
     // drainage and energy routes, not decorative blue stripes.
-    const channelA=point(a,31).addScaledVector(perp,10.5),channelB=point(a,91).addScaledVector(perp,10.5);
+    const channelA=point(a,25.8).addScaledVector(perp,10.5),channelB=point(a,91).addScaledVector(perp,10.5);
     const ch=path(channelA,channelB,2.3,water,.09);ch.name='DistrictCanal';
     for(const s of [-1,1])path(channelA.clone().addScaledVector(perp,s*1.42),channelB.clone().addScaledVector(perp,s*1.42),.32,stone,.18);
-    // Three short pedestrian crossings join the residential side of the canal.
-    for(const r of [46,66,86]){
-      const p=point(a,r).addScaledVector(perp,10.5);
-      path(p.clone().addScaledVector(perp,-1.85),p.clone().addScaledVector(perp,1.85),2.1,stone,.25);
-      for(const s of [-1,1]){const q=p.clone().addScaledVector(dir,s*.95);path(q.clone().addScaledVector(perp,-1.85),q.clone().addScaledVector(perp,1.85),.10,brass,.85);}
-    }
+    // Crossings are generated from actual streets below; no orphan bridge slabs.
   }
 
   // A secondary hexagonal lane creates real back streets: the pieces do not
@@ -128,7 +125,16 @@ export function buildDistrictInfrastructure(M){
   // building lot stops the walk; and where nothing lies ahead a small turning
   // court makes the terminus deliberate.
   resolveDeadEnds(streetSegments,LOTS);
+  // Continuous pedestrian circuits close the centre and the outer promenade.
+  // Bridges enter the same street registry so geometry and walking tests agree.
+  for(let k=0;k<24;k++){const a=k*Math.PI/12,b=(k+1)*Math.PI/12;streetSegments.push({a:point(a,21.3),b:point(b,21.3),width:2.5,kind:'promenade'});}
+  for(let k=0;k<6;k++){
+    const a=Math.PI-k*Math.PI/3,b=Math.PI-(k+1)*Math.PI/3;
+    streetSegments.push({a:point(a,114.5),b:point(b,114.5),width:3,kind:'promenade'});
+    streetSegments.push({a:point(a,22.2),b:point(a,29.3),width:8.4,kind:'bridge'});
+  }
   const streets=buildStreetSurface(streetSegments,road,stone);root.add(streets);
+  const crossings=buildCanalCrossings(streetSegments,stone,brass);root.add(crossings);
   function lantern(x,z,scale=1){
     const g=new T.Group();g.name='FlameStreetLantern';g.position.set(x,0,z);root.add(g);
     cyl(iron,0,.10,0,.44,.52,.2,14,g);cyl(brass,0,1.5,0,.08,.11,2.8,10,g);
@@ -156,9 +162,11 @@ export function buildDistrictInfrastructure(M){
   // Canal water receives a small physical drift; all flame behavior is native
   // to each lantern rather than a screen-space visual effect.
   function isWater(x,z){const r=Math.hypot(x,z);let bridge=false,hexR=0,branch=false;
-    for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3,along=x*Math.sin(a)+z*Math.cos(a),across=x*Math.cos(a)-z*Math.sin(a);if(along>0&&Math.abs(across)<4.65)bridge=true;if(along>31&&along<91&&Math.abs(across-10.5)<1.15&&!([46,66,86].some(v=>Math.abs(along-v)<1.1)))branch=true;const n=a-Math.PI/6;hexR=Math.max(hexR,(x*Math.sin(n)+z*Math.cos(n))/Math.cos(Math.PI/6));}
-    return branch||(!bridge&&((r>23.2&&r<28.4)||(hexR>118&&hexR<124)));
+    for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3,along=x*Math.sin(a)+z*Math.cos(a),across=x*Math.cos(a)-z*Math.sin(a);if(along>0&&Math.abs(across)<4.65)bridge=true;if(along>25.8&&along<91&&Math.abs(across-10.5)<1.15)branch=true;const n=a-Math.PI/6;hexR=Math.max(hexR,(x*Math.sin(n)+z*Math.cos(n))/Math.cos(Math.PI/6));}
+    const roadCrossing=streetSegments.some(s=>{const dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,l2=dx*dx+dz*dz,t=((x-s.a.x)*dx+(z-s.a.z)*dz)/l2;if(t<0||t>1)return false;return Math.abs((x-s.a.x)*dz-(z-s.a.z)*dx)/Math.sqrt(l2)<s.width/2;});
+    return (branch&&!roadCrossing)||(!bridge&&!roadCrossing&&((r>23.2&&r<28.4)||(hexR>118&&hexR<124)));
   }
+  root.traverse(o=>{if(o.isMesh&&o.material===water)o.position.y=-.65;});
   return {root,isWater,streets:streetSegments,tick(t){wave.offset.set(t*.008,t*.004);water.color.setHSL(.55,.64,.10+.008*Math.sin(t*.55));for(const f of animated)f(t);}};
 }
 

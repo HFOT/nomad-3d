@@ -50,7 +50,7 @@ function robotWalker(mod,def){
  return {...def,...ROUTES[def.id],u:0,root:r.root,manual:false,
   // Player mode borrows a walker: manual=true stops the route, and
   // setMoving() crossfades between the Walk and Idle clips.
-  setMoving(m){const next=m?walkA:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.3,true);current=next;},
+  setMoving(m,running=false,airborne=false){walkA.setEffectiveTimeScale(airborne?0:running?1.85:1);const next=m||airborne?walkA:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.2,true);current=next;},
   update(dt,elapsed,lite){
   mixer.update(dt);
   if(!lite){// distant walkers skip the decorative work

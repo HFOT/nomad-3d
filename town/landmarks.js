@@ -14,6 +14,8 @@ export function placeLandmark(model,{name,x,z,width,height,angle=0}){
  model.root.updateMatrixWorld(true);
  const bounds=new T.Box3().setFromObject(model.root);
  model.root.userData.fullModel=true;
+ const entry=new T.Vector3(0,initial.min.y,initial.max.z).applyMatrix4(model.root.matrixWorld);
+ model.root.userData.entry={position:entry.toArray(),width:Math.min(12,size.x*scale*.45),angle};
  model.root.userData.placement={scale,bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()}};
  return model;
 }

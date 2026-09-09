@@ -3,6 +3,10 @@ import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'.
 import {buildDistrictInfrastructure} from './districts.js';
 import {buildNeighborhood} from './neighborhood.js';
 import {createAssembly,createVault,createDepot,createArchive} from './landmarks.js';
+import {buildGroundwork,buildEntranceConnections} from './groundwork.js';
+import {buildStreetFurniture} from './street-furniture.js';
+import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
+import {PlayerMotion} from './player-motion.js';
 const $=s=>document.querySelector(s);
 const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
@@ -61,7 +65,7 @@ function pave(mat,x,z,w,len,ry=0,y=.07){const p=new T.Mesh(new T.BoxGeometry(w,.
 // The district module owns all streets; the old two-road scaffold is retired.
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
-ringRoad.visible=false;
+ringRoad.visible=false;plazaPave.visible=false;
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
 // A reflective Water pass would render the whole town twice; a normal-mapped
@@ -72,7 +76,7 @@ const water=new T.Mesh(new T.PlaneGeometry(24,400),waterMat);water.rotation.x=-M
 // Street lamps along the road: brass poles, amber heads already lit for dusk.
 const lampMat=new T.MeshStandardMaterial({color:0xa7864b,metalness:.8,roughness:.3});
 const lampGlow=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.8});
-for(let j=0;j<8;j++){// stop at z=43: clear of the stair's foot
+for(let j=0;j<0;j++){// retired spherical placeholder lamps; flame lanterns own the streets
  const x=(j%2?4:-4),z=120-j*11;
  const pole=new T.Mesh(new T.CylinderGeometry(.06,.08,2.6,10),lampMat);pole.position.set(x,1.3,z);pole.castShadow=true;scene.add(pole);
  const head=new T.Mesh(new T.SphereGeometry(.16,16,12),lampGlow);head.position.set(x,2.7,z);head.castShadow=false;scene.add(head);
@@ -103,6 +107,8 @@ function tintGate(g,signal){
 const WM=gateMaterials();
 const B=makeBuilders(WM);
 const cityWorks=buildDistrictInfrastructure(WM);scene.add(cityWorks.root);
+const groundwork=buildGroundwork(cityWorks.streets);scene.add(groundwork.root);
+floor.visible=false;ground.position.y=-3.65;ground.material=waterMat;water.visible=false;
 const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));lighthouse.root.position.set(40,0,-22);scene.add(lighthouse.root);
 await phase('城門を建てています…');
 const RING=132,gates=[],gatePos=[];
@@ -215,11 +221,13 @@ const depot=createDepot();scene.add(depot.root);
 await phase('書庫塔を建てています…');
 const archiveB=createArchive();scene.add(archiveB.root);
 const landmarkModels=[assemblyB,vaultB,depot,archiveB];
+const entranceAprons=buildEntranceConnections(landmarkModels,cityWorks.streets);scene.add(entranceAprons);
 const neighborhood=buildNeighborhood(landmarkModels.map(m=>new T.Box3().setFromObject(m.root)),cityWorks.streets);scene.add(neighborhood.root);
+const streetFurniture=buildStreetFurniture(cityWorks.streets,neighborhood.bounds,landmarkModels.map(m=>new T.Box3().setFromObject(m.root)),WM);scene.add(streetFurniture);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[neighborhood.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
-const walkables=[ground,floor,cityWorks.root,...solids];
+const walkables=[...groundwork.walkables,entranceAprons,cityWorks.root,...solids];
 const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
 const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
 const INR=RING*Math.cos(Math.PI/6)-1.8;
@@ -304,18 +312,26 @@ renderer.domElement.addEventListener('pointerup',e=>{
 $('#unfollow').onclick=()=>setFollow(null);$('#front').onclick=()=>{if(player)exitPlayer();front();};
 // NOMAD mode: borrow the wanderer, walk it with WASD/arrows, orbit stays on the mouse.
 let player=null;const keys={};
-addEventListener('keydown',e=>{keys[e.code]=true;if(e.code==='Escape'&&player)exitPlayer();});
+addEventListener('keydown',e=>{
+ if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+ keys[e.code]=true;
+ if(player&&['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code))e.preventDefault();
+ if(e.code==='Space'&&player&&!paused&&!e.repeat)player.jump();
+ if(e.code==='Escape'&&player)exitPlayer();
+});
 addEventListener('keyup',e=>{keys[e.code]=false;});
+addEventListener('blur',()=>{for(const key of Object.keys(keys))keys[key]=false;});
 const nomadW=walkers.find(w=>w.id==='nomad');
+nomadW.root.scale.setScalar(.64);
 function enterPlayer(){
- player={};nomadW.manual=true;nomadW.setMoving(false);setFollow(null);
+ player=new PlayerMotion(nomadW.root.position);nomadW.manual=true;nomadW.setMoving(false);setFollow(null);
  $('#walk').classList.add('active');
- $('#follow-name').textContent='NOMAD視点 · WASD/矢印キーで移動 · Escで俯瞰へ';$('#follow-name').style.color='#d8b669';
+ $('#follow-name').textContent='WASD / 矢印：移動 · Shift：ダッシュ · Space：ジャンプ · Esc：俯瞰';$('#follow-name').style.color='#d8b669';
  const p=nomadW.root.position;
- camera.position.set(p.x,3.4,p.z+8);controls.target.set(p.x,1.2,p.z);controls.update();
+ camera.position.set(p.x,p.y+2.6,p.z+6.5);controls.target.set(p.x,p.y+.95,p.z);controls.update();
 }
 function exitPlayer(){
- player=null;nomadW.manual=false;nomadW.setMoving(true);
+ player=null;nomadW.manual=false;nomadW.root.rotation.x=0;nomadW.setMoving(true);
  $('#walk').classList.remove('active');$('#follow-name').textContent='';front();
 }
 $('#walk').onclick=()=>player?exitPlayer():enterPlayer();
@@ -337,7 +353,11 @@ $('#landmarks').onchange=e=>{civicLayer.visible=e.target.checked;renderer.shadow
 $('#market-view').onclick=()=>{if(player)exitPlayer();camera.position.set(-39,7,80);controls.target.set(-39,3,36);controls.update();};
 $('#bridge-view').onclick=()=>{if(player)exitPlayer();camera.position.set(15,6,38);controls.target.set(0,1,25);controls.update();};
 if(matchMedia('(prefers-reduced-motion: reduce)').matches){paused=true;$('#pause').checked=true;}
-const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth/2,innerHeight/2),.35,.4,1.1));// half-res bloom: a soft glow needs no full-res blur chain
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+const contactAO=new GTAOPass(scene,camera,innerWidth,innerHeight,undefined,{radius:1.2,thickness:.75,scale:.7,samples:8});
+// Contact shading is useful at street level. The aerial plan stays inexpensive.
+contactAO.enabled=false;composer.addPass(contactAO);
+composer.addPass(new UnrealBloomPass(new T.Vector2(innerWidth/2,innerHeight/2),.28,.4,1.1));
 composer.addPass(new OutputPass());
 const clock=new T.Clock();let elapsed=0,frames=0;
 // Full character models each carry local lights. At nation scale, dozens of
@@ -385,39 +405,35 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
   if(keys.KeyD||keys.ArrowRight)mv.add(camR);
   if(keys.KeyA||keys.ArrowLeft)mv.sub(camR);
   const moving=mv.lengthSq()>0;
-  nomadW.setMoving(moving);
+  const sprint=!!(keys.ShiftLeft||keys.ShiftRight),pos=nomadW.root.position,previous=pos.clone();
+  mv.normalize();
   if(moving){
-   mv.normalize();
-   const pos=nomadW.root.position;
    const ty=Math.atan2(mv.x,mv.z);
    let dr=ty-nomadW.root.rotation.y;dr=Math.atan2(Math.sin(dr),Math.cos(dr));
    nomadW.root.rotation.y+=dr*.2;
-   fwdRay.set(new T.Vector3(pos.x,pos.y+1,pos.z),mv);
-   const blocked=fwdRay.intersectObjects(solids.filter(o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;}),true).length>0;
-   if(!blocked){
-    mv.multiplyScalar(dt*6);
-    const np=pos.clone().add(mv);
-    const inside=HEXN.every(([nx,nz])=>np.x*nx+np.z*nz<INR)&&!cityWorks.isWater(np.x,np.z);
-    if(inside){
-     dnRay.set(new T.Vector3(np.x,pos.y+2.5,np.z),new T.Vector3(0,-1,0));
-     const hit=dnRay.intersectObjects(walkables,true)[0];
-     const hy=hit?pos.y+2.5-hit.distance:0;
-     if(hy-pos.y<=1.15){// one 0.77m riser plus climb lag
-      // climb snaps up (long stairs accumulate lag under damping); descent stays smooth
-      const dy=hy>pos.y?Math.min(hy-pos.y,.8):(hy-pos.y)*.5;
-      pos.set(np.x,pos.y+dy,np.z);
-      camera.position.add(mv);camera.position.y+=dy;
-     }
-    }
-   }
   }
-  controls.target.lerp(new T.Vector3(nomadW.root.position.x,nomadW.root.position.y+1.2,nomadW.root.position.z),.3);
+  const shown=o=>{for(let p=o;p;p=p.parent)if(!p.visible)return false;return true;};
+  const activeSolids=solids.filter(shown),activeGround=walkables.filter(shown);
+  player.update(pos,{moving,sprint,x:mv.x,z:mv.z},dt,{
+   canMove(from,x,z,airborne){
+    if(!HEXN.every(([nx,nz])=>x*nx+z*nz<INR)||(!airborne&&cityWorks.isWater(x,z)))return false;
+    fwdRay.far=Math.hypot(x-from.x,z-from.z)+.35;
+    fwdRay.set(new T.Vector3(from.x,from.y+.8,from.z),mv);
+    return !fwdRay.intersectObjects(activeSolids,true).length;
+   },
+   ground(x,z,y){if(cityWorks.isWater(x,z))return null;dnRay.set(new T.Vector3(x,y+1.05,z),new T.Vector3(0,-1,0));return dnRay.intersectObjects(activeGround,true)[0]?.point.y??null;}
+  });
+  nomadW.setMoving(moving,sprint,!player.grounded);
+  nomadW.root.rotation.x=T.MathUtils.damp(nomadW.root.rotation.x,!player.grounded?-.06:moving&&sprint?.09:0,10,dt);
+  camera.position.add(pos.clone().sub(previous));
+  controls.target.lerp(new T.Vector3(pos.x,pos.y+.95,pos.z),.3);
  }else if(following)controls.target.lerp(new T.Vector3(following.root.position.x,1,following.root.position.z),.08);
  if(!paused)tune(dt);
+ contactAO.enabled=camera.position.y<22&&innerWidth>=700;
  if(frames%30===0)updateLocalLights();controls.update();composer.render();frames++;
  if(frames===2)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
 front();
-window.town={scene,camera,controls,walkers,cityWorks,neighborhood,civicLayer,landmarkModels,step:frame,follow:setFollow,get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
+window.town={scene,camera,controls,walkers,cityWorks,groundwork,neighborhood,civicLayer,landmarkModels,step:frame,follow:setFollow,get playerState(){return player?{grounded:player.grounded,vy:player.vy,speed:player.speed}:null;},get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
