@@ -5,9 +5,10 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildMouse} from '../pip/model.js';
-import {buildCurve,at,buildRoad,buildGround,buildStartGate,buildBoostPad,buildCrate,buildJam,
-        buildBarrierBlock,buildGiantBlock,buildShock,buildBlob,buildDriftSpark,buildLaser,tuneLaser,
-        trackY,buildRamp,buildChainRail,buildFloatingBlocks,ITEMS,HALF_W} from './model.js';
+import {makeCurve,makeHeight,at,buildRoad,buildGround,buildVerge,buildStartGate,buildBoostPad,
+        buildCrate,buildJam,buildRamp,buildBarrierBlock,buildGiantBlock,buildShock,buildBlob,
+        buildDriftSpark,buildLaser,tuneLaser,buildScenery,ITEMS,HALF_W} from './model.js';
+import {COURSES,courseById} from './courses.js';
 
 const $=s=>document.querySelector(s);
 
@@ -55,7 +56,7 @@ scene.fog=new T.Fog(0x0f1618,55,155);
 const camera=new T.PerspectiveCamera(58,innerWidth/innerHeight,.1,420);
 const pmrem=new T.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(),.06).texture;
-scene.add(new T.HemisphereLight(0xa8c6d4,0x141a16,.85));
+const hemi=new T.HemisphereLight(0xa8c6d4,0x141a16,.85);scene.add(hemi);
 const key=new T.DirectionalLight(0xffe0b2,1.15);key.position.set(-9,18,7);scene.add(key);
 
 const composer=new EffectComposer(renderer);
@@ -64,62 +65,87 @@ const bloom=new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.32,.7,.92
 composer.addPass(bloom);composer.addPass(new OutputPass());
 
 // --- the course ---
-const curve=buildCurve();
-scene.add(buildGround(),buildRoad(curve));
-scene.add(buildChainRail(curve));
-scene.add(buildFloatingBlocks(curve,[[.06,-38,20,4.5],[.24,36,23,5.5],[.47,-40,19,4],
-                                     [.66,39,25,6],[.83,-36,20,4.5],[.94,34,22,5]]));
-const gate=buildStartGate();
-{
- const p=curve.getPointAt(0),tan=curve.getTangentAt(0);
- gate.position.set(p.x,0,p.z);gate.rotation.y=Math.atan2(tan.x,tan.z);
- scene.add(gate);
+// A course is data. Loading one throws away the last and builds the new one in
+// its place, so switching costs a rebuild and nothing else.
+const RES=600;
+let course=null,curve=null,hy=null,samples=[],courseGroup=null;
+let pads=[],crates=[],jams=[],ramps=[];
+
+function disposeGroup(g){
+ g.traverse(o=>{
+  if(o.isMesh||o.isInstancedMesh){
+   o.geometry?.dispose?.();
+   for(const m of [].concat(o.material||[]))m.dispose?.();
+  }
+ });
 }
 
-// Everything laid on the course is placed by (t, lateral): how far round, and
-// how far from the middle.
-const PADS=[[.085,-2.4],[.235,2.6],[.42,0],[.60,-2.8],[.78,2.2],[.905,0]];
-const CRATES=[[.14,-3],[.14,0],[.14,3],[.335,-2.6],[.335,2.6],[.51,-3],[.51,0],[.51,3],
-              [.685,-2.4],[.685,2.4],[.86,-3],[.86,0],[.86,3]];
-// The queues standing in the road: never a full block, always a way through.
-const JAMS=[[.18,-4.2,0],[.20,4.4,0],[.27,1.8,1],[.305,-3.6,0],[.39,4.3,0],[.455,-1.4,1],
-            [.47,3.9,0],[.545,-4.4,0],[.575,2.2,0],[.64,-2.6,1],[.72,4.1,0],[.735,-3.8,0],
-            [.815,1.6,1],[.83,-4.3,0],[.925,3.7,0],[.95,-2.2,0]];
+function loadCourse(id){
+ const def=courseById(id);
+ course=def;
+ if(courseGroup){scene.remove(courseGroup);disposeGroup(courseGroup);}
+ curve=makeCurve(def.control);
+ hy=makeHeight(def.height);
 
-// Two kickers, both placed where the course is already dropping away: the
-// landing is downhill, which is what makes the air feel earned rather than
-// dropped on you.
-const RAMPS=[.352,.742];
-const ramps=[];
-for(const t of RAMPS){
- const o=buildRamp();at(curve,t,0,o.position);
- const tan=curve.getTangentAt(t);o.rotation.y=Math.atan2(tan.x,tan.z);
- scene.add(o);ramps.push({o,t});
+ scene.background=new T.Color(def.theme.background);
+ scene.fog=new T.Fog(def.theme.background,def.theme.fog[0],def.theme.fog[1]);
+ hemi.color.setHex(def.theme.hemi[0]);hemi.groundColor.setHex(def.theme.hemi[1]);hemi.intensity=def.theme.hemi[2];
+ key.color.setHex(def.theme.key[0]);key.intensity=def.theme.key[1];
+
+ courseGroup=new T.Group();
+ courseGroup.add(buildGround(def.theme),buildVerge(curve,hy,def.theme),buildRoad(curve,hy,def.theme));
+ courseGroup.add(buildScenery(def.scenery,curve,hy));
+ const gate=buildStartGate(def.theme);
+ {
+  const p=curve.getPointAt(0),tan=curve.getTangentAt(0);
+  gate.position.set(p.x,hy(0),p.z);gate.rotation.y=Math.atan2(tan.x,tan.z);
+  courseGroup.add(gate);
+ }
+
+ // The furniture, all placed by (t, lateral): how far round, how far off centre.
+ pads=[];crates=[];jams=[];ramps=[];
+ for(const t of def.ramps){
+  const o=buildRamp();at(curve,hy,t,0,o.position);
+  const tan=curve.getTangentAt(t);o.rotation.y=Math.atan2(tan.x,tan.z);
+  courseGroup.add(o);ramps.push({o,t});
+ }
+ for(const [t,lat] of def.pads){
+  const o=buildBoostPad();at(curve,hy,t,lat,o.position);
+  const tan=curve.getTangentAt(t);o.rotation.y=Math.atan2(tan.x,tan.z);
+  courseGroup.add(o);pads.push({o,t,lat});
+ }
+ for(const t of def.crates)for(const lat of [-3,0,3]){
+  const o=buildCrate();at(curve,hy,t,lat,o.position);o.position.y+=1.1;
+  courseGroup.add(o);crates.push({o,t,lat,back:0});
+ }
+ // The queues are laid out from the course's own numbers, never over a kicker
+ // or across the start line, and never so wide that there is no way past.
+ {
+  let seed=(def.id.charCodeAt(0)*7919+def.jams*13)>>>0;
+  const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+  let placed=0,guard=0;
+  while(placed<def.jams&&guard++<400){
+   const t=.06+rnd()*.88;
+   if(def.ramps.some(r=>Math.abs(r-t)<.035))continue;
+   if(crates.some(c=>Math.abs(c.t-t)<.02))continue;
+   const lat=(rnd()<.5?-1:1)*(1.4+rnd()*3.1);
+   const big=rnd()<.28;
+   const o=buildJam(big);at(curve,hy,t,lat,o.position);o.position.y+=big?1.05:.7;
+   courseGroup.add(o);jams.push({o,t,lat,big,down:0});
+   placed++;
+  }
+ }
+ scene.add(courseGroup);
+
+ samples=[];
+ for(let i=0;i<RES;i++){const p=curve.getPointAt(i/RES);samples.push(p.x,p.z);}
+
+ S.best=bestTime();
+ renderCourseButtons();
 }
 
-const pads=[],crates=[],jams=[];
-for(const [t,lat] of PADS){
- const o=buildBoostPad();at(curve,t,lat,o.position);
- const tan=curve.getTangentAt(t);o.rotation.y=Math.atan2(tan.x,tan.z);
- scene.add(o);pads.push({o,t,lat});
-}
-for(const [t,lat] of CRATES){
- const o=buildCrate();at(curve,t,lat,o.position);o.position.y=1.1;
- scene.add(o);crates.push({o,t,lat,back:0});
-}
-for(const [t,lat,big] of JAMS){
- const o=buildJam(!!big);at(curve,t,lat,o.position);o.position.y=big?1.05:.7;
- scene.add(o);jams.push({o,t,lat,big:!!big,down:0});
-}
-
-// A table of the curve, walked once, so the run can ask "how far round am I"
-// without searching the spline every frame.
-const RES=600,samples=[];
-for(let i=0;i<RES;i++){
- const p=curve.getPointAt(i/RES);samples.push(p.x,p.z);
-}
 function nearest(x,z,from){
- // Search a window around where we were: the car cannot teleport, and this
+ // Search a window around where we were: the machine cannot teleport, and this
  // keeps the lookup O(1) instead of O(course).
  let best=from,bd=1e9;
  for(let k=-24;k<=60;k++){
@@ -169,14 +195,14 @@ const S={phase:'ready',t:0,x:0,z:0,y:0,vy:0,air:false,head:0,speed:0,lap:0,seg:0
 function resetToStart(){
  const p=curve.getPointAt(0),tan=curve.getTangentAt(0);
  S.x=p.x;S.z=p.z;S.head=Math.atan2(tan.x,tan.z);
- S.speed=TOP*LAUNCH;S.seg=0;S.y=trackY(0);S.vy=0;S.air=false;
+ S.speed=TOP*LAUNCH;S.seg=0;S.y=hy(0);S.vy=0;S.air=false;
 }
 
 function bestTime(){
- try{const v=localStorage.getItem('pip-racer-best');return v?JSON.parse(v):null}catch{return null}
+ try{const v=localStorage.getItem('pip-racer-best-'+course.id);return v?JSON.parse(v):null}catch{return null}
 }
 function bestGhost(){
- try{const v=localStorage.getItem('pip-racer-ghost');return v?JSON.parse(v):null}catch{return null}
+ try{const v=localStorage.getItem('pip-racer-ghost-'+course.id);return v?JSON.parse(v):null}catch{return null}
 }
 function fmt(s){
  const m=Math.floor(s/60),r=s-m*60;
@@ -271,8 +297,8 @@ function finish(){
  const record=!prev||total<prev;
  if(record){
   try{
-   localStorage.setItem('pip-racer-best',JSON.stringify(total));
-   localStorage.setItem('pip-racer-ghost',JSON.stringify(S.record));
+   localStorage.setItem('pip-racer-best-'+course.id,JSON.stringify(total));
+   localStorage.setItem('pip-racer-ghost-'+course.id,JSON.stringify(S.record));
   }catch{}
  }
  $('#o-title').textContent=record?'コースレコード':'ゴール';
@@ -283,6 +309,7 @@ function finish(){
  $('#o-score').hidden=false;$('.rules').hidden=true;
  $('#start').textContent='もう一度走る';
  $('#overlay').hidden=false;
+ renderCourseButtons();
  hud();
 }
 
@@ -299,8 +326,40 @@ function hud(){
 // --- loop ---
 const clock=new T.Clock();
 const camPos=new T.Vector3(),camAim=new T.Vector3(),tmp=new T.Vector3();
+// The picker on the start card. Switching a course rebuilds it and puts the
+// machine back on its line; the best time and the ghost are kept per course, so
+// each one keeps its own record.
+function renderCourseButtons(){
+ const host=$('#courses');
+ if(!host)return;
+ host.innerHTML='';
+ for(const c of COURSES){
+  const b=document.createElement('button');
+  b.type='button';b.dataset.course=c.id;
+  b.className=c.id===course.id?'on':'';
+  const best=(()=>{try{const v=localStorage.getItem('pip-racer-best-'+c.id);return v?JSON.parse(v):null}catch{return null}})();
+  const n=document.createElement('b');n.textContent=c.name;
+  const note=document.createElement('span');note.textContent=c.note;
+  const rec=document.createElement('i');rec.textContent=best?fmt(best):'記録なし';
+  b.append(n,note,rec);
+  b.onclick=()=>{
+   if(c.id===course.id)return;
+   try{localStorage.setItem('pip-racer-course',c.id)}catch{}
+   loadCourse(c.id);
+   resetToStart();
+   S.phase='ready';S.time=0;S.lap=0;
+   $('#o-lead').textContent=c.note;
+   hud();
+  };
+  host.append(b);
+ }
+}
+
+let opening=null;
+try{opening=localStorage.getItem('pip-racer-course')}catch{}
+loadCourse(opening||COURSES[0].id);
 resetToStart();
-S.best=bestTime();
+$('#o-lead').textContent=course.note;
 
 renderer.setAnimationLoop(()=>{
  const dt=Math.min(clock.getDelta(),.05);
@@ -385,7 +444,7 @@ renderer.setAnimationLoop(()=>{
 
   // Up and down. The plan is flat as far as the rules are concerned; height is
   // laid over it, and a ramp is the one thing that takes the machine off it.
-  const ground=trackY(S.seg/RES);
+  const ground=hy(S.seg/RES);
   if(!S.air){
    for(const r of ramps){
     if(sweep(r.o.position.x,r.o.position.z,wasX,wasZ,S.x,S.z)<3.2&&S.speed>TOP*.45){
@@ -582,4 +641,6 @@ addEventListener('resize',()=>{
 
 hud();
 $('#loading').classList.add('done');
-window.pipRacer={S,curve,jams,crates,pads,ramps,scene,camera,start,giveItem,nearest,trackY,samples:RES,HALF_W,WALL};
+window.pipRacer={S,scene,camera,start,giveItem,nearest,loadCourse,COURSES,samples:RES,HALF_W,WALL,
+ get course(){return course},get curve(){return curve},get hy(){return hy},
+ get jams(){return jams},get crates(){return crates},get pads(){return pads},get ramps(){return ramps}};

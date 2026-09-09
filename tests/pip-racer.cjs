@@ -110,14 +110,14 @@ const AUTOPILOT=`
    const r=pipRacer.ramps[0];
    // Put it on the road just short of the kicker, pointed at it, with pace.
    const t=r.t-.004,p=pipRacer.curve.getPointAt(t),tan=pipRacer.curve.getTangentAt(t);
-   S.x=p.x;S.z=p.z;S.y=pipRacer.trackY(t);S.head=Math.atan2(tan.x,tan.z);S.speed=28;
+   S.x=p.x;S.z=p.z;S.y=pipRacer.hy(t);S.head=Math.atan2(tan.x,tan.z);S.speed=28;
    // The run tracks where it is round the course in a window; teleporting it
    // without moving that window makes the wall drag it back where it was.
    S.seg=Math.floor(t*600);
    S.air=false;S.vy=0;S.boost=0;
    let peak=0,flew=false;
    for(let i=0;i<50;i++){
-    if(S.air){flew=true;peak=Math.max(peak,S.y-pipRacer.trackY(S.seg/600));}
+    if(S.air){flew=true;peak=Math.max(peak,S.y-pipRacer.hy(S.seg/600));}
     if(flew&&!S.air)break;
     await wait(40);
    }
@@ -197,14 +197,15 @@ const AUTOPILOT=`
   // Three laps, then a best time and a ghost to race next time.
   const finished=await page.evaluate(async()=>{
    const wait=ms=>new Promise(r=>setTimeout(r,ms));
-   localStorage.removeItem('pip-racer-best');localStorage.removeItem('pip-racer-ghost');
+   const K='pip-racer-best-'+pipRacer.course.id,G='pip-racer-ghost-'+pipRacer.course.id;
+   localStorage.removeItem(K);localStorage.removeItem(G);
    // Skip to the last stretch rather than driving three full laps in a test.
    pipRacer.S.lap=2;pipRacer.S.finished=[20,20];
    for(let i=0;i<900&&pipRacer.S.phase==='race';i++)await wait(60);
    clearInterval(window.__auto);
    return {phase:pipRacer.S.phase,
-    best:JSON.parse(localStorage.getItem('pip-racer-best')||'null'),
-    ghost:(JSON.parse(localStorage.getItem('pip-racer-ghost')||'[]')).length,
+    best:JSON.parse(localStorage.getItem(K)||'null'),
+    ghost:(JSON.parse(localStorage.getItem(G)||'[]')).length,
     laps:pipRacer.S.finished.length};
   });
   assert.equal(finished.phase,'done','three laps ends the race');
@@ -212,6 +213,35 @@ const AUTOPILOT=`
   assert.ok(finished.ghost>300,'and a ghost long enough to race, got '+finished.ghost);
   assert.equal(finished.laps,3,'three lap times were taken');
   assert.equal(await page.evaluate(()=>document.querySelector('#overlay').hidden),false,'the result card is shown');
+
+  // Every course has to load, face the right way and start on something
+  // straight: a start line crossed three times cannot sit in a corner.
+  const all=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const out=[];
+   for(const c of pipRacer.COURSES){
+    pipRacer.loadCourse(c.id);
+    await wait(120);
+    const road=pipRacer.scene.getObjectByName('RoadSurface');
+    const n=road.geometry.attributes.normal;
+    let up=0;for(let i=0;i<200;i++)if(n.getY(i)>0)up++;
+    const bend=t=>{
+     const a=pipRacer.curve.getTangentAt((t+1)%1),b=pipRacer.curve.getTangentAt((t+.02)%1);
+     return Math.acos(Math.max(-1,Math.min(1,a.x*b.x+a.z*b.z)))*57.3;
+    };
+    out.push({id:c.id,up,start:+bend(0).toFixed(1),before:+bend(.97).toFixed(1),
+      flatStart:Math.abs(pipRacer.hy(0)-pipRacer.hy(.03))<.4,
+      jams:pipRacer.jams.length,crates:pipRacer.crates.length,ramps:pipRacer.ramps.length});
+   }
+   return out;
+  });
+  for(const c of all){
+   assert.ok(c.up>150,c.id+': the road faces up');
+   assert.ok(c.start<12,c.id+': the start line is on a straight, got '+c.start+'deg');
+   assert.ok(c.before<20,c.id+': and so is the run up to it, got '+c.before+'deg');
+   assert.equal(c.flatStart,true,c.id+': the start line is level');
+   assert.ok(c.jams>6&&c.crates>=9&&c.ramps>=1,c.id+': the course is furnished');
+  }
 
   assert.deepEqual(errors,[],'no page errors');
   console.log('PIPレーサー: laps, items, queues, barrier and the ghost passed');
