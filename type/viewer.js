@@ -151,9 +151,9 @@ function spawnEnemy(kind,word,x,z){
  o.position.set(x,.5,z);
  o.scale.setScalar(.9+Math.random()*.28);
  const label=makeLabel();
- const g0=m.guide();label.paint(word.d,'',g0.rest,false);
+ const g0=m.guide();label.paint(word.d,word.k,'',g0.rest,false);
  scene.add(label.sprite);
- const e={o,kind,d:word.d,m,f0:word.f0||g0.rest[0],first:m.first(),label,seed:Math.random()*9,dying:0,mad:0};
+ const e={o,kind,d:word.d,k:word.k,m,f0:word.f0||g0.rest[0],first:m.first(),label,seed:Math.random()*9,dying:0,mad:0};
  enemies.push(e);
  return e;
 }
@@ -175,7 +175,7 @@ function killEnemy(e){
 // --- typing. The one verb. ---
 function repaint(e,mad){
  const g=e.m.guide();
- e.label.paint(e.d,g.typed,g.rest,mad);
+ e.label.paint(e.d,e.k,g.typed,g.rest,mad);
 }
 function keyChar(ch){
  if(S.phase!=='run')return;
