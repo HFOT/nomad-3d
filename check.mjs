@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
 
 const files=['shared/series.js','shared/switcher.js','build.mjs'];
-for(const id of ['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','depot','gate','assembly','vault','archive','town'])
+for(const id of ['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','game','depot','gate','assembly','vault','archive','town'])
   for(const name of ['model.js','materials.js','buildings.js','districts.js','street-surface.js','neighborhood.js','landmarks.js','cast.js','lab.js','merge.js','viewer.js','ward.js'])
     if(existsSync(`${id}/${name}`))files.push(`${id}/${name}`);
 
