@@ -67,8 +67,8 @@ composer.addPass(bloom);composer.addPass(new OutputPass());
 const curve=buildCurve();
 scene.add(buildGround(),buildRoad(curve));
 scene.add(buildChainRail(curve));
-scene.add(buildFloatingBlocks(curve,[[.06,-22,13,7],[.24,20,15,9],[.47,-24,12,6],
-                                     [.66,23,17,10],[.83,-20,12,7],[.94,18,14,8]]));
+scene.add(buildFloatingBlocks(curve,[[.06,-38,20,4.5],[.24,36,23,5.5],[.47,-40,19,4],
+                                     [.66,39,25,6],[.83,-36,20,4.5],[.94,34,22,5]]));
 const gate=buildStartGate();
 {
  const p=curve.getPointAt(0),tan=curve.getTangentAt(0);

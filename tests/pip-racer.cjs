@@ -26,6 +26,26 @@ const AUTOPILOT=`
   await page.goto(BASE+'/racer/',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>window.pipRacer,null,{timeout:120000});
 
+  // The road has to face upwards. Wound the other way it is culled from every
+  // camera that matters and the player drives on the ground showing through it,
+  // which is not something a screenshot makes obvious.
+  const facing=await page.evaluate(()=>{
+   const look=n=>{
+    const m=pipRacer.scene.getObjectByName(n);
+    if(!m)return null;
+    const a=m.geometry.attributes.normal;
+    let up=0,down=0;
+    for(let i=0;i<Math.min(400,a.count);i++)(a.getY(i)>0?up++:down++);
+    return {up,down,both:m.material.side===2};
+   };
+   return {road:look('RoadSurface'),left:look('Kerb-1'),right:look('Kerb1')};
+  });
+  assert.ok(facing.road&&facing.road.up>facing.road.down,'the road faces up');
+  for(const side of ['left','right']){
+   const k=facing[side];
+   assert.ok(k&&(k.up>0||k.both),'the '+side+' kerb is drawn towards the camera');
+  }
+
   await page.click('#start');
   await page.waitForFunction(()=>pipRacer.S.phase==='race',null,{timeout:20000});
   // Steering right has to move the machine to the right of the screen. The

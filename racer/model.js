@@ -11,18 +11,18 @@ export const SAMPLES=420;     // how finely the run walks the curve
 // almost in line with it: a closed Catmull-Rom bends hardest where its points
 // turn a corner, and a start/finish must not sit in one.
 const CONTROL=[
- [-10, -62],[ 22, -62],[ 52, -56],[ 74, -32],[ 76,   0],
- [ 58,  24],[ 70,  50],[ 44,  72],[  8,  76],[-24,  66],
- [-50,  78],[-72,  54],[-60,  22],[-76,  -8],[-58, -42],
- [-36, -60],
+ [-10, -64],[ 24, -64],[ 56, -58],[ 78, -34],[ 82,  -2],
+ [ 68,  26],[ 74,  54],[ 48,  76],[ 12,  82],[-22,  74],
+ [-52,  80],[-76,  58],[-70,  26],[-82,  -8],[-64, -44],
+ [-38, -62],
 ];
 
 // The height of the course, keyed by how far round it is. The plan shape stays
 // two-dimensional — laps, the off-road test and every collision are measured on
 // the ground plan — and this is laid over it. The start straight is flat: a
 // line you cross three times should be the same line every time.
-const HEIGHT=[[0,0],[.10,0],[.185,7],[.30,7],[.355,6],[.44,-4],[.52,0],
-              [.60,9],[.685,9],[.745,7.5],[.80,-1],[.88,4],[.94,0],[1,0]];
+const HEIGHT=[[0,0],[.10,0],[.20,3.4],[.30,3.4],[.355,3],[.45,-1.8],[.53,0],
+              [.61,4.4],[.685,4.4],[.745,3.6],[.81,-.6],[.89,2],[.95,0],[1,0]];
 export function trackY(t){
  t=((t%1)+1)%1;
  for(let i=0;i<HEIGHT.length-1;i++){
@@ -49,6 +49,7 @@ export function at(curve,t,lateral,out=new T.Vector3()){
 
 const stone=new T.MeshStandardMaterial({color:0x2b3238,metalness:.06,roughness:.94});
 const rail=new T.MeshStandardMaterial({color:0x8d7443,metalness:.82,roughness:.36});
+const railBothSides=new T.MeshStandardMaterial({color:0x8d7443,metalness:.82,roughness:.36,side:T.DoubleSide});
 const kerbA=new T.MeshStandardMaterial({color:0xa8a294,roughness:.85,envMapIntensity:.5});
 const kerbB=new T.MeshStandardMaterial({color:0x9c5040,roughness:.85,envMapIntensity:.5});
 const amber=new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:1.5,metalness:.25,roughness:.18});
@@ -76,33 +77,45 @@ export function buildRoad(curve){
   const y=trackY(t);
   pos.push(p.x+nx*HALF_W,y+.02,p.z+nz*HALF_W, p.x-nx*HALF_W,y+.02,p.z-nz*HALF_W);
   uv.push(0,t*150, 1,t*150);
-  if(i<SAMPLES){const a=i*2;idx.push(a,a+1,a+2, a+1,a+3,a+2);}
+  // Wound so the face looks up. Reversed, the road is invisible from above
+  // and the player drives on the ground plane showing through it.
+  if(i<SAMPLES){const a=i*2;idx.push(a,a+2,a+1, a+1,a+2,a+3);}
  }
  const geo=new T.BufferGeometry();
  geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));
  geo.setAttribute('uv',new T.Float32BufferAttribute(uv,2));
  geo.setIndex(idx);geo.computeVertexNormals();
- group.add(new T.Mesh(geo,new T.MeshStandardMaterial({map:grain('#3c4650','#141b23',[2,1]),metalness:.05,roughness:.9,envMapIntensity:.55})));
+ const surface=new T.Mesh(geo,new T.MeshStandardMaterial({map:grain('#252b32','#0e131a',[2,1]),metalness:.04,roughness:.94,envMapIntensity:.3}));
+ surface.name='RoadSurface';group.add(surface);
 
- // Kerbs: alternating blocks, instanced, one pair per few samples.
- const STEP=3,count=Math.floor(SAMPLES/STEP)*2+4;
- const kerbGeo=new RoundedBoxGeometry(1.05,.16,3.25,2,.03);
- const a=new T.InstancedMesh(kerbGeo,kerbA,count),b=new T.InstancedMesh(kerbGeo,kerbB,count);
- const m4=new T.Matrix4(),q=new T.Quaternion(),up=new T.Vector3(0,1,0),one=new T.Vector3(1,1,1),v=new T.Vector3();
- let ia=0,ib=0;
- for(let i=0;i<SAMPLES;i+=STEP){
-  const t=i/SAMPLES;
-  curve.getPointAt(t,p);curve.getTangentAt(t,tan);
-  const ang=Math.atan2(tan.x,tan.z);
-  q.setFromAxisAngle(up,ang);
-  for(const side of [-1,1]){
-   v.set(p.x-tan.z*side*(HALF_W+.52),trackY(t)+.08,p.z+tan.x*side*(HALF_W+.52));
-   m4.compose(v,q,one);
-   const even=((i/STEP)+(side>0?1:0))%2===0;
-   if(even){a.setMatrixAt(ia++,m4)}else{b.setMatrixAt(ib++,m4)}
+ // Kerbs: one ribbon a side, striped by a texture rather than built from
+ // separate blocks. Blocks left a gap wherever the course stretched between
+ // samples, and a slope stretches every one of them.
+ const stripe=(()=>{
+  const c=document.createElement('canvas');c.width=8;c.height=64;const x=c.getContext('2d');
+  x.fillStyle='#b9b3a4';x.fillRect(0,0,8,32);
+  x.fillStyle='#a2543f';x.fillRect(0,32,8,32);
+  const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;
+  t.wrapS=t.wrapT=T.RepeatWrapping;t.magFilter=T.NearestFilter;return t;
+ })();
+ const kerbMat=new T.MeshStandardMaterial({map:stripe,roughness:.85,envMapIntensity:.5,side:T.DoubleSide});
+ for(const side of [-1,1]){
+  const kp=[],ku=[],ki=[];
+  for(let i=0;i<=SAMPLES;i++){
+   const t=i/SAMPLES;
+   curve.getPointAt(t%1,p);curve.getTangentAt(t%1,tan);
+   const nx=-tan.z*side,nz=tan.x*side,y=trackY(t);
+   kp.push(p.x+nx*HALF_W,y+.09,p.z+nz*HALF_W, p.x+nx*(HALF_W+1.02),y+.09,p.z+nz*(HALF_W+1.02));
+   ku.push(0,t*82, 1,t*82);   // 82 stripes round: about one every three metres
+   if(i<SAMPLES){const k=i*2;ki.push(k,k+2,k+1, k+1,k+2,k+3);}
   }
+  const kg=new T.BufferGeometry();
+  kg.setAttribute('position',new T.Float32BufferAttribute(kp,3));
+  kg.setAttribute('uv',new T.Float32BufferAttribute(ku,2));
+  kg.setIndex(ki);kg.computeVertexNormals();
+  const mesh=new T.Mesh(kg,kerbMat);
+  mesh.name='Kerb'+side;group.add(mesh);
  }
- a.count=ia;b.count=ib;group.add(a,b);
 
  // The brass lip past the kerb, and a lamp every so often beyond that.
  for(const side of [-1,1]){
@@ -113,12 +126,12 @@ export function buildRoad(curve){
    const nx=-tan.z*side,nz=tan.x*side,r=HALF_W+1.05;
    const y=trackY(t);
    lipPos.push(p.x+nx*r,y+.17,p.z+nz*r, p.x+nx*(r+.22),y+.17,p.z+nz*(r+.22));
-   if(i<SAMPLES){const k=i*2;lipIdx.push(k,k+1,k+2, k+1,k+3,k+2);}
+   if(i<SAMPLES){const k=i*2;lipIdx.push(k,k+2,k+1, k+1,k+2,k+3);}
   }
   const lg=new T.BufferGeometry();
   lg.setAttribute('position',new T.Float32BufferAttribute(lipPos,3));
   lg.setIndex(lipIdx);lg.computeVertexNormals();
-  group.add(new T.Mesh(lg,rail));
+  group.add(new T.Mesh(lg,railBothSides));
  }
  for(let i=0;i<SAMPLES;i+=9){
   const t=i/SAMPLES;
@@ -292,13 +305,13 @@ export function tuneLaser(g,length,t){
 // ground; the run decides how far.
 export function buildRamp(){
  const g=new T.Group();
- const wedge=new T.Mesh(new T.BoxGeometry(HALF_W*2-1,.9,4.6),rail);
+ const wedge=new T.Mesh(new T.BoxGeometry(HALF_W*2-1,.9,4.6),new T.MeshStandardMaterial({color:0x6b5836,metalness:.7,roughness:.5}));
  // Tilted so the top edge lifts: a wedge, not a step.
  wedge.rotation.x=-.19;wedge.position.y=.42;g.add(wedge);
- const face=new T.Mesh(new T.BoxGeometry(HALF_W*2-1.2,.06,4.4),new T.MeshBasicMaterial({color:0x9df3cd,transparent:true,opacity:.5,blending:T.AdditiveBlending,depthWrite:false}));
+ const face=new T.Mesh(new T.BoxGeometry(HALF_W*2-1.2,.06,4.4),new T.MeshBasicMaterial({color:0x9df3cd,transparent:true,opacity:.28,blending:T.AdditiveBlending,depthWrite:false}));
  face.rotation.x=-.19;face.position.y=.88;g.add(face);
  for(let i=0;i<4;i++){
-  const chev=new T.Mesh(new T.BoxGeometry(HALF_W*2-2.2,.05,.3),new T.MeshBasicMaterial({color:0xd8fff0,transparent:true,opacity:.85,blending:T.AdditiveBlending,depthWrite:false}));
+  const chev=new T.Mesh(new T.BoxGeometry(HALF_W*2-2.2,.05,.3),new T.MeshBasicMaterial({color:0xa9e7cf,transparent:true,opacity:.55,blending:T.AdditiveBlending,depthWrite:false}));
   chev.rotation.x=-.19;chev.position.set(0,.72+i*.19,-1.5+i*1);g.add(chev);
  }
  return g;
@@ -351,7 +364,7 @@ export function buildChainRail(curve){
 // world saying what it is made of.
 export function buildFloatingBlocks(curve,list){
  const group=new T.Group();
- const mat=new T.MeshStandardMaterial({color:0xffcf88,emissive:0xff9b24,emissiveIntensity:.35,metalness:.3,roughness:.3});
+ const mat=new T.MeshStandardMaterial({color:0xd8b47a,emissive:0xff9b24,emissiveIntensity:.16,metalness:.3,roughness:.4});
  for(const [t,lat,h,size] of list){
   const b=new T.Mesh(new RoundedBoxGeometry(size,size,size,4,size*.05),mat);
   at(curve,t,lat,b.position);b.position.y+=h;
