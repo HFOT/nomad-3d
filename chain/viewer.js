@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,FIELD,SEG_GAP,HEAD_GAP,HUES} from './model.js';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES} from './model.js';
 
 const $=s=>document.querySelector(s);
 
@@ -22,6 +22,7 @@ const BURN_EVERY=.17, MIN_BOOST=5;
 const EAT_R=1.7, HIT_R=.85;
 const LOOSE_MAX=680, SEED_TARGET=300, SEED_RATE=7;
 const AI_COUNT=3, AI_LOOK=10.5, RESPAWN=2.6;
+const GEAR_TIME=4.5, GEAR_EVERY=9, GEAR_LIFE=12, GEAR_MAX=2;
 const LETHAL=FIELD-.5;
 
 const renderer=new T.WebGLRenderer({antialias:true});
@@ -86,6 +87,8 @@ function blockedFor(x,z,self){
 // --- chains ---
 const chains=[];
 const bursts=[];for(let i=0;i<6;i++){const b=buildBurst();scene.add(b);bursts.push({o:b,t:1});}
+// Gears wait on the floor for whoever gets there first, the other chains too.
+const gears=[];for(let i=0;i<GEAR_MAX;i++){const o=buildGear();o.visible=false;scene.add(o);gears.push({o,live:false,life:0});}
 function burst(x,z,color){
  const b=bursts.find(k=>k.t>=1)||bursts[0];
  b.o.position.set(x,.09,z);b.o.material.color.setHex(color);
@@ -106,7 +109,7 @@ function makeChain(i,entry){
   hue:HUES[i],name:i===0?'あなた':entry.name,
   px:new Float32Array(CAP),pz:new Float32Array(CAP),n:0,
   x:0,z:0,a:0,len:START_LEN,alive:false,wait:0,
-  boost:false,burn:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
+  boost:false,burn:0,gear:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
  };
 }
 function setMotion(ch,name){
@@ -130,7 +133,7 @@ function seed(ch,x,z,a){
  for(let k=140;k>=1;k--){
   ch.px[ch.n%CAP]=x-dx*k*STEP;ch.pz[ch.n%CAP]=z-dz*k*STEP;ch.n++;
  }
- ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;
+ ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
  ch.fig.root.visible=true;
  layout(ch);
 }
@@ -185,6 +188,9 @@ function advance(ch,dist){
  }
 }
 const wrap=a=>{while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a;};
+// How stout this chain's blocks are: the length shows on the body itself, and
+// on what the body can catch.
+function scaleOf(ch){return 1+Math.min(ch.len/MAX_LEN,1)*.55;}
 function steer(ch,want,rate,dt){
  const d=wrap(want-ch.a),m=rate*dt;
  ch.a=wrap(ch.a+(Math.abs(d)<m?d:Math.sign(d)*m));
@@ -230,6 +236,7 @@ function kill(ch,by){
  ch.alive=false;ch.wait=RESPAWN;ch.mesh.count=0;
  ch.fig.root.visible=false;ch.blob.visible=false;
  burst(ch.x,ch.z,ch.hue.color);
+ if(ch.i===0)sfx.down();else if(by&&by.i===0)sfx.cut();
  // What it was carrying goes back on the floor. Every other block, so one very
  // long chain does not bury the field it fell on.
  for(let k=0;k<ch.len;k+=2)addLoose(ch.seg[k].x,ch.seg[k].z);
@@ -237,6 +244,34 @@ function kill(ch,by){
  if(ch.i===0)finish();
  else if(by&&by.i===0)flash(ch.name+' の鎖が切れた','落ちた光は拾える');
 }
+
+// --- sound: synthesized on the spot, so nothing is loaded and nothing is
+// fetched. Only what happens to the player's own chain makes a noise. ---
+let AC=null;
+function audio(){
+ if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch{return null}}
+ if(AC.state==='suspended')AC.resume().catch(()=>{});
+ return AC;
+}
+function tone(freq,dur,type,vol,slide,delay){
+ const ac=audio();if(!ac||ac.state!=='running')return;
+ const t0=ac.currentTime+(delay||0);
+ const o=ac.createOscillator(),g=ac.createGain();
+ o.type=type;o.frequency.setValueAtTime(freq,t0);
+ if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,freq*slide),t0+dur);
+ g.gain.setValueAtTime(vol,t0);
+ g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+ o.connect(g);g.connect(ac.destination);
+ o.start(t0);o.stop(t0+dur+.03);
+}
+const sfx={
+ // Every block picked up climbs a step; the ladder starts over as it wraps.
+ pick(len){tone(500+(len%12)*30,.09,'triangle',.1,1.4);},
+ gear(){tone(880,.08,'triangle',.1);tone(1320,.1,'triangle',.1,1,.07);},
+ burn(){tone(230,.05,'square',.05,.75);},
+ cut(){tone(340,.26,'sawtooth',.13,.45);tone(1100,.14,'triangle',.09,.6,.03);},
+ down(){tone(160,.55,'sawtooth',.16,.4);tone(90,.6,'sine',.14,.6,.08);},
+};
 
 // --- input: steer, and hold to burn ---
 // The camera watches from -z looking up the field, which mirrors x on screen:
@@ -304,6 +339,7 @@ function flash(label,note){
  el.classList.remove('show');void el.offsetWidth;el.classList.add('show');
 }
 function start(){
+ audio(); // woken by the press itself, which is what the browser asks of it
  S.seedTarget=SEED_TARGET;
  loose.n=0;scatter(S.seedTarget);
  const you=chains[0];
@@ -316,7 +352,8 @@ function start(){
   chains[i].len=14+Math.floor(Math.random()*14);
   layout(chains[i]);
  }
- S.phase='run';S.seedDebt=0;
+ S.phase='run';S.seedDebt=0;S.nextGear=GEAR_EVERY*.5;
+ for(const g of gears){g.live=false;g.o.visible=false;}
  $('#overlay').hidden=true;
  hud();
 }
@@ -366,26 +403,34 @@ function step(dt){
   }
   if(ch.i===0){
    if(ctl.mode==='keys'&&(ctl.left||ctl.right))ch.a=wrap(ch.a+((ctl.left?1:0)-(ctl.right?1:0))*TURN*dt);
-   else if(ctl.mode==='stick')steer(ch,ctl.dir,TURN,dt);
-   else steer(ch,Math.atan2(ctl.tx-ch.x,ctl.tz-ch.z),TURN,dt);
+   else{
+    const want=ctl.mode==='stick'?ctl.dir:Math.atan2(ctl.tx-ch.x,ctl.tz-ch.z);
+    // A gentle wish gets the gentle circle; a wish for the opposite direction
+    // is answered hard, so a reversal is a snap rather than a wide arc.
+    const rate=TURN*(1+1.7*Math.min(1,Math.abs(wrap(want-ch.a))/Math.PI));
+    steer(ch,want,rate,dt);
+   }
    ch.boost=ctl.boost;
   }else drive(ch,dt);
 
-  const burning=ch.boost&&ch.len>MIN_BOOST;
-  advance(ch,(burning?BOOST_SPEED:SPEED)*dt);
+  if(ch.gear>0)ch.gear-=dt;
+  const burning=ch.boost&&ch.len>MIN_BOOST&&ch.gear<=0; // a turning gear pays instead
+  const fast=burning||ch.gear>0;
+  advance(ch,(fast?BOOST_SPEED:SPEED)*dt);
   if(burning){
    ch.burn+=dt;
    while(ch.burn>=BURN_EVERY&&ch.len>MIN_BOOST){
     ch.burn-=BURN_EVERY;
     const tail=ch.seg[ch.len-1];
     addLoose(tail.x,tail.z);ch.len--;
+    if(ch.i===0)sfx.burn();
    }
   }else ch.burn=0;
   layout(ch);
   ch.fig.root.position.set(ch.x,0,ch.z);
   ch.fig.root.rotation.y=ch.a;
   ch.blob.position.set(ch.x,.2,ch.z);
-  setMotion(ch,burning?'Dash':'Run');
+  setMotion(ch,fast?'Dash':'Run');
   if(ch.len>ch.peak)ch.peak=ch.len;
  }
 
@@ -396,9 +441,10 @@ function step(dt){
   let hitBy=null;
   for(const o of chains){
    if(o===ch||!o.alive)continue;
+   const hr=HIT_R+(scaleOf(o)-1)*.33,hr2=hr*hr;
    for(let k=0;k<o.len;k++){
     const s=o.seg[k],dx=s.x-ch.x,dz=s.z-ch.z;
-    if(dx*dx+dz*dz<HIT_R*HIT_R){hitBy=o;break;}
+    if(dx*dx+dz*dz<hr2){hitBy=o;break;}
    }
    if(hitBy)break;
   }
@@ -413,6 +459,7 @@ function step(dt){
    if(dx*dx+dz*dz<EAT_R*EAT_R){
     takeLoose(i);
     if(ch.len<MAX_LEN)ch.len++;
+    if(ch.i===0)sfx.pick(ch.len);
    }
   }
  }
@@ -420,6 +467,32 @@ function step(dt){
  if(loose.n<S.seedTarget){
   S.seedDebt+=SEED_RATE*dt;
   while(S.seedDebt>=1&&loose.n<S.seedTarget){S.seedDebt--;scatter(1);}
+ }
+
+ // a gear now and then: speed for a while without paying blocks for it
+ S.nextGear-=dt;
+ if(S.nextGear<=0){
+  S.nextGear=GEAR_EVERY;
+  const slot=gears.find(g=>!g.live);
+  if(slot){
+   const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*(FIELD-8);
+   slot.o.position.set(Math.cos(a)*r,.75,Math.sin(a)*r);
+   slot.live=true;slot.life=GEAR_LIFE;slot.o.visible=true;
+  }
+ }
+ for(const g of gears){
+  if(!g.live)continue;
+  g.life-=dt;g.o.rotation.y+=dt*2.4;
+  let taken=false;
+  for(const ch of chains){
+   if(!ch.alive)continue;
+   if(Math.hypot(g.o.position.x-ch.x,g.o.position.z-ch.z)<1.5){
+    ch.gear=GEAR_TIME;taken=true;
+    if(ch.i===0){flash('ギア加速','しばらく燃やさずに速い');sfx.gear();}
+    break;
+   }
+  }
+  if(taken||g.life<=0){g.live=false;g.o.visible=false;}
  }
 
  // and the map the other chains read, rebuilt from where everything ended up
@@ -436,12 +509,13 @@ function step(dt){
 function draw(dt){
  for(const ch of chains){
   if(!ch.alive){ch.mesh.count=0;continue;}
+  const base=scaleOf(ch);
   for(let k=0;k<ch.len;k++){
    const s=ch.seg[k];
    // The last few taper, so the end of a chain reads as an end.
-   const t=ch.len-k,sc=t<4?.55+t*.115:1;
+   const t=ch.len-k,sc=(t<4?.55+t*.115:1)*base;
    EU.set(0,s.a,0);QT.setFromEuler(EU);
-   V3.set(s.x,.45,s.z);SC.set(sc,sc,sc);
+   V3.set(s.x,.12+.33*sc,s.z);SC.set(sc,sc,sc);
    M4.compose(V3,QT,SC);
    ch.mesh.setMatrixAt(k,M4);
   }
@@ -508,5 +582,5 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  scatter(SEED_TARGET);draw(0);hud();
  $('#loading').classList.add('done');
  $('#start').onclick=start;
- window.pipChain={S,chains,loose,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir};
+ window.pipChain={S,chains,loose,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf};
 })();

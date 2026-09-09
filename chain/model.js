@@ -111,6 +111,18 @@ export function buildLoose(max){
  return mesh;
 }
 
+// The one thing on the floor that is not a transaction: a gear. Whoever runs
+// over it is let off the burn for a few seconds — speed without paying blocks.
+export function buildGear(){
+ const g=new T.Group();
+ const core=new T.Mesh(new T.OctahedronGeometry(.4,0),new T.MeshStandardMaterial({color:0x9fd8ff,emissive:0x48cbff,emissiveIntensity:1.3,roughness:.3}));
+ g.add(core);
+ const ring=new T.Mesh(new T.TorusGeometry(.62,.05,8,28),new T.MeshBasicMaterial({color:0x9fd8ff,transparent:true,opacity:.7}));
+ ring.rotation.x=Math.PI/2;g.add(ring);
+ g.position.y=.75;
+ return g;
+}
+
 export function buildBlobShadow(){
  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
  const g=x.createRadialGradient(64,64,2,64,64,62);

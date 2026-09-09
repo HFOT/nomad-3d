@@ -98,6 +98,40 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   assert.equal(refilled.phase,'run','the run was still going while the floor filled');
   assert.ok(refilled.n>=8,'the floor tops itself back up, got '+refilled.n);
 
+  // A gear is the burn with the bill waived: fast for a while, nothing paid.
+  const geared=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   pipChain.start();
+   pipChain.S.seedTarget=0;pipChain.loose.n=0;
+   const you=pipChain.chains[0];you.len=30;
+   const g=pipChain.gears[0];
+   g.live=true;g.life=12;g.o.position.set(you.x,.75,you.z);
+   await wait(250);
+   const got=you.gear>0,taken=!g.live;
+   const before=you.len;
+   pipChain.ctl.boost=true;await wait(500);pipChain.ctl.boost=false;
+   return {got,taken,before,after:you.len,loose:pipChain.loose.n};
+  });
+  assert.equal(geared.got,true,'running over a gear grants it');
+  assert.equal(geared.taken,true,'the gear is consumed where it is taken');
+  assert.equal(geared.after,geared.before,'no blocks burn while the gear turns');
+  assert.equal(geared.loose,0,'and nothing lands on the floor for it');
+
+  // Length shows on the body: a long chain draws its blocks stouter.
+  const stout=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   pipChain.start();pipChain.S.seedTarget=0;
+   const you=pipChain.chains[0];
+   const M=new (pipChain.camera.matrix.constructor)();
+   const width=m=>Math.hypot(m.elements[0],m.elements[1],m.elements[2]);
+   you.len=10;await wait(250);
+   you.mesh.getMatrixAt(4,M);const thin=width(M);
+   you.len=240;await wait(400);
+   you.mesh.getMatrixAt(4,M);const wide=width(M);
+   return {thin:+thin.toFixed(2),wide:+wide.toFixed(2)};
+  });
+  assert.ok(stout.wide>stout.thin*1.3,'blocks grow with the chain, '+stout.thin+'→'+stout.wide);
+
   // A chain runs through its own body: that is what makes this one different
   // from the old snake.
   const own=await page.evaluate(async()=>{
