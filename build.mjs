@@ -2,7 +2,7 @@ import {mkdir,copyFile,cp,readFile,writeFile,access,rm} from 'node:fs/promises';
 import path from 'node:path';
 const root=import.meta.dirname;
 const dist=path.join(root,'dist');
-const characters=['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','game','rush','racer','depot','gate','assembly','vault','archive','town'];
+const characters=['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','game','rush','racer','chain','depot','gate','assembly','vault','archive','town'];
 const exists=async p=>{try{await access(p);return true}catch{return false}};
 // Every character page reaches three through ../node_modules in dev; in dist it is one shared copy.
 const forDist=html=>html.replaceAll('../node_modules/three/','../vendor/three/');

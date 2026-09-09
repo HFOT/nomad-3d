@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP CHAIN — 長いほうが残る</title><meta name="description" content="拾った琥珀のtransactionが、そのまま後ろのブロックになる。同じ場を回る他のチェーンに頭からぶつかれば、そこで分岐は捨てられます。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<body>
+<main id="stage"></main>
+
+<header>
+  <div class="wordmark">PIP CHAIN<span>LONGEST CHAIN / 07 · BY CORN</span></div>
+  <a class="back" href="../">← CARAKURI</a>
+</header>
+
+<section id="hud" aria-label="走行状況">
+  <div class="left">
+    <div class="stat"><label>高さ</label><b id="height">6</b></div>
+    <div class="stat small"><label>切った鎖</label><b id="cut">0</b></div>
+    <div class="stat small"><label>最高</label><b id="best">—</b></div>
+  </div>
+  <div class="mid">
+    <button id="boost" aria-label="燃やして加速">BURN</button>
+  </div>
+  <div class="right">
+    <label class="boardlabel">いま一番長い鎖</label>
+    <ol id="board" aria-label="鎖の長さ"></ol>
+  </div>
+</section>
+
+<div id="pickup" aria-live="polite"></div>
+
+<div id="overlay">
+  <div class="card">
+    <div class="eyebrow"><i></i> THE LONGEST ONE SURVIVES.</div>
+    <h1 id="o-title">PIP CHAIN</h1>
+    <p id="o-lead">床の琥珀を拾うと、後ろにブロックが1つ増える。同じ場を、別のチェーンも伸ばしています。</p>
+    <div id="o-score" hidden></div>
+    <ul class="rules">
+      <li><b>曲げるだけ</b> ‥ 前進は自動。スマホは画面のどこでも指をずらす、PCはカーソルか ← →</li>
+      <li><b>拾えば伸びる</b> ‥ 琥珀のtransactionが1つ、後ろのブロック1つになります</li>
+      <li><b>自分の鎖は通り抜ける</b> ‥ 終わるのは、<em>他の鎖</em>か<em>外の壁</em>に頭からぶつかったとき</li>
+      <li><b>相手の頭を自分の鎖に当てる</b> ‥ その分岐は捨てられ、抱えていた分が光になって落ちます</li>
+      <li><b>BURN</b> ‥ 長押しで加速。かわりに末尾を1つずつ手放します（SPACE / SHIFT）</li>
+    </ul>
+    <button id="start">START</button>
+    <p class="hint">ENTER でも開始できます</p>
+  </div>
+</div>
+
+<footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
+<div id="loading"><div class="loader"></div><p>PIP CHAIN</p></div>
+<script type="module" src="viewer.js"></script>
+</body></html>
