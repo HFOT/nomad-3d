@@ -423,7 +423,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
    },
    ground(x,z,y){if(cityWorks.isWater(x,z))return null;dnRay.set(new T.Vector3(x,y+1.05,z),new T.Vector3(0,-1,0));return dnRay.intersectObjects(activeGround,true)[0]?.point.y??null;}
   });
-  nomadW.setMoving(moving,sprint,!player.grounded);
+  nomadW.setMoving(moving,sprint,!player.grounded,player.speed);
   nomadW.root.rotation.x=T.MathUtils.damp(nomadW.root.rotation.x,!player.grounded?-.06:moving&&sprint?.09:0,10,dt);
   camera.position.add(pos.clone().sub(previous));
   controls.target.lerp(new T.Vector3(pos.x,pos.y+.95,pos.z),.3);

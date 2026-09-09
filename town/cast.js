@@ -24,6 +24,10 @@ const ROUTES={
  pip:     {cx:0,  cz:0,   rx:64, rz:68, speed:.11, phase:.7,  dir:1},
 };
 
+// Metres of ground each clip covers per second at timeScale 1, measured from
+// the foot's own travel on the 0.64-scale town figures. Dividing the real
+// speed by these is what keeps the feet planted.
+const WALK_GROUND=1.146,RUN_GROUND=2.423,WALK_TOP=2.6,CADENCE_CAP=5.4;
 const WALL_R=132,WALL_Y=9.75;
 const HEX=[];for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3;HEX.push([Math.sin(a)*WALL_R,Math.cos(a)*WALL_R]);}
 function walk(w,dt){
@@ -45,12 +49,21 @@ function robotWalker(mod,def){
  const M=mod.createMaterials(def.id==='nomad'?512:256),r=mod.buildRobot(M);// town-scale skins; NOMAD walks beside the camera so he keeps more detail
  const mixer=new T.AnimationMixer(r.root);
  const walkA=mixer.clipAction(r.clips.find(c=>c.name==='Walk'));
+ const runClip=r.clips.find(c=>c.name==='Run'),runA=runClip&&mixer.clipAction(runClip);
  const idleA=mixer.clipAction(r.clips.find(c=>c.name==='Idle'));
  walkA.play();let current=walkA;
  return {...def,...ROUTES[def.id],u:0,root:r.root,manual:false,
   // Player mode borrows a walker: manual=true stops the route, and
   // setMoving() crossfades between the Walk and Idle clips.
-  setMoving(m,running=false,airborne=false){walkA.setEffectiveTimeScale(airborne?0:running?1.85:1);const next=m||airborne?walkA:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.2,true);current=next;},
+  // Cadence is derived, never guessed: each clip advances at exactly the
+  // rate its own stride would carry the figure, so the feet stop sliding at
+  // any speed. In the air the legs hold their pose instead of pedalling.
+  setMoving(m,running=false,airborne=false,speed=0){
+   const useRun=runA&&(running||speed>WALK_TOP);
+   const clip=useRun?runA:walkA;
+   const rate=airborne?0:Math.min(speed>.05?speed/(useRun?RUN_GROUND:WALK_GROUND):1,CADENCE_CAP);
+   clip.setEffectiveTimeScale(rate||1);
+   const next=m||airborne?clip:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.16,true);current=next;},
   update(dt,elapsed,lite){
   mixer.update(dt);
   if(!lite){// distant walkers skip the decorative work

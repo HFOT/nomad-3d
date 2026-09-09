@@ -199,18 +199,29 @@ export function buildRobot(M){
   function pose(mode,t){
     const lookTime=t;if(mode==='Look')t=t*2/3;
     for(const o of Object.values(rig)){const r=rest.get(o.uuid);if(r){o.position.copy(r.position);o.quaternion.copy(r.quaternion);o.scale.copy(r.scale)}}
-    const breath=Math.sin(t*Math.PI*.5),walk=mode==='Walk',cycle=t*Math.PI;
-    body.position.y=1.75+(walk?.045*Math.cos(cycle*2):.016*breath);
-    body.rotation.z=walk?.045*Math.sin(cycle):.009*breath;body.rotation.y=walk?.065*Math.sin(cycle):.015*Math.sin(t*Math.PI*.5);
+    // Run is the walk driven harder: the same cycle with a longer stride, a
+    // higher knee and a forward lean, so one description covers both gaits.
+    const run=mode==='Run',walk=mode==='Walk'||run,gait=run?1.75:1;
+    const breath=Math.sin(t*Math.PI*.5),cycle=t*Math.PI;
+    body.position.y=1.75+(walk?.045*gait*Math.cos(cycle*2):.016*breath)-(run?.06:0);
+    body.rotation.z=walk?.045*gait*Math.sin(cycle):.009*breath;body.rotation.y=walk?.065*gait*Math.sin(cycle):.015*Math.sin(t*Math.PI*.5);
+    body.rotation.x=run?.24:0;
     rig.head.rotation.y=mode==='Look'?.43*Math.sin(lookTime*Math.PI/3):.065*Math.sin(t*Math.PI*.5);
     rig.head.rotation.z=mode==='Look'?.07*Math.sin(lookTime*Math.PI*2/3):-.025+.015*breath;
     rig.head.rotation.x=.018*Math.sin(t*Math.PI*.5);
     for(const s of [-1,1]){
       const phase=cycle+(s<0?Math.PI:0),swing=Math.sin(phase);
-      rig['leg'+s].rotation.x=walk?.47*swing:0;
-      rig['knee'+s].rotation.x=walk?.62*Math.max(0,-swing):-.035;
-      rig['foot'+s].rotation.x=walk?-.20*swing-.25*Math.max(0,-swing):.035;
-      rig['arm'+s].rotation.z=s===1?.30:-.13;rig['arm'+s].rotation.x=walk?-.25*swing:.035*Math.sin(t*Math.PI*.5+s);
+      // The order of a human step. The hip swings the leg; the knee flexes
+      // through the swing phase so the foot clears the ground; the ankle
+      // pushes off as the leg leaves the ground behind and lifts its toe
+      // while travelling. The old cycle bent the knee at full forward reach
+      // instead, which is why the figure shuffled rather than walked.
+      const lift=Math.max(0,-Math.cos(phase));// 0 through stance, 1 mid-swing
+      const push=Math.max(0,swing);           // peaks as the foot leaves
+      rig['leg'+s].rotation.x=walk?.78*gait*swing-(run?.14:0):0;
+      rig['knee'+s].rotation.x=walk?(run?1.55:1.02)*lift+.10*push:-.035;
+      rig['foot'+s].rotation.x=walk?.035-(run?.42:.30)*push+(run?.34:.26)*lift:.035;
+      rig['arm'+s].rotation.z=s===1?.30:-.13;rig['arm'+s].rotation.x=walk?-.32*gait*swing:.035*Math.sin(t*Math.PI*.5+s);
       rig['elbow'+s].rotation.x=s===1?-.65:-.13;
       rig['elbow'+s].rotation.z=s===1?1.25:0;
       rig['hand'+s].rotation.x=s===1?.30:0;
@@ -223,7 +234,7 @@ export function buildRobot(M){
   }
   const animated=Object.values(rig).filter(o=>o!==rig.fire&&o!==rig.flame);
   const clips=[];
-  for(const [name,duration] of [['Idle',4],['Walk',2],['Wave',4],['Look',6]]){
+  for(const [name,duration] of [['Idle',4],['Walk',2],['Run',.7],['Wave',4],['Look',6]]){
     const samples=Math.round(duration*30),times=[],values=new Map(animated.map(o=>[o,{p:[],q:[]}]));
     for(let i=0;i<=samples;i++){let t=i/30;times.push(t);pose(name,t);for(const o of animated){const v=values.get(o);v.p.push(...o.position.toArray());v.q.push(...o.quaternion.toArray())}}
     const tracks=[];for(const o of animated){const v=values.get(o);tracks.push(new T.VectorKeyframeTrack(o.name+'.position',times,v.p),new T.QuaternionKeyframeTrack(o.name+'.quaternion',times,v.q))}clips.push(new T.AnimationClip(name,duration,tracks));
