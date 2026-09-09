@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP TYPE — 60秒、打ち切る</title><meta name="description" content="寄ってくる滞留の頭上にCardanoの語が浮かぶ。打ち切った語が、そのままPIPの投擲になる60秒。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<body>
+<main id="stage"></main>
+<input id="kb" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-hidden="true" tabindex="-1">
+
+<header>
+  <div class="wordmark">PIP TYPE<span>TRANSACTION COURIER / 07 · BY CORN</span></div>
+  <a class="back" href="../">← CARAKURI</a>
+</header>
+
+<section id="hud" aria-label="走行状況">
+  <div class="left">
+    <div class="stat"><label>のこり</label><b id="time">60</b></div>
+    <div class="stat"><label>ヒビ</label><b id="hp">●●●</b></div>
+  </div>
+  <div class="mid">
+    <div class="track"><i id="bar"></i></div>
+    <div class="pills">
+      <span class="pill">捌いた <b id="kills">0</b></span>
+      <span class="pill">正確さ <b id="acc">100%</b></span>
+    </div>
+  </div>
+  <div class="right">
+    <div class="stat small"><label>刻んだブロック</label><b id="minted">0</b></div>
+    <div id="chain" aria-label="これまでのブロック"></div>
+  </div>
+</section>
+
+<div id="overlay">
+  <div class="card">
+    <div class="eyebrow"><i></i> READ IT. TYPE IT. THROW IT.</div>
+    <h1 id="o-title">PIP TYPE</h1>
+    <p id="o-lead">寄ってくる滞留の頭上に、Cardanoの語が浮かんでいる。打ち切った語が、そのまま投擲になる。</p>
+    <div id="o-score" hidden></div>
+    <ul class="rules">
+      <li><b>手は打つだけ</b> ‥ 移動もボタンもありません。語をタイプすると、PIPが投げて捌きます</li>
+      <li><b>最初の一字で決まる</b> ‥ その字で始まる一番近い相手にロック。打ち切るまで変わりません</li>
+      <li><b>打ち間違いは進まないだけ</b> ‥ ミスは数えられ、正確さとして最後に出ます</li>
+      <li><b>速いのは短く、遅いのは長い</b> ‥ 割れるやつは、割れてから二語になります</li>
+      <li>60秒を打ち切ると<em>ブロックが刻まれ</em>、力尽きると<em>空のブロック</em>になります</li>
+    </ul>
+    <button id="start">START</button>
+    <p class="hint" id="o-hint">ENTER でも開始できます · スマホは開始後に画面タップでキーボード</p>
+  </div>
+</div>
+
+<footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
+<div id="loading"><div class="loader"></div><p>PIP TYPE</p></div>
+<script type="module" src="viewer.js"></script>
+</body></html>
