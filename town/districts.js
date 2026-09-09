@@ -1,4 +1,6 @@
 import * as T from 'three';
+import {buildStreetSurface} from './street-surface.js';
+import {LOTS} from './landmarks.js';
 
 // The city is deliberately built before its landmark architecture.  These are
 // permanent public works: roads, canals, quays, bridges, lamps and the plinths
@@ -7,6 +9,7 @@ import * as T from 'three';
 export function buildDistrictInfrastructure(M){
   const root=new T.Group();root.name='HexCityInfrastructure';
   const animated=[];
+  const streetSegments=[];
   const pavingCanvas=document.createElement('canvas');pavingCanvas.width=pavingCanvas.height=512;
   const pc=pavingCanvas.getContext('2d');pc.fillStyle='#665e51';pc.fillRect(0,0,512,512);
   for(let row=0;row<16;row++)for(let col=-1;col<9;col++){
@@ -31,6 +34,7 @@ export function buildDistrictInfrastructure(M){
   const box=(mat,x,y,z,w,h,d,parent=root)=>mesh(new T.BoxGeometry(w,h,d),mat,x,y,z,parent);
   const cyl=(mat,x,y,z,r1,r2,h,seg=16,parent=root)=>mesh(new T.CylinderGeometry(r1,r2,h,seg),mat,x,y,z,parent);
   const path=(a,b,width,mat,y=.105)=>{
+    if(mat===road||mat===alley){streetSegments.push({a:a.clone(),b:b.clone(),width,kind:mat===road?'road':'alley'});return new T.Group();}
     const dx=b.x-a.x,dz=b.z-a.z,len=Math.hypot(dx,dz),o=box(mat,(a.x+b.x)/2,y,(a.z+b.z)/2,width,.08,len);
     o.rotation.y=Math.atan2(dx,dz);
     if(mat===road){const uv=o.geometry.attributes.uv;for(let i=0;i<uv.count;i++)uv.setXY(i,uv.getX(i)*width/4,uv.getY(i)*len/4);uv.needsUpdate=true;}
@@ -41,10 +45,9 @@ export function buildDistrictInfrastructure(M){
   // street network; intersections terminate at a public lane, never at a wall.
   for(const [x,z1,z2,w] of [[-39,0,75,8],[-55,9,74,3.4]]){
     path(new T.Vector3(x,0,z1),new T.Vector3(x,0,z2),w,x===-39?road:alley,.13);
-    for(let z=z1;z<z2;z+=1.1)for(const side of [-1,1])box(stone,x+side*(w/2+.22),.19,z,.36,.26,1.04);
   }
-  for(const z of [4,28,51,73])path(new T.Vector3(-70,0,z),new T.Vector3(-25,0,z),3,alley,.12);
-  for(const [cx,cz] of [[47,47],[48,-43],[-45,-46]]){
+  for(const z of [4,28,51,73])path(new T.Vector3(-55,0,z),new T.Vector3(-39,0,z),3,alley,.12);
+  for(const [cx,cz] of [[47,47]]){
     for(const dz of [-15,-5,5,15])path(new T.Vector3(cx-17,0,cz+dz),new T.Vector3(cx+17,0,cz+dz),3,alley,.12);
     for(const dx of [-18,18])path(new T.Vector3(cx+dx,0,cz-17),new T.Vector3(cx+dx,0,cz+17),3.5,road,.12);
   }
@@ -52,10 +55,6 @@ export function buildDistrictInfrastructure(M){
     const a=Math.PI-(k+.5)*Math.PI/3,p=point(a,88),side=new T.Vector3(Math.cos(a),0,-Math.sin(a));
     path(point(a,62),point(a,109),3.6,road,.14);
     path(p.clone().addScaledVector(side,-18),p.clone().addScaledVector(side,18),5,road,.15);
-    for(const s of [-1,1])for(let j=0;j<12;j++){
-      const q=p.clone().addScaledVector(side,-18+j*3).addScaledVector(point(a,1),s*3.1);
-      const b=box(stone,q.x,.23,q.z,2.85,.26,.32);b.rotation.y=a-Math.PI/2;
-    }
   }
   // Civic entrances meet the public ring via generous approach streets.
   path(new T.Vector3(-28,0,-38),new T.Vector3(-46,0,-52),6.5,road,.16);
@@ -121,12 +120,15 @@ export function buildDistrictInfrastructure(M){
     const tangent=d.normalize(),side=new T.Vector3(tangent.z,0,-tangent.x);
     // Close-spaced curb blocks make this read as a service lane from overhead
     // and provide believable drainage boundaries from the ground.
-    for(let j=0;j<n;j++){
-      const p=a.clone().addScaledVector(tangent,2.2+j*4.4);
-      for(const s of [-1,1]){const c=box(curb,p.x+side.x*s*2.18,.18,p.z+side.z*s*2.18,1.9,.22,.24);c.rotation.y=Math.atan2(tangent.x,tangent.z);}
-    }
   }
 
+  // Dead ends read as unfinished streets. Every road or alley end that meets
+  // nothing is walked forward along its own line: if another street, the canal
+  // quay or the forecourt ring lies ahead, the segment grows to meet it; a
+  // building lot stops the walk; and where nothing lies ahead a small turning
+  // court makes the terminus deliberate.
+  resolveDeadEnds(streetSegments,LOTS);
+  const streets=buildStreetSurface(streetSegments,road,stone);root.add(streets);
   function lantern(x,z,scale=1){
     const g=new T.Group();g.name='FlameStreetLantern';g.position.set(x,0,z);root.add(g);
     cyl(iron,0,.10,0,.44,.52,.2,14,g);cyl(brass,0,1.5,0,.08,.11,2.8,10,g);
@@ -157,5 +159,42 @@ export function buildDistrictInfrastructure(M){
     for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3,along=x*Math.sin(a)+z*Math.cos(a),across=x*Math.cos(a)-z*Math.sin(a);if(along>0&&Math.abs(across)<4.65)bridge=true;if(along>31&&along<91&&Math.abs(across-10.5)<1.15&&!([46,66,86].some(v=>Math.abs(along-v)<1.1)))branch=true;const n=a-Math.PI/6;hexR=Math.max(hexR,(x*Math.sin(n)+z*Math.cos(n))/Math.cos(Math.PI/6));}
     return branch||(!bridge&&((r>23.2&&r<28.4)||(hexR>118&&hexR<124)));
   }
-  return {root,isWater,tick(t){wave.offset.set(t*.008,t*.004);water.color.setHSL(.55,.64,.10+.008*Math.sin(t*.55));for(const f of animated)f(t);}};
+  return {root,isWater,streets:streetSegments,tick(t){wave.offset.set(t*.008,t*.004);water.color.setHSL(.55,.64,.10+.008*Math.sin(t*.55));for(const f of animated)f(t);}};
+}
+
+function resolveDeadEnds(segs,lots){
+ const frame=s=>{const dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz);return{ux:dx/len,uz:dz/len,len,cx:(s.a.x+s.b.x)/2,cz:(s.a.z+s.b.z)/2};};
+ const inside=(s,f,x,z,pad=0)=>{const rx=x-f.cx,rz=z-f.cz,al=rx*f.ux+rz*f.uz,ac=-rx*f.uz+rz*f.ux;return Math.abs(al)<=f.len/2+pad&&Math.abs(ac)<=s.width/2+pad;};
+ // Ends that already belong somewhere: the forecourt (inside the plaza ring),
+ // the canal zone with its bridges, and the outer quay.
+ const onQuay=(x,z)=>{const r=Math.hypot(x,z);return r<=18.4||(r>=21.5&&r<=30);};
+ const inLot=(x,z)=>lots.some(l=>Math.hypot(x-l.x,z-l.z)<l.r);
+ const frames=segs.map(frame),courts=[],n=segs.length;
+ const loose=(i,E)=>{if(Math.hypot(E.x,E.z)>=100||onQuay(E.x,E.z))return false;// moat banks and the wall zone end where they end
+  for(let j=0;j<n;j++)if(j!==i&&inside(segs[j],frames[j],E.x,E.z,.6))return false;return true;};
+ // Pass one grows streets to meet what lies ahead; pass two, on whatever is
+ // still loose after every extension, lays the turning courts.
+ for(let i=0;i<n;i++){
+  const s=segs[i];
+  for(const end of [0,1]){
+   const f=frames[i],E=end?s.b:s.a,dx=end?f.ux:-f.ux,dz=end?f.uz:-f.uz;
+   if(!loose(i,E))continue;
+   let hit=-1;
+   for(let t=1;t<=48&&hit<0;t+=.5){
+    const x=E.x+dx*t,z=E.z+dz*t;
+    if(inLot(x,z))break;
+    if(onQuay(x,z)){hit=t;break;}
+    for(let j=0;j<n;j++)if(j!==i&&inside(segs[j],frames[j],x,z)){hit=t;break;}
+   }
+   if(hit>0){const t=hit+.6;if(end)s.b.set(E.x+dx*t,0,E.z+dz*t);else s.a.set(E.x+dx*t,0,E.z+dz*t);frames[i]=frame(s);}
+  }
+ }
+ for(let i=0;i<n;i++){
+  const s=segs[i],f=frames[i];
+  for(const end of [0,1]){
+   const E=end?s.b:s.a,dx=end?f.ux:-f.ux,dz=end?f.uz:-f.uz,w=s.width;
+   if(loose(i,E))courts.push({a:new T.Vector3(E.x-dx*w*.35,0,E.z-dz*w*.35),b:new T.Vector3(E.x+dx*w*.75,0,E.z+dz*w*.75),width:w*2.1});
+  }
+ }
+ segs.push(...courts);
 }

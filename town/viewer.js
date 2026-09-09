@@ -62,11 +62,6 @@ function pave(mat,x,z,w,len,ry=0,y=.07){const p=new T.Mesh(new T.BoxGeometry(w,.
 const ringRoad=new T.Mesh(new T.RingGeometry(38,42,64),paveMat);ringRoad.rotation.x=-Math.PI/2;ringRoad.position.y=.065;ringRoad.receiveShadow=true;scene.add(ringRoad);
 const plazaPave=new T.Mesh(new T.CircleGeometry(13,40),paveMat);plazaPave.rotation.x=-Math.PI/2;plazaPave.position.y=.075;plazaPave.receiveShadow=true;scene.add(plazaPave);
 ringRoad.visible=false;
-pave(alleyMat,-10.5,79,2.8,16,.22,.08);
-pave(alleyMat,-12.5,64,2.8,16,-.14,.08);
-pave(alleyMat,-11,51,2.8,12,.1,.08);
-pave(alleyMat,-6.5,84,7,2.2,0,.08);
-pave(alleyMat,-6.5,58,7,2.2,0,.08);
 // Canal on the east side, same procedural normals the depot page uses.
 const normalCanvas=document.createElement('canvas');normalCanvas.width=normalCanvas.height=128;const nc=normalCanvas.getContext('2d'),ni=nc.createImageData(128,128);for(let y=0;y<128;y++)for(let x=0;x<128;x++){const i=(y*128+x)*4;ni.data[i]=128+Math.sin(x*.25+y*.18)*30;ni.data[i+1]=128+Math.cos(y*.31-x*.13)*30;ni.data[i+2]=245;ni.data[i+3]=255;}nc.putImageData(ni,0,0);const normal=new T.CanvasTexture(normalCanvas);normal.wrapS=normal.wrapT=T.RepeatWrapping;
 // A reflective Water pass would render the whole town twice; a normal-mapped
@@ -220,7 +215,7 @@ const depot=createDepot();scene.add(depot.root);
 await phase('書庫塔を建てています…');
 const archiveB=createArchive();scene.add(archiveB.root);
 const landmarkModels=[assemblyB,vaultB,depot,archiveB];
-const neighborhood=buildNeighborhood(landmarkModels.map(m=>new T.Box3().setFromObject(m.root)));scene.add(neighborhood.root);
+const neighborhood=buildNeighborhood(landmarkModels.map(m=>new T.Box3().setFromObject(m.root)),cityWorks.streets);scene.add(neighborhood.root);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
 const solids=[neighborhood.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];

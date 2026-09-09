@@ -3,7 +3,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A masonry/timber kit with recessed windows, pitched roofs and usable lanes.
 // Static parts are batched per material once, with no per-house draw overhead.
-export function buildNeighborhood(exclusions=[]){
+export function buildNeighborhood(exclusions=[],streets=[]){
  const root=new T.Group();root.name='Living quarters';
  const buckets=new Map();let seed=471;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
  function texture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#817968';g.fillRect(0,0,512,512);for(let y=0;y<512;y+=32)for(let x=-32;x<512;x+=64){const v=105+random()*55;g.fillStyle=`rgb(${v},${v*.92},${v*.79})`;g.fillRect(x+(y%64?32:0)+1,y+1,62,30);}for(let i=0;i<24000;i++){g.fillStyle=random()<.5?'#ffffff0b':'#0000000c';g.fillRect(random()*512,random()*512,1,2);}const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;return t;}
@@ -49,18 +49,39 @@ export function buildNeighborhood(exclusions=[]){
   for(const y of [1.2,3.3,5])box(M.dark,-w/2+.15,y,d/2+.16,.2,.09,.26);
   part(new T.CylinderGeometry(.38,.34,.85,12),M.wood,-w/2-.6,.45,d/2-.4);for(const y of [.18,.7])part(new T.TorusGeometry(.365,.035,5,12),M.gold,-w/2-.6,y,d/2-.4,Math.PI/2);
  }
- // The market is relocated into the western wedge, leaving a generous civic
- // approach and all six radial boulevards free.
- for(let i=0;i<8;i++){house(-47,10+i*7.5,Math.PI/2,true);house(-31,10+i*7.5,-Math.PI/2,true);}
- for(let i=0;i<6;i++)house(-63,17+i*7.6,Math.PI/2,true,true);
- for(const [cx,cz] of [[47,47],[48,-43],[-45,-46]])for(let row=0;row<3;row++)for(let col=0;col<4;col++){const x=cx+(col-1.5)*7.3,z=cz+(row-1)*10;house(x,z,row%2?Math.PI:0);}
- for(let k=0;k<6;k++){
-  const a=Math.PI-(k+.5)*Math.PI/3;
-  for(const dr of [0,9])for(const offset of [-9,0,9])house(Math.sin(a)*(88+dr)+Math.cos(a)*offset,Math.cos(a)*(88+dr)-Math.sin(a)*offset,a+Math.PI,false);
+ // Houses take their addresses from the street network itself: every road or
+ // alley (boulevards excepted — they stay open as designed) gets frontage on
+ // both sides at a fixed setback, facing the carriageway. A slot that would
+ // stand in another street, the canals, a landmark lot or a neighbour is
+ // skipped, so blocks form between streets and nothing is ever paved under.
+ const frames=streets.map(s=>{const dx=s.b.x-s.a.x,dz=s.b.z-s.a.z,len=Math.hypot(dx,dz);return{ux:dx/len,uz:dz/len,len,cx:(s.a.x+s.b.x)/2,cz:(s.a.z+s.b.z)/2};});
+ const gateDirs=[];for(let i=0;i<6;i++){const a=Math.PI-i*Math.PI/3;gateDirs.push([Math.sin(a),Math.cos(a)]);}
+ const boulevard=s=>gateDirs.some(([dx,dz])=>Math.abs(s.a.x*dz-s.a.z*dx)<1&&Math.abs(s.b.x*dz-s.b.z*dx)<1);
+ const distToStreet=(s,f,x,z)=>{const rx=x-f.cx,rz=z-f.cz,al=Math.max(0,Math.abs(rx*f.ux+rz*f.uz)-f.len/2),ac=Math.max(0,Math.abs(-rx*f.uz+rz*f.ux)-s.width/2);return Math.hypot(al,ac);};
+ const inStreet=(x,z,margin)=>streets.some((s,i)=>distToStreet(s,frames[i],x,z)<margin);
+ const RAD=3.9;
+ function tryHouse(x,z,a,shop,shady){
+  const r=Math.hypot(x,z);if(r<32||r>96)return false;
+  if(inStreet(x,z,RAD+.2))return false;
+  if(bounds.some(b=>Math.hypot(b.x-x,b.z-z)<b.r+RAD-.5))return false;// neighbours sit one step apart
+  const before=bounds.length;house(x,z,a,shop,shady);return bounds.length>before;
  }
+ streets.forEach((s,i)=>{
+  if(!s.kind||boulevard(s))return;
+  const f=frames[i],px=-f.uz,pz=f.ux,mid=Math.hypot(f.cx,f.cz);
+  // the wider, more central streets read as commercial: awnings and stalls
+  const shop=s.width>=5&&mid<80,shady=s.kind==='alley'&&s.width<3.5;
+  const setback=s.width/2+RAD+.7,step=7.6;
+  for(const side of [-1,1]){
+   const a=Math.atan2(-side*px,-side*pz);
+   for(let t=-f.len/2+4.6;t<=f.len/2-4.6;t+=step)tryHouse(f.cx+f.ux*t+px*side*setback,f.cz+f.uz*t+pz*side*setback,a,shop,shady);
+  }
+ });
  transform.identity();
- // Courtyard wells, raised planting beds, and benches at the lane intersections.
- for(const [x,z] of [[48,31],[47,-27],[-45,-28],[-39,3]]){
+ // Courtyard wells, raised planting beds, and benches near the lane
+ // intersections; each settles just off the carriageway.
+ function settle(x,z){for(let k=0;k<3;k++){let moved=false;streets.forEach((s,i)=>{const f=frames[i],rx=x-f.cx,rz=z-f.cz,al=rx*f.ux+rz*f.uz,ac=-rx*f.uz+rz*f.ux;if(Math.abs(al)<f.len/2&&Math.abs(ac)<s.width/2+2.6){const push=(s.width/2+2.6-Math.abs(ac))*(ac<0?-1:1);x+=-f.uz*push;z+=f.ux*push;moved=true;}});if(!moved)break;}return[x,z];}
+ for(const [x0,z0] of [[48,31],[47,-27],[-45,-28],[-39,3]]){const [x,z]=settle(x0,z0);
   part(new T.CylinderGeometry(1.2,1.35,.65,20),M.stone,x,.36,z);part(new T.CylinderGeometry(.86,.86,.04,20),M.dark,x,.7,z);part(new T.TorusGeometry(1.1,.18,8,24),M.stone,x,.77,z,Math.PI/2);
   for(const s of [-1,1])box(M.wood,x+s*1.1,1.65,z,.15,2.2,.15);box(M.wood,x,2.7,z,2.4,.15,.16);
   for(const dx of [-5,5]){box(M.stone,x+dx,.25,z,2.6,.45,1.6);box(M.soil,x+dx,.5,z,2.25,.1,1.25);for(let j=0;j<3;j++)part(new T.IcosahedronGeometry(.48,1),M.leaf,x+dx-.65+j*.65,.8,z);box(M.wood,x+dx,.68,z+2,2.2,.13,.6);for(const s of [-1,1])box(M.dark,x+dx+s*.8,.3,z+2,.13,.6,.4);}

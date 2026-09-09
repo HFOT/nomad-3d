@@ -17,6 +17,8 @@ export function placeLandmark(model,{name,x,z,width,height,angle=0}){
  model.root.userData.placement={scale,bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()}};
  return model;
 }
+// Lot discs (centre, radius) for anything that must not be paved through.
+export const LOTS=[{x:-52,z:-64,r:22},{x:52,z:-64,r:23},{x:72,z:0,r:17},{x:0,z:0,r:22}];
 export const createAssembly=()=>placeLandmark(buildAssembly(),{name:'DRepAssembly',x:-52,z:-64,width:38,angle:.48});
 export const createVault=()=>placeLandmark(buildVault(),{name:'TreasuryVault',x:52,z:-64,width:40,angle:-.48});
 export const createDepot=()=>placeLandmark(buildDepot(),{name:'CourierDepot',x:72,z:0,width:29,angle:-Math.PI/2});
