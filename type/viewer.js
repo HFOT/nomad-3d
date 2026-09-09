@@ -5,8 +5,8 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {buildMouse} from '../pip/model.js';
-import {buildArena,buildBlobShadow,buildSwarmer,SWARM,ARENA,SPAWN_R} from '../rush/model.js';
-import {makeLabel,buildStreak} from './model.js';
+import {buildBlobShadow,buildSwarmer,SWARM,SPAWN_R} from '../rush/model.js';
+import {makeLabel,buildStreak,buildStage} from './model.js';
 import {WORDS_JP,WORDS_EN,BAND} from './words.js';
 import {makeMatcher,minLen} from './romaji.js';
 
@@ -35,7 +35,7 @@ scene.environment=pmrem.fromScene(new RoomEnvironment(),.06).texture;
 scene.add(new T.HemisphereLight(0xa8c6d4,0x141a16,1.1));
 const key=new T.DirectionalLight(0xffe0b2,1.6);
 key.position.set(-8,16,6);scene.add(key);
-scene.add(buildArena());
+scene.add(buildStage());
 
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
@@ -44,7 +44,11 @@ composer.addPass(bloom);composer.addPass(new OutputPass());
 
 const pip=buildMouse();scene.add(pip.root);
 pip.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=false;});
-const blob=buildBlobShadow();scene.add(blob);
+// Knee-high in the courier yard, but this is PIP's own stage: half again the
+// size, up on the dais, where the whole-yard camera can still read it.
+pip.root.scale.setScalar(1.9);
+pip.root.position.y=.3;
+const blob=buildBlobShadow();blob.scale.setScalar(1.9);blob.position.y=.32;scene.add(blob);
 const mixer=new T.AnimationMixer(pip.root);
 let action=mixer.clipAction(pip.clips.find(c=>c.name==='Idle'));action.play();
 let motion='Idle';
