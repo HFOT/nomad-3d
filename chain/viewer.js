@@ -239,6 +239,10 @@ function kill(ch,by){
 }
 
 // --- input: steer, and hold to burn ---
+// The camera watches from -z looking up the field, which mirrors x on screen:
+// screen right is world -x. The mouse is immune (it aims at a ground point),
+// but finger and key steering are relative, so both have to flip with it.
+const stickDir=(dx,dy)=>Math.atan2(-dx,-dy);
 const ctl={mode:'point',tx:0,tz:26,dir:0,boost:false,left:false,right:false};
 let dragId=null,dragX=0,dragY=0,boostId=null;
 const ray=new T.Raycaster(),ground=new T.Plane(new T.Vector3(0,1,0),0),hit=new T.Vector3(),ndc=new T.Vector2();
@@ -260,7 +264,7 @@ renderer.domElement.addEventListener('pointermove',e=>{
  }
  if(e.pointerId!==dragId)return;
  const dx=e.clientX-dragX,dy=e.clientY-dragY;
- if(Math.hypot(dx,dy)>14)ctl.dir=Math.atan2(dx,-dy); // up the screen is away
+ if(Math.hypot(dx,dy)>14)ctl.dir=stickDir(dx,dy); // up the screen is away
 });
 for(const ev of ['pointerup','pointercancel'])renderer.domElement.addEventListener(ev,e=>{
  if(e.pointerType==='mouse')ctl.boost=false;
@@ -361,7 +365,7 @@ function step(dt){
    continue;
   }
   if(ch.i===0){
-   if(ctl.mode==='keys'&&(ctl.left||ctl.right))ch.a=wrap(ch.a+((ctl.right?1:0)-(ctl.left?1:0))*TURN*dt);
+   if(ctl.mode==='keys'&&(ctl.left||ctl.right))ch.a=wrap(ch.a+((ctl.left?1:0)-(ctl.right?1:0))*TURN*dt);
    else if(ctl.mode==='stick')steer(ch,ctl.dir,TURN,dt);
    else steer(ch,Math.atan2(ctl.tx-ch.x,ctl.tz-ch.z),TURN,dt);
    ch.boost=ctl.boost;
@@ -504,5 +508,5 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  scatter(SEED_TARGET);draw(0);hud();
  $('#loading').classList.add('done');
  $('#start').onclick=start;
- window.pipChain={S,chains,loose,scene,camera,start,kill,addLoose,scatter,ctl,best};
+ window.pipChain={S,chains,loose,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir};
 })();

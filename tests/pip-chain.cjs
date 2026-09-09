@@ -28,6 +28,25 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   assert.equal(moving.phase,'run','the run is going');
   assert.ok(moving.away>4,'the head has left the middle');
 
+  // Steering answers the screen, not the axes. The camera mirrors x (screen
+  // right is world -x), so a finger dragged right must head for screen right,
+  // and the right arrow must turn clockwise as seen.
+  const steered=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const you=pipChain.chains[0];
+   const right=pipChain.stickDir(60,0),up=pipChain.stickDir(0,-60);
+   pipChain.start();
+   const a0=you.a;
+   pipChain.ctl.mode='keys';pipChain.ctl.right=true;
+   await wait(250);
+   pipChain.ctl.right=false;pipChain.ctl.mode='point';
+   const d=you.a-a0;
+   return {rightX:Math.sin(right),upZ:Math.cos(up),turned:((d+Math.PI*3)%(Math.PI*2))-Math.PI};
+  });
+  assert.ok(steered.rightX<0,'a finger to the right steers to screen right (world -x)');
+  assert.ok(steered.upZ>0,'a finger up the screen steers away (world +z)');
+  assert.ok(steered.turned<0,'the right arrow turns clockwise on screen');
+
   // One transaction picked up is one block added. The floor is told to stop
   // topping itself up first, so nothing but the one laid down is in play.
   const grew=await page.evaluate(async()=>{
