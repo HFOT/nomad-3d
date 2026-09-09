@@ -43,14 +43,22 @@ header{position:fixed;top:22px;left:30px;right:26px;display:flex;justify-content
 #o-score{margin:18px 0 4px;font-size:12px;color:#a5b3b6}
 #o-score b{font-size:38px;color:#ffd79a;letter-spacing:1px;margin-right:10px;font-weight:500;font-variant-numeric:tabular-nums}
 #o-score span{display:block;margin-top:6px;font-size:10px;color:#8fa5ad;letter-spacing:1.2px}
-#courses{display:flex;gap:8px;margin:20px 0 4px}
+.pick{margin:18px 0 0}
+.pick-label{display:block;font-size:8.5px;letter-spacing:2.6px;color:#8fa5ad;margin-bottom:8px}
+#racers{display:flex;flex-wrap:wrap;gap:6px}
+#racers button{flex:1 1 116px;text-align:left;padding:8px 10px;border:1px solid #ffffff18;border-radius:9px;background:#ffffff08;transition:.2s}
+#racers button:hover{background:#ffffff12}
+#racers button.on{border-color:#e2705f66;background:#e2705f1c}
+#racers b{display:block;font-size:10.5px;letter-spacing:1.8px;color:#e6dfc9;font-weight:600}
+#racers span{display:block;margin-top:3px;font-size:9px;color:#8fa5ad}
+#courses{display:flex;gap:8px}
 #courses button{flex:1;text-align:left;padding:11px 12px;border:1px solid #ffffff18;border-radius:11px;background:#ffffff08;transition:.2s}
 #courses button:hover{background:#ffffff12}
 #courses button.on{border-color:#e2705f66;background:#e2705f1c}
 #courses b{display:block;font-size:12px;letter-spacing:2.4px;color:#e6dfc9;font-weight:600}
 #courses span{display:block;margin-top:5px;font-size:9.5px;line-height:1.6;color:#8fa5ad}
 #courses i{display:block;margin-top:7px;font-size:9.5px;font-style:normal;letter-spacing:1.2px;color:#ffd79a;font-variant-numeric:tabular-nums}
-@media(max-width:900px),(pointer:coarse){#courses{flex-direction:column;gap:6px;margin:14px 0 2px}#courses span{display:none}#courses button{display:flex;justify-content:space-between;align-items:center;padding:9px 11px}#courses i{margin:0}}
+@media(max-width:900px),(pointer:coarse){.pick{margin:12px 0 0}#courses{flex-direction:column;gap:6px}#courses span{display:none}#courses button{display:flex;justify-content:space-between;align-items:center;padding:9px 11px}#courses i{margin:0}#racers button{flex:1 1 88px;padding:7px 8px}#racers span{display:none}}
 
 .rules{list-style:none;padding:0;margin:20px 0 24px;font-size:11px;line-height:2.1;color:#9fb0b3}
 .rules b{color:#dce6e2;font-weight:500;background:#ffffff10;border-radius:4px;padding:2px 7px;margin-right:2px}

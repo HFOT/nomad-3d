@@ -4,11 +4,11 @@ import {EffectComposer} from 'three/addons/postprocessing/EffectComposer.js';
 import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
-import {buildMouse} from '../pip/model.js';
 import {makeCurve,makeHeight,at,buildRoad,buildGround,buildVerge,buildStartGate,buildBoostPad,
         buildCrate,buildJam,buildRamp,buildBarrierBlock,buildGiantBlock,buildShock,buildBlob,
         buildDriftSpark,buildLaser,tuneLaser,buildScenery,ITEMS,HALF_W} from './model.js';
 import {COURSES,courseById} from './courses.js';
+import {RACERS,racerById,pickClip} from './racers.js';
 
 const $=s=>document.querySelector(s);
 
@@ -157,25 +157,37 @@ function nearest(x,z,from){
 }
 
 // --- the machines ---
-const pip=buildMouse();scene.add(pip.root);
-pip.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=false;});
+// --- the machine ---
+// Whoever is driving is built here, and only whoever is driving: the eight are
+// a menu, not a crowd. The ghost is the same figure wearing one flat material,
+// so a second racer costs one shader.
+let racer=null,pip=null,ghost=null,mixer=null,action=null,motion='Run';
 const blob=buildBlob();scene.add(blob);
-const mixer=new T.AnimationMixer(pip.root);
-let action=mixer.clipAction(pip.clips.find(c=>c.name==='Run'));action.play();
-let motion='Run';
+const ghostBlob=buildBlob();ghostBlob.material.opacity=.35;ghostBlob.visible=false;scene.add(ghostBlob);
+const ghostMat=new T.MeshBasicMaterial({color:0x7fd8f0,transparent:true,opacity:.3,depthWrite:false});
+
+function loadRacer(id){
+ const def=racerById(id);
+ racer=def;
+ for(const old of [pip,ghost])if(old){scene.remove(old.root);disposeGroup(old.root);}
+ pip=def.build();
+ pip.root.traverse(o=>{if(o.isMesh)o.castShadow=o.receiveShadow=false;});
+ scene.add(pip.root);
+ ghost=def.build();
+ ghost.root.traverse(o=>{if(o.isMesh){o.material=ghostMat;o.castShadow=o.receiveShadow=false;}});
+ ghost.root.visible=false;scene.add(ghost.root);
+ mixer=new T.AnimationMixer(pip.root);
+ motion='Run';
+ action=mixer.clipAction(pickClip(pip.clips,'Run'));action.play();
+ renderRacerButtons();
+}
 function setMotion(name){
  if(name===motion)return;
- const next=mixer.clipAction(pip.clips.find(c=>c.name===name));
- next.reset().play();action.crossFadeTo(next,.15,true);action=next;motion=name;
+ const clip=pickClip(pip.clips,name);
+ const next=mixer.clipAction(clip);
+ if(next!==action){next.reset().play();action.crossFadeTo(next,.15,true);action=next;}
+ motion=name;
 }
-
-// The ghost is the same machine wearing one flat material, so it is a second
-// courier for the price of one shader.
-const ghost=buildMouse();
-const ghostMat=new T.MeshBasicMaterial({color:0x7fd8f0,transparent:true,opacity:.3,depthWrite:false});
-ghost.root.traverse(o=>{if(o.isMesh){o.material=ghostMat;o.castShadow=o.receiveShadow=false;}});
-ghost.root.visible=false;scene.add(ghost.root);
-const ghostBlob=buildBlob();ghostBlob.material.opacity=.35;ghostBlob.visible=false;scene.add(ghostBlob);
 
 const barrier=[];
 for(let i=0;i<3;i++){const b=buildBarrierBlock();b.visible=false;scene.add(b);barrier.push(b);}
@@ -309,7 +321,7 @@ function finish(){
  $('#o-score').hidden=false;$('.rules').hidden=true;
  $('#start').textContent='もう一度走る';
  $('#overlay').hidden=false;
- renderCourseButtons();
+ renderCourseButtons();renderRacerButtons();
  hud();
 }
 
@@ -355,8 +367,34 @@ function renderCourseButtons(){
  }
 }
 
-let opening=null;
-try{opening=localStorage.getItem('pip-racer-course')}catch{}
+// The character picker. Switching rebuilds the figure and its ghost; the
+// records stay with the course, because who is driving is a skin and the course
+// is the thing being raced.
+function renderRacerButtons(){
+ const host=$('#racers');
+ if(!host||!racer)return;
+ host.innerHTML='';
+ for(const r of RACERS){
+  const b=document.createElement('button');
+  b.type='button';b.dataset.racer=r.id;
+  b.className=r.id===racer.id?'on':'';
+  const n=document.createElement('b');n.textContent=r.name;
+  const note=document.createElement('span');note.textContent=r.note;
+  b.append(n,note);
+  b.onclick=()=>{
+   if(r.id===racer.id)return;
+   try{localStorage.setItem('pip-racer-who',r.id)}catch{}
+   loadRacer(r.id);
+   resetToStart();
+   pip.root.position.set(S.x,S.y,S.z);pip.root.rotation.y=S.head;
+  };
+  host.append(b);
+ }
+}
+
+let opening=null,who=null;
+try{opening=localStorage.getItem('pip-racer-course');who=localStorage.getItem('pip-racer-who')}catch{}
+loadRacer(who||RACERS[0].id);
 loadCourse(opening||COURSES[0].id);
 resetToStart();
 $('#o-lead').textContent=course.note;
@@ -617,7 +655,7 @@ renderer.setAnimationLoop(()=>{
  // not only in a drift.
  {
   const lean=Math.abs(steerNow)>.15?-Math.sign(steerNow):(S.driftDir?-S.driftDir:0);
-  pip.tick(S.t,motion,lean);
+  pip.tick(S.t,motion,dt,lean);
  }
 
  // chase camera, pulled back by speed
@@ -641,6 +679,7 @@ addEventListener('resize',()=>{
 
 hud();
 $('#loading').classList.add('done');
-window.pipRacer={S,scene,camera,start,giveItem,nearest,loadCourse,COURSES,samples:RES,HALF_W,WALL,
+window.pipRacer={S,scene,camera,start,giveItem,nearest,loadCourse,loadRacer,COURSES,RACERS,samples:RES,HALF_W,WALL,
+ get racer(){return racer},get pip(){return pip},
  get course(){return course},get curve(){return curve},get hy(){return hy},
  get jams(){return jams},get crates(){return crates},get pads(){return pads},get ramps(){return ramps}};

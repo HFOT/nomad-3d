@@ -243,6 +243,38 @@ const AUTOPILOT=`
    assert.ok(c.jams>6&&c.crates>=9&&c.ramps>=1,c.id+': the course is furnished');
   }
 
+  // Every one of the eight has to be drivable: they are built by two different
+  // makers and not all of them have the same clips.
+  const cast=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const out=[];
+   for(const r of pipRacer.RACERS){
+    pipRacer.loadRacer(r.id);
+    await wait(160);
+    const root=pipRacer.pip.root;
+    const box=new (Object.getPrototypeOf(pipRacer.scene).constructor===Object?Object:Object)();  // no THREE here
+    let minY=1e9,maxY=-1e9,meshes=0;
+    root.updateMatrixWorld(true);
+    root.traverse(o=>{
+     if(!o.isMesh)return;
+     meshes++;
+     const pos=o.geometry.attributes.position;
+     for(let i=0;i<pos.count;i+=17){
+      const y=pos.getY(i)*o.matrixWorld.elements[5]+o.matrixWorld.elements[13];
+      if(y<minY)minY=y;if(y>maxY)maxY=y;
+     }
+    });
+    out.push({id:r.id,meshes,h:+(maxY-minY).toFixed(2),low:+minY.toFixed(2),clips:pipRacer.pip.clips.length});
+   }
+   return out;
+  });
+  for(const c of cast){
+   assert.ok(c.meshes>20,c.id+': the figure was built');
+   assert.ok(c.clips>0,c.id+': it has something to play');
+   assert.ok(c.h>.6&&c.h<3,c.id+': it is scaled to the road, got '+c.h);
+   assert.ok(c.low>-.6&&c.low<.6,c.id+': it stands on the road, got '+c.low);
+  }
+
   assert.deepEqual(errors,[],'no page errors');
   console.log('PIPレーサー: laps, items, queues, barrier and the ghost passed');
  }finally{await browser.close()}
