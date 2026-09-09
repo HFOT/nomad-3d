@@ -5,6 +5,7 @@ import {buildNeighborhood} from './neighborhood.js';
 import {createAssembly,createVault,createDepot,createArchive} from './landmarks.js';
 import {buildGroundwork,buildEntranceConnections} from './groundwork.js';
 import {buildStreetFurniture} from './street-furniture.js';
+import {buildResidenceQuarter} from './residence-quarter.js';
 import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {PlayerMotion} from './player-motion.js';
 const $=s=>document.querySelector(s);
@@ -222,11 +223,36 @@ await phase('書庫塔を建てています…');
 const archiveB=createArchive();scene.add(archiveB.root);
 const landmarkModels=[assemblyB,vaultB,depot,archiveB];
 const entranceAprons=buildEntranceConnections(landmarkModels,cityWorks.streets);scene.add(entranceAprons);
-const neighborhood=buildNeighborhood(landmarkModels.map(m=>new T.Box3().setFromObject(m.root)),cityWorks.streets);scene.add(neighborhood.root);
-const streetFurniture=buildStreetFurniture(cityWorks.streets,neighborhood.bounds,landmarkModels.map(m=>new T.Box3().setFromObject(m.root)),WM);scene.add(streetFurniture);
+scene.updateMatrixWorld(true);
+const landmarkBoxes=landmarkModels.map(m=>new T.Box3().setFromObject(m.root));
+await phase('石の住宅を建てています…');
+// The flame intake lands on the vault's actual town-facing wall: a ray from
+// the plaza at gallery height finds the real masonry, not the rotated AABB.
+const vaultSink=(()=>{
+ const c=landmarkBoxes[1].getCenter(new T.Vector3());
+ // Aim past the great glass ring at the flanking masonry: the target sits a
+ // wing's width off the axis so the ray meets solid wall, not the open front.
+ const perp=new T.Vector3(-c.z,0,c.x).normalize().multiplyScalar(9);
+ const aim=new T.Vector3(c.x+perp.x,11,c.z+perp.z);
+ const ray=new T.Raycaster(new T.Vector3(0,11,0),aim.sub(new T.Vector3(0,11,0)).normalize());
+ const hit=ray.intersectObject(vaultB.root,true)[0];
+ if(!hit)return null;
+ const out=ray.ray.direction.clone().multiplyScalar(-.45);// stand the downpipe just proud of the masonry
+ return [hit.point.x+out.x,hit.point.y,hit.point.z+out.z];
+})();
+const residenceQuarter=buildResidenceQuarter({
+ streets:cityWorks.streets,isWater:cityWorks.isWater,exclusions:landmarkBoxes,
+ sink:vaultSink,
+ obstacles:[landmarkBoxes[0],landmarkBoxes[2],landmarkBoxes[3]].map(b=>({min:b.min.toArray(),max:b.max.toArray()})),
+});
+scene.add(residenceQuarter.root);
+// The stone residences are the housing stock now; the neighborhood module
+// keeps only its courtyard fittings — wells, planting beds and benches.
+const neighborhood=buildNeighborhood([...landmarkBoxes,...residenceQuarter.boxes],cityWorks.streets,{houses:false});scene.add(neighborhood.root);
+const streetFurniture=buildStreetFurniture(cityWorks.streets,[...neighborhood.bounds,...residenceQuarter.bounds],landmarkBoxes,WM);scene.add(streetFurniture);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
-const solids=[neighborhood.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
+const solids=[neighborhood.root,residenceQuarter.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
 const walkables=[...groundwork.walkables,entranceAprons,cityWorks.root,...solids];
 const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
 const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
@@ -248,6 +274,9 @@ for(const g of gates)lodAdd(g.root,280);
 // Old placeholder shops remain hidden; detailed neighborhoods own the street.
 
 for(const w of walkers)lodAdd(w.root,130,true);
+// The residences' masonry lives in town-wide batches; each house root now
+// carries only its turning clockwork, which is unreadable from across town.
+for(const h of residenceQuarter.homes)lodAdd(h.root,72);
 // Bake every rigid run of meshes down to one draw call per joint and material.
 console.log('[T] opt start',performance.now()|0);
 await phase('配送所を磨いています…');const baked=[optimize(depot.root,t=>depot.tick(t)),optimize(cityWorks.root,t=>cityWorks.tick(t))];
@@ -348,7 +377,7 @@ switches.append(landmarkSelect);
 landmarkSelect.onchange=()=>{if(landmarkSelect.value==='')return;if(player)exitPlayer();civicLayer.visible=true;$('#landmarks').checked=true;const m=landmarkModels[+landmarkSelect.value],b=new T.Box3().setFromObject(m.root),c=b.getCenter(new T.Vector3()),size=b.getSize(new T.Vector3()),d=Math.max(size.x,size.y,size.z);controls.target.copy(c);camera.position.copy(c).add(new T.Vector3(d*.45,d*.28,d*1.5).applyAxisAngle(new T.Vector3(0,1,0),m.root.rotation.y));controls.update();};
 const vaultButton=document.createElement('button');vaultButton.textContent='金庫を開く';switches.append(vaultButton);let vaultLocked=true;
 vaultButton.onclick=()=>{vaultLocked=!vaultLocked;vaultB.setLock(vaultLocked);vaultButton.textContent=vaultLocked?'金庫を開く':'金庫を閉じる';};
-$('#civilian').onchange=e=>{neighborhood.root.visible=e.target.checked;renderer.shadowMap.needsUpdate=true;};
+$('#civilian').onchange=e=>{neighborhood.root.visible=residenceQuarter.root.visible=e.target.checked;renderer.shadowMap.needsUpdate=true;};
 $('#landmarks').onchange=e=>{civicLayer.visible=e.target.checked;renderer.shadowMap.needsUpdate=true;};
 $('#market-view').onclick=()=>{if(player)exitPlayer();camera.position.set(-39,7,80);controls.target.set(-39,3,36);controls.update();};
 $('#bridge-view').onclick=()=>{if(player)exitPlayer();camera.position.set(15,6,38);controls.target.set(0,1,25);controls.update();};
@@ -383,6 +412,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused){elapsed+=dt;
   for(const w of walkers)w.update(dt,elapsed,camera.position.distanceTo(w.root.position)>90);
   cityWorks.tick(elapsed);
+  residenceQuarter.tick(elapsed);
   // Flame vertex morphs are the CPU hogs: near gates tick on alternate frames, far ones rest.
   gates.forEach((g,i)=>{if((frames+i)%2===0&&camera.position.distanceTo(g.root.position)<170)g.tick(elapsed,dt*2);});
   if(civicLayer.visible){
@@ -436,4 +466,4 @@ renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once
 front();
-window.town={scene,camera,controls,walkers,cityWorks,groundwork,neighborhood,civicLayer,landmarkModels,step:frame,follow:setFollow,get playerState(){return player?{grounded:player.grounded,vy:player.vy,speed:player.speed}:null;},get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};
+window.town={scene,camera,controls,walkers,cityWorks,groundwork,neighborhood,residenceQuarter,civicLayer,landmarkModels,step:frame,follow:setFollow,get playerState(){return player?{grounded:player.grounded,vy:player.vy,speed:player.speed}:null;},get state(){return{frames,following:following?.name??null,drawCalls:renderer.info.render.calls,triangles:renderer.info.render.triangles}}};

@@ -4,3 +4,6 @@ dist/
 .env*
 *.glb
 record-out/
+town/district-*.png
+town/groundwork-*.png
+town/nomad-jump.png

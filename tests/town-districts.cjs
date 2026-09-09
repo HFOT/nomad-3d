@@ -20,8 +20,10 @@ const assert=require('node:assert/strict');
   await page.locator('#market-view').click();
   await page.screenshot({path:'town/district-market.png'});
   await page.locator('#civilian').uncheck();
-  const state=await page.evaluate(()=>({civilian:town.neighborhood.root.visible,landmarks:town.civicLayer.visible,works:town.cityWorks.root.visible,water:town.cityWorks.isWater(25,0),bridge:town.cityWorks.isWater(0,25),buildings:town.neighborhood.root.userData.buildings}));
-  assert.equal(state.civilian,false);assert.equal(state.landmarks,false);assert.equal(state.works,true);assert.equal(state.water,true);assert.equal(state.bridge,false);assert.ok(state.buildings>30);
+  const state=await page.evaluate(()=>({civilian:town.neighborhood.root.visible,residences:town.residenceQuarter.root.visible,landmarks:town.civicLayer.visible,works:town.cityWorks.root.visible,water:town.cityWorks.isWater(25,0),bridge:town.cityWorks.isWater(0,25),buildings:town.residenceQuarter.homes.length,flamePorts:town.residenceQuarter.network?.root.userData.plan.connected??0}));
+  assert.equal(state.civilian,false);assert.equal(state.residences,false);assert.equal(state.landmarks,false);assert.equal(state.works,true);assert.equal(state.water,true);assert.equal(state.bridge,false);assert.ok(state.buildings>30);
+  // Every residence's flame port reaches the treasury, or the quarter has no mains at all.
+  assert.ok(state.flamePorts>=state.buildings);
   await page.locator('#civilian').check();await page.locator('#landmarks').check();
   await page.setViewportSize({width:390,height:844});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);

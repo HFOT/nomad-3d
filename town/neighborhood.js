@@ -3,7 +3,9 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 // A masonry/timber kit with recessed windows, pitched roofs and usable lanes.
 // Static parts are batched per material once, with no per-house draw overhead.
-export function buildNeighborhood(exclusions=[],streets=[]){
+// `houses:false` keeps the courtyard fittings — wells, planting beds, benches —
+// and leaves the housing stock itself to the stone residences.
+export function buildNeighborhood(exclusions=[],streets=[],{houses=true}={}){
  const root=new T.Group();root.name='Living quarters';
  const buckets=new Map();let seed=471;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
  function texture(){const c=document.createElement('canvas');c.width=c.height=512;const g=c.getContext('2d');g.fillStyle='#817968';g.fillRect(0,0,512,512);for(let y=0;y<512;y+=32)for(let x=-32;x<512;x+=64){const v=105+random()*55;g.fillStyle=`rgb(${v},${v*.92},${v*.79})`;g.fillRect(x+(y%64?32:0)+1,y+1,62,30);}for(let i=0;i<24000;i++){g.fillStyle=random()<.5?'#ffffff0b':'#0000000c';g.fillRect(random()*512,random()*512,1,2);}const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;return t;}
@@ -67,7 +69,7 @@ export function buildNeighborhood(exclusions=[],streets=[]){
   const before=bounds.length;house(x,z,a,shop,shady);return bounds.length>before;
  }
  streets.forEach((s,i)=>{
-  if(!s.kind||boulevard(s))return;
+  if(!houses||!s.kind||boulevard(s))return;
   const f=frames[i],px=-f.uz,pz=f.ux,mid=Math.hypot(f.cx,f.cz);
   // the wider, more central streets read as commercial: awnings and stalls
   const shop=s.width>=5&&mid<80,shady=s.kind==='alley'&&s.width<3.5;

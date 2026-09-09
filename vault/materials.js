@@ -13,8 +13,11 @@ function surface(kind){
  }ctx.putImageData(im,0,0);const tex=new T.CanvasTexture(c);tex.anisotropy=8;tex.colorSpace=T.SRGBColorSpace;return tex;
 }
 
-export function materials(){const stoneMap=surface('stone'),woodMap=surface('wood'),metalMap=surface('metal');return {
-stone:new T.MeshStandardMaterial({color:0xc5b79e,map:stoneMap,bumpMap:stoneMap,bumpScale:.065,roughness:.96}),
+let sharedStone;
+// The vault and residential kit share the same actual stone surface and tint.
+export function stoneMaterial(){if(!sharedStone){const map=surface('stone');sharedStone=new T.MeshStandardMaterial({name:'CARAKURI_Vault_Limestone',color:0xb6aa92,map,bumpMap:map,bumpScale:.065,roughness:.96});}return sharedStone.clone();}
+export function materials(){const stone=stoneMaterial(),stoneMap=stone.map,woodMap=surface('wood'),metalMap=surface('metal');return {
+stone,
 mortar:new T.MeshStandardMaterial({color:0x746c5e,roughness:1}),
 wood:new T.MeshStandardMaterial({color:0x75563a,map:woodMap,bumpMap:woodMap,bumpScale:.035,roughness:.85}),
 brass:new T.MeshStandardMaterial({color:0xb28b4b,map:metalMap,roughnessMap:metalMap,bumpMap:metalMap,bumpScale:.007,metalness:.78,roughness:.65}),

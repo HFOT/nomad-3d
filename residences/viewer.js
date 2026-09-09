@@ -1,0 +1,32 @@
+import * as T from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
+import {buildResidence,kit,palette,batchStatic} from './model.js';
+import {planNetwork,buildNetwork} from './network.js';
+import {buildVault} from '../vault/model.js';
+import {optimize} from '../town/merge.js';
+const scene=new T.Scene();scene.background=new T.Color(0x172c3c);scene.fog=new T.Fog(0x172c3c,100,240);
+const camera=new T.PerspectiveCamera(40,innerWidth/innerHeight,.1,400),renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.35;document.body.prepend(renderer.domElement);
+const pmrem=new T.PMREMGenerator(renderer),room=new RoomEnvironment();scene.environment=pmrem.fromScene(room,.04).texture;scene.environmentIntensity=.35;room.dispose();pmrem.dispose();
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=5;controls.maxDistance=180;
+scene.add(new T.HemisphereLight(0xc4def5,0x655643,1.65));const sun=new T.DirectionalLight(0xffe2b2,2.1);sun.position.set(-25,45,35);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-65,right:65,top:65,bottom:-65,near:1,far:160});sun.shadow.bias=-.0003;scene.add(sun);
+const homes=[0,1,2,3].map(buildResidence),xs=[-20,-11,1,19];homes.forEach((h,i)=>{h.root.position.set(xs[i],0,0);scene.add(h.root);});
+const ground=new T.Group(),M=palette(),K=kit(ground,M);K.box(M.joint,0,-.3,-9,85,.4,70);for(let x=-40;x<=40;x+=1)for(let z=-36;z<=18;z+=1)K.box(M.stone,x,-.02,z,.985,.05,.985);for(let x=-36;x<=36;x+=6){K.lantern(x,.3,9,.85);K.masonry(x,0,9,.5,.3,.5);}batchStatic(ground);scene.add(ground);
+const vault=buildVault();vault.root.position.set(0,0,-32);optimize(vault.root,t=>vault.tick?.(t),o=>o.material.isShaderMaterial);scene.add(vault.root);
+const sink=[9.4,7.8,-32.7];let network,plan,solo=false,time=0;
+function rebuild(){const next=planNetwork(homes,sink,{spineZ:8});const built=buildNetwork(next);if(network){scene.remove(network.root);network.root.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}network=built;plan=next;scene.add(network.root);network.root.visible=document.querySelector('#pipes').checked&&!solo;document.querySelector('#status').textContent=`${homes.length}住宅 / ${plan.connected}接続口 → 炎の大金庫 · 接続確認済み`;}
+rebuild();const selection=()=>Math.max(0,Number.parseInt(document.querySelector('#view').value)||0);
+function overview(){solo=false;homes.forEach(h=>h.root.visible=true);ground.visible=vault.root.visible=true;network.root.visible=document.querySelector('#pipes').checked;const f=Math.max(1,1.2/camera.aspect);controls.target.set(0,7,-5);camera.position.copy(controls.target).add(new T.Vector3(15,12,65).multiplyScalar(f));controls.update();}
+function focus(single=false){const h=homes[selection()];solo=single;homes.forEach(o=>o.root.visible=!single||o===h);ground.visible=vault.root.visible=!single;network.root.visible=!single&&document.querySelector('#pipes').checked;const p=h.root.position;camera.position.copy(p).add(new T.Vector3(h.spec.w*1.25+6,h.spec.h+6,h.spec.w*1.6+10));controls.target.copy(p).add(new T.Vector3(0,h.spec.h*.5,0));controls.update();}
+overview();document.querySelector('#view').onchange=e=>e.target.value==='all'?overview():focus();document.querySelector('#solo').onclick=()=>focus(true);document.querySelector('#reset').onclick=overview;document.querySelector('#pipes').onchange=e=>network.root.visible=e.target.checked&&!solo;
+function mutate(action){const h=homes[selection()],pos=h.root.position.clone(),rot=h.root.rotation.y;try{action(h);rebuild();document.querySelector('#error').textContent='';overview();}catch(e){h.root.position.copy(pos);h.root.rotation.y=rot;document.querySelector('#error').textContent=e.message;}}
+document.querySelector('#move').onclick=()=>mutate(h=>h.root.position.z=h.root.position.z===0?17:0);document.querySelector('#rotate').onclick=()=>mutate(h=>h.root.rotation.y+=Math.PI/2);
+function coordinates(){const x=Number(document.querySelector('#posx').value),z=Number(document.querySelector('#posz').value);if(!Number.isFinite(x)||!Number.isFinite(z)||Math.abs(x)>100||Math.abs(z)>100)throw Error('配置座標は -100〜100 m で指定してください');return {x,z};}
+document.querySelector('#place').onclick=()=>mutate(h=>{const {x,z}=coordinates();h.root.position.set(x,0,z);});
+document.querySelector('#add').onclick=()=>{let h;try{const {x,z}=coordinates();h=buildResidence(Number(document.querySelector('#tier').value));h.root.position.set(x,0,z);homes.push(h);rebuild();scene.add(h.root);const o=new Option(`${String(homes.length).padStart(2,'0')} ${h.spec.name}`,String(homes.length-1));document.querySelector('#view').add(o);document.querySelector('#view').value=o.value;document.querySelector('#error').textContent='';focus();}catch(e){if(h){homes.pop();h.root.traverse(o=>{if(o.isMesh)o.geometry.dispose();});}document.querySelector('#error').textContent=e.message;}};
+async function exportHome(i){const h=homes[i],p=h.root.position.clone(),r=h.root.rotation.clone();try{h.root.position.set(0,0,0);h.root.rotation.set(0,0,0);h.tick(0);return await new GLTFExporter().parseAsync(h.root,{binary:true,animations:h.root.animations,onlyVisible:false});}finally{h.root.position.copy(p);h.root.rotation.copy(r);h.tick(time);}}
+document.querySelector('#export').onclick=async()=>{const i=selection(),buffer=await exportHome(i),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buffer],{type:'model/gltf-binary'}));a.download=`CORN-residence-${homes[i].spec.id}.glb`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),3000);};
+window.residences={homes,get plan(){return plan;},exportHome,rebuild,renderer,scene,camera};
+const clock=new T.Clock();renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.1);if(!document.querySelector('#pause').checked)time+=dt;homes.forEach(h=>h.tick(time));network.tick(time);vault.tick?.(time);controls.update();renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});

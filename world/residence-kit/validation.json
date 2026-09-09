@@ -1,0 +1,150 @@
+{
+  "cases": 20,
+  "homes": [
+    {
+      "name": "CORN-residence-small.glb",
+      "bytes": 2106588,
+      "errors": 0,
+      "warnings": 0,
+      "ports": [
+        {
+          "name": "PORT_FLAME_0",
+          "position": [
+            1.0700000000000003,
+            5.95,
+            2.69
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_0"
+        }
+      ]
+    },
+    {
+      "name": "CORN-residence-standard.glb",
+      "bytes": 4371332,
+      "errors": 0,
+      "warnings": 0,
+      "ports": [
+        {
+          "name": "PORT_FLAME_0",
+          "position": [
+            2.0700000000000003,
+            8.85,
+            3.29
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_0"
+        }
+      ]
+    },
+    {
+      "name": "CORN-residence-large.glb",
+      "bytes": 7390964,
+      "errors": 0,
+      "warnings": 0,
+      "ports": [
+        {
+          "name": "PORT_FLAME_0",
+          "position": [
+            3.37,
+            10.2,
+            4.09
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_0"
+        }
+      ]
+    },
+    {
+      "name": "CORN-residence-whale.glb",
+      "bytes": 14125612,
+      "errors": 0,
+      "warnings": 0,
+      "ports": [
+        {
+          "name": "PORT_FLAME_0",
+          "position": [
+            6.37,
+            12.25,
+            5.29
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_0"
+        },
+        {
+          "name": "PORT_FLAME_1",
+          "position": [
+            5.75,
+            12.25,
+            5.29
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_1"
+        },
+        {
+          "name": "PORT_FLAME_2",
+          "position": [
+            5.13,
+            12.25,
+            5.29
+          ],
+          "version": 1,
+          "type": "flame-DN440",
+          "radius": 0.22,
+          "direction": [
+            0,
+            1,
+            0
+          ],
+          "units": "metres",
+          "id": "PORT_FLAME_2"
+        }
+      ]
+    }
+  ],
+  "network": {
+    "bytes": 10247988,
+    "errors": 0,
+    "warnings": 0
+  }
+}
