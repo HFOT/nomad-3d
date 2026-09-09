@@ -27,7 +27,7 @@ const ROUTES={
 // Metres of ground each clip covers per second at timeScale 1, measured from
 // the foot's own travel on the 0.64-scale town figures. Dividing the real
 // speed by these is what keeps the feet planted.
-const WALK_GROUND=1.146,RUN_GROUND=2.423,WALK_TOP=2.6,CADENCE_CAP=5.4;
+const WALK_GROUND=1.073,RUN_GROUND=2.202,WALK_TOP=3.2,CADENCE_CAP=3.6;
 const WALL_R=132,WALL_Y=9.75;
 const HEX=[];for(let k=0;k<6;k++){const a=Math.PI-k*Math.PI/3;HEX.push([Math.sin(a)*WALL_R,Math.cos(a)*WALL_R]);}
 function walk(w,dt){
@@ -63,7 +63,9 @@ function robotWalker(mod,def){
    const clip=useRun?runA:walkA;
    const rate=airborne?0:Math.min(speed>.05?speed/(useRun?RUN_GROUND:WALK_GROUND):1,CADENCE_CAP);
    clip.setEffectiveTimeScale(rate||1);
-   const next=m||airborne?clip:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.16,true);current=next;},
+   // The crossfade must not warp: warping rewrites the very timeScale the
+   // cadence above just set, and the legs stop alternating.
+   const next=m||airborne?clip:idleA;if(next===current)return;next.reset().play();current.crossFadeTo(next,.16,false);current=next;},
   update(dt,elapsed,lite){
   mixer.update(dt);
   if(!lite){// distant walkers skip the decorative work

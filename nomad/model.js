@@ -201,11 +201,11 @@ export function buildRobot(M){
     for(const o of Object.values(rig)){const r=rest.get(o.uuid);if(r){o.position.copy(r.position);o.quaternion.copy(r.quaternion);o.scale.copy(r.scale)}}
     // Run is the walk driven harder: the same cycle with a longer stride, a
     // higher knee and a forward lean, so one description covers both gaits.
-    const run=mode==='Run',walk=mode==='Walk'||run,gait=run?1.75:1;
+    const run=mode==='Run',walk=mode==='Walk'||run,gait=run?1.5:1;
     const breath=Math.sin(t*Math.PI*.5),cycle=t*Math.PI;
     body.position.y=1.75+(walk?.045*gait*Math.cos(cycle*2):.016*breath)-(run?.06:0);
     body.rotation.z=walk?.045*gait*Math.sin(cycle):.009*breath;body.rotation.y=walk?.065*gait*Math.sin(cycle):.015*Math.sin(t*Math.PI*.5);
-    body.rotation.x=run?.24:0;
+    body.rotation.x=run?.20:0;
     rig.head.rotation.y=mode==='Look'?.43*Math.sin(lookTime*Math.PI/3):.065*Math.sin(t*Math.PI*.5);
     rig.head.rotation.z=mode==='Look'?.07*Math.sin(lookTime*Math.PI*2/3):-.025+.015*breath;
     rig.head.rotation.x=.018*Math.sin(t*Math.PI*.5);
@@ -218,8 +218,8 @@ export function buildRobot(M){
       // instead, which is why the figure shuffled rather than walked.
       const lift=Math.max(0,-Math.cos(phase));// 0 through stance, 1 mid-swing
       const push=Math.max(0,swing);           // peaks as the foot leaves
-      rig['leg'+s].rotation.x=walk?.78*gait*swing-(run?.14:0):0;
-      rig['knee'+s].rotation.x=walk?(run?1.55:1.02)*lift+.10*push:-.035;
+      rig['leg'+s].rotation.x=walk?.70*gait*swing-(run?.12:0):0;
+      rig['knee'+s].rotation.x=walk?(run?1.30:1.02)*lift+.10*push:-.035;
       rig['foot'+s].rotation.x=walk?.035-(run?.42:.30)*push+(run?.34:.26)*lift:.035;
       rig['arm'+s].rotation.z=s===1?.30:-.13;rig['arm'+s].rotation.x=walk?-.32*gait*swing:.035*Math.sin(t*Math.PI*.5+s);
       rig['elbow'+s].rotation.x=s===1?-.65:-.13;
