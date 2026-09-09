@@ -234,7 +234,11 @@ export function buildRobot(M){
   }
   const animated=Object.values(rig).filter(o=>o!==rig.fire&&o!==rig.flame);
   const clips=[];
-  for(const [name,duration] of [['Idle',4],['Walk',2],['Run',.7],['Wave',4],['Look',6]]){
+  // pose() is periodic in two seconds: phase advances t*PI, so a full gait
+  // cycle needs t to reach 2. A shorter clip loops mid-stride, which is why a
+  // .7s Run showed one leg swinging out and snapping back. Speed comes from
+  // the cadence, never from cutting the cycle short.
+  for(const [name,duration] of [['Idle',4],['Walk',2],['Run',2],['Wave',4],['Look',6]]){
     const samples=Math.round(duration*30),times=[],values=new Map(animated.map(o=>[o,{p:[],q:[]}]));
     for(let i=0;i<=samples;i++){let t=i/30;times.push(t);pose(name,t);for(const o of animated){const v=values.get(o);v.p.push(...o.position.toArray());v.q.push(...o.quaternion.toArray())}}
     const tracks=[];for(const o of animated){const v=values.get(o);tracks.push(new T.VectorKeyframeTrack(o.name+'.position',times,v.p),new T.QuaternionKeyframeTrack(o.name+'.quaternion',times,v.q))}clips.push(new T.AnimationClip(name,duration,tracks));

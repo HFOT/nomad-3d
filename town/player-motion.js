@@ -6,7 +6,7 @@ export class PlayerMotion {
  update(position,input,dt,world){
   const steps=Math.max(1,Math.ceil(dt/(1/60))),h=dt/steps;
   for(let i=0;i<steps;i++){
-   const wanted=input.moving?(input.sprint?7.6:2.8):0;
+   const wanted=input.moving?(input.sprint?11:4.2):0;
    // Getting going bites, stopping coasts: acceleration that differs by
    // direction is what reads as mass rather than a cursor.
    this.speed+= (wanted-this.speed)*(1-Math.exp(-h*(wanted>this.speed?9:6)));
