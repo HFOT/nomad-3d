@@ -11,9 +11,12 @@ import {PlayerMotion} from './player-motion.js';
 const $=s=>document.querySelector(s);
 const boot=window.__townBoot||{phase(){},fail(){}};
 const phase=m=>{boot.phase(m);const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
- // Yield one frame only. The prior 150 ms fallback accumulated seconds during
- // boot, while still leaving a low-power browser with a static loader.
- return new Promise(resolve=>requestAnimationFrame(resolve));};
+ // Yield one frame so the loader repaints — but never wait on a frame that
+ // may not come. A hidden or occluded tab gets no requestAnimationFrame at
+ // all, and without the timer the very first phase stalled boot for as long
+ // as the tab stayed hidden. Visible tabs resolve on the frame (~16 ms), so
+ // the timer only ever fires when the frame is late or absent.
+ return new Promise(resolve=>{const timer=setTimeout(resolve,document.hidden?40:300);requestAnimationFrame(()=>{clearTimeout(timer);resolve();});});};
 await phase('描画装置を起動しています…');
 const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
