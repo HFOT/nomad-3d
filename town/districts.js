@@ -4,6 +4,24 @@ import {stoneSurface} from './groundwork.js';
 import {buildCanalCrossings} from './canal-crossings.js';
 import {LOTS} from './landmarks.js';
 
+// Fast town-map substrate. The detailed civil-engineering builder below is
+// useful for a close inspection scene, but it creates thousands of stones and
+// must not block the playable overview from appearing.
+export function buildDistrictOverview(){
+ const root=new T.Group();root.name='TownOverviewInfrastructure';
+ const stone=new T.MeshStandardMaterial({color:0xb9ad91,roughness:.96}),road=new T.MeshStandardMaterial({color:0xd6c7a8,roughness:.93}),water=new T.MeshStandardMaterial({color:0x173b4b,metalness:.62,roughness:.3}),brass=new T.MeshStandardMaterial({color:0x9e743b,metalness:.7,roughness:.38});
+ const add=(geo,mat,x=0,y=0,z=0)=>{const o=new T.Mesh(geo,mat);o.position.set(x,y,z);o.receiveShadow=true;root.add(o);return o;};
+ const land=add(new T.CylinderGeometry(131.5,131.5,.26,6),stone,0,-.13,0);land.name='TownWalkableGround';
+ const plaza=add(new T.CircleGeometry(17,40),road,0,.02,0);plaza.rotation.x=-Math.PI/2;
+ for(const [inner,outer,segments] of [[23,28,48],[118,124,6]]){const canal=add(new T.RingGeometry(inner,outer,segments),water,0,.01,0);canal.rotation.x=-Math.PI/2;const rail=add(new T.RingGeometry(outer,outer+.55,segments),brass,0,.04,0);rail.rotation.x=-Math.PI/2;}
+ const streets=[];const point=(a,r)=>new T.Vector3(Math.sin(a)*r,0,Math.cos(a)*r);
+ const roadStrip=(a,b,width,kind='road')=>{const d=b.clone().sub(a),len=d.length(),o=add(new T.BoxGeometry(width,.05,len),road,(a.x+b.x)/2,.06,(a.z+b.z)/2);o.rotation.y=Math.atan2(d.x,d.z);streets.push({a:a.clone(),b:b.clone(),width,kind});};
+ for(let i=0;i<6;i++){const a=Math.PI-i*Math.PI/3;roadStrip(point(a,9),point(a,129),8.4,'road');const bridge=add(new T.BoxGeometry(9.3,.16,7.2),stone);bridge.position.copy(point(a,25.5)).setY(.16);bridge.rotation.y=-a;for(const side of [-1,1]){const rail=add(new T.BoxGeometry(.14,.72,7.2),brass);rail.position.copy(point(a,25.5)).add(new T.Vector3(Math.cos(a),0,-Math.sin(a)).multiplyScalar(side*4.4)).setY(.58);rail.rotation.y=-a;}}
+ const ring=[];for(let i=0;i<6;i++)ring.push(point(Math.PI-i*Math.PI/3,67));for(let i=0;i<6;i++)roadStrip(ring[i],ring[(i+1)%6],4.2,'alley');
+ const isWater=(x,z)=>{const r=Math.hypot(x,z);let bridge=false;for(let i=0;i<6;i++){const a=Math.PI-i*Math.PI/3,along=x*Math.sin(a)+z*Math.cos(a),across=x*Math.cos(a)-z*Math.sin(a);if(along>0&&Math.abs(across)<4.7)bridge=true;}return !bridge&&((r>23&&r<28)||(r>118&&r<124));};
+ return{root,streets,isWater,tick(){},walkables:[land]};
+}
+
 // The city is deliberately built before its landmark architecture.  These are
 // permanent public works: roads, canals, quays, bridges, lamps and the plinths
 // that reserve land for each institution.  Individual buildings can be placed

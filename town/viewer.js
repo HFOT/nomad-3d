@@ -1,15 +1,21 @@
 import * as T from 'three';import{OrbitControls}from'three/addons/controls/OrbitControls.js';import{RoomEnvironment}from'three/addons/environments/RoomEnvironment.js';import{EffectComposer}from'three/addons/postprocessing/EffectComposer.js';import{RenderPass}from'three/addons/postprocessing/RenderPass.js';import{UnrealBloomPass}from'three/addons/postprocessing/UnrealBloomPass.js';import{OutputPass}from'three/addons/postprocessing/OutputPass.js';
-import{buildGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';import{makeBuilders}from'./buildings.js';
+import{buildGate,cloneGate}from'../gate/model.js';import{materials as gateMaterials}from'../gate/materials.js';import{castBuilders}from'./cast.js';import{optimize}from'./merge.js?v=3';
 import {buildDistrictInfrastructure} from './districts.js';
 import {buildNeighborhood} from './neighborhood.js';
-import {createAssembly,createVault,createDepot,createArchive} from './landmarks.js';
+import {createAssembly,createVault,createDepot,createArchive,createArcade} from './landmarks.js';
 import {buildGroundwork,buildEntranceConnections} from './groundwork.js';
 import {buildStreetFurniture} from './street-furniture.js';
 import {buildResidenceQuarter} from './residence-quarter.js';
 import {GTAOPass} from 'three/addons/postprocessing/GTAOPass.js';
 import {PlayerMotion} from './player-motion.js';
 const $=s=>document.querySelector(s);
-const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,powerPreference:'high-performance'});
+const boot=window.__townBoot||{phase(){},fail(){}};
+const phase=m=>{boot.phase(m);const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
+ // Yield one frame only. The prior 150 ms fallback accumulated seconds during
+ // boot, while still leaving a low-power browser with a static loader.
+ return new Promise(resolve=>requestAnimationFrame(resolve));};
+await phase('描画装置を起動しています…');
+const renderer=new T.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
 // If the browser hands us a software rasterizer, say so: the fix lives in the
 // browser's hardware-acceleration setting, not in this page.
 {const gl=renderer.getContext(),info=gl.getExtension('WEBGL_debug_renderer_info');
@@ -21,10 +27,6 @@ const renderer=new T.WebGLRenderer({antialias:true,preserveDrawingBuffer:true,po
   note.style.cssText='position:fixed;top:12px;right:12px;max-width:260px;background:#4a1d26ee;border:1px solid #e8384f55;border-radius:8px;padding:10px 12px;font-size:11px;line-height:1.6;color:#ffd3d8;z-index:9';
   document.body.append(note);setTimeout(()=>note.remove(),12000);
  }}renderer.setPixelRatio(Math.min(devicePixelRatio,1.3));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.toneMapping=T.ACESFilmicToneMapping;document.body.prepend(renderer.domElement);
-const phase=m=>{const l=document.querySelector('#loading'),el=l?.querySelector('span');if(el)el.textContent=m;
- // Keep the loading overlay responsive without compiling every unbatched
- // construction mesh. The first actual render uses the finished batches.
- return new Promise(r=>{const d=setTimeout(r,150);requestAnimationFrame(()=>{clearTimeout(d);r();});});};
 const scene=new T.Scene();scene.background=new T.Color('#344955');scene.fog=new T.FogExp2('#344955',.0018);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.7,900);
 const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=1.5;controls.minDistance=4;controls.maxDistance=430;
@@ -104,17 +106,46 @@ function tintGate(g,signal){
  for(const l of g.lights)l.color.set(signal.color);
 }
 // One shared material set for the six gates and every wall: the procedural
-// stone textures are expensive, so they are generated exactly once.
-const WM=gateMaterials();
-const B=makeBuilders(WM);
+// stone is expensive, so it is generated exactly once, and at half the
+// standalone gate page's resolution — the town reads these surfaces from
+// across the map, never at arm's length.
+const WM=gateMaterials({textureSize:256});
+await phase('町の地形を描いています…');
 const cityWorks=buildDistrictInfrastructure(WM);scene.add(cityWorks.root);
 const groundwork=buildGroundwork(cityWorks.streets);scene.add(groundwork.root);
 floor.visible=false;ground.position.y=-3.65;ground.material=waterMat;water.visible=false;
-const lighthouse=B.buildLighthouse(SIGNALS.map(s=>s.color));lighthouse.root.position.set(40,0,-22);scene.add(lighthouse.root);
+// A large town must not sit behind a full-screen spinner while its later
+// districts are assembled. The ground, canals and street skeleton already
+// exist, so show them now and keep only a compact progress chip.
+$('#loading')?.classList.add('lift');
+let overviewPainted=false;
+// Everything built below this line is raw, unbatched construction: ~11,000
+// meshes before optimize() folds them into a few hundred. Drawing them on
+// every boot frame made the loop compile and issue all of them again and
+// again, which cost far more than the construction itself (53s vs 16s,
+// measured). So the boot loop paints only what already exists and masks the
+// work in progress; the finished town arrives with the real frame loop below.
+const overviewParts=new Set(scene.children);
+renderer.setAnimationLoop(()=>{controls.update();
+ const masked=[];
+ for(const c of scene.children)if(!overviewParts.has(c)&&c.visible){c.visible=false;masked.push(c);}
+ renderer.render(scene,camera);
+ for(const c of masked)c.visible=true;
+ if(!overviewPainted){overviewPainted=true;$('#loading')?.classList.add('done');}
+});
+// The lighthouse is hidden in the current town plan (see civicLayer below).
+// Do not spend startup time constructing a model nobody sees.
+const lighthouse={root:new T.Group(),tick(){}};lighthouse.root.position.set(40,0,-22);scene.add(lighthouse.root);
 await phase('城門を建てています…');
+// The carved gatehouse itself, built and batched exactly once. cloneGate()
+// hangs six copies off that master: static geometry and materials are shared
+// by reference, so only the doors, relay lights and flame vertices — the
+// parts each gate animates for itself — ever get their own copies.
 const RING=132,gates=[],gatePos=[];
+const gateMaster=buildGate(WM);
+optimize(gateMaster.root,t=>gateMaster.tick(t,.016),o=>o.userData.base);
 for(let k=0;k<6;k++){
- const g=buildGate(WM);
+ const g=cloneGate(gateMaster);
  const a=Math.PI-k*Math.PI/3;// north gate first, then clockwise like the radar chart
  const p=new T.Vector3(Math.sin(a)*RING,0,Math.cos(a)*RING);
  g.root.position.copy(p);
@@ -152,25 +183,12 @@ await phase('大金庫の実物を設置しています…');
 const vaultB=createVault();window.__vaultB=vaultB;civic.add(vaultB.root);
 await phase('商店街と民家を建てています…');
 // Main-street shops face the paving; shady fronts face the back alley instead.
-const shops=new T.Group();shops.position.z=28;scene.add(shops);// the street sits just south of the great stair (tip ~z39)
-{let n=0;
- for(const z of [22,32,42,52]){const sh=B.buildShop(100+n++,false);sh.root.position.set(6.8,0,z);sh.root.rotation.y=-Math.PI/2;shops.add(sh.root);}
- for(const z of [26,38,50]){const sh=B.buildShop(200+n++,false);sh.root.position.set(-6.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
- for(const z of [30,44,54]){const sh=B.buildShop(300+n++,true);sh.root.position.set(-15.8,0,z);sh.root.rotation.y=Math.PI/2;shops.add(sh.root);}
- for(const [x,z] of [[2.6,28],[-2.6,34],[2.6,40]]){const st=B.buildStall(400+n++);st.root.position.set(x,0,z);st.root.rotation.y=(n%2?.4:-.5);shops.add(st.root);}}
-// House clusters fill the residential wedges; the smithy works the west side.
-const houses=new T.Group();scene.add(houses);
-{let n=0;
- const clusters=[
-  [[-48,26],[-42,32],[-52,34],[-44,42],[-54,20]],
-  [[44,30],[51,24],[48,38],[56,32],[42,44]],
-  [[30,-34],[37,-28],[33,-42],[41,-38]],
-  [[-26,-38],[-33,-32],[-30,-46]],
- ];
- for(const cluster of clusters)for(const [x,z] of cluster){
-  const h=B.buildHouse(500+n*37);h.root.position.set(x,0,z);h.root.rotation.y=(n*2.4)%(Math.PI*2);houses.add(h.root);n++;
- }}
-const forgeWorks=B.buildForgeWorks();forgeWorks.root.position.set(-34,0,-14);forgeWorks.root.rotation.y=1.1;scene.add(forgeWorks.root);
+// The old placeholder shops, house clusters and smithy were always hidden
+// behind the real residences; they are kept as empty groups so the plan
+// switches below still have something to toggle, but never constructed.
+const shops=new T.Group();shops.position.z=28;shops.visible=false;scene.add(shops);
+const houses=new T.Group();houses.visible=false;scene.add(houses);
+const forgeWorks={root:new T.Group(),tick(){}};forgeWorks.root.visible=false;scene.add(forgeWorks.root);
 // Everything not yet deployed as a real page becomes a ghost of the plan.
 ghost(lighthouse.root);shops.visible=false;houses.visible=false;forgeWorks.root.visible=false;
 // Names float over each structure — fire for the built, ghost-light for the planned.
@@ -185,6 +203,7 @@ label('憲法の書庫',0,104,0,true,1.6);
 
 
 label('配送所',26,11,-20,true);
+label('からくり遊技館',-73,22,16,true,1.2);
 for(let k=0;k<6;k++)label(SIGNALS[k].name+'の門',gatePos[k].x,24,gatePos[k].z,true,1.1);
 function buildWallSegment(len){
  const wall=new T.Group();
@@ -221,7 +240,11 @@ const depot=createDepot();scene.add(depot.root);
 // own statics and rewrites seam vertices every tick, so it skips optimize().
 await phase('書庫塔を建てています…');
 const archiveB=createArchive();scene.add(archiveB.root);
-const landmarkModels=[assemblyB,vaultB,depot,archiveB];
+await phase('遊技館を建てています…');
+// The arcade fills the western block at its authored size; its two flame
+// ports join the residences' mains rather than getting a private supply.
+const arcadeB=createArcade();scene.add(arcadeB.root);
+const landmarkModels=[assemblyB,vaultB,depot,archiveB,arcadeB];
 const entranceAprons=buildEntranceConnections(landmarkModels,cityWorks.streets);scene.add(entranceAprons);
 scene.updateMatrixWorld(true);
 const landmarkBoxes=landmarkModels.map(m=>new T.Box3().setFromObject(m.root));
@@ -242,7 +265,7 @@ const vaultSink=(()=>{
 })();
 const residenceQuarter=buildResidenceQuarter({
  streets:cityWorks.streets,isWater:cityWorks.isWater,exclusions:landmarkBoxes,
- sink:vaultSink,
+ sink:vaultSink,guests:[arcadeB],
  obstacles:[landmarkBoxes[0],landmarkBoxes[2],landmarkBoxes[3]].map(b=>({min:b.min.toArray(),max:b.max.toArray()})),
 });
 scene.add(residenceQuarter.root);
@@ -252,7 +275,7 @@ const neighborhood=buildNeighborhood([...landmarkBoxes,...residenceQuarter.boxes
 const streetFurniture=buildStreetFurniture(cityWorks.streets,[...neighborhood.bounds,...residenceQuarter.bounds],landmarkBoxes,WM);scene.add(streetFurniture);
 // Player collision: solid structures block, stairs carry you up, ghosts are
 // holograms you can walk through, and the hexagon of walls is a hard border.
-const solids=[neighborhood.root,residenceQuarter.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,...gates.map(g=>g.root)];
+const solids=[neighborhood.root,residenceQuarter.root,wallRing,depot.root,assemblyB.root,window.__vaultB.root,archiveB.root,arcadeB.root,...gates.map(g=>g.root)];
 const walkables=[...groundwork.walkables,entranceAprons,cityWorks.root,...solids];
 const fwdRay=new T.Raycaster(),dnRay=new T.Raycaster();fwdRay.far=.9;dnRay.far=40;
 const HEXN=[];for(let k=0;k<6;k++){const a2=Math.PI-(k+.5)*Math.PI/3;HEXN.push([Math.sin(a2),Math.cos(a2)]);}
@@ -287,24 +310,8 @@ await phase('商店街を磨いています…');for(const c of shops.children)b
 for(const c of houses.children)baked.push(optimize(c,()=>{}));
 baked.push(optimize(forgeWorks.root,t=>forgeWorks.tick(t)));
 await phase('城門を磨いています…');console.log('[T] opt gates',performance.now()|0);
-// The six gatehouses are identical masonry, so only the first is merged for
-// real. The other five drop the same bricks (matched by their deterministic
-// GatePart names) and re-hang gate one's merged shells — geometry and
-// materials shared by reference, so five gates' vertices never touch the heap.
-{
- const g0=gates[0],r0=optimize(g0.root,t=>g0.tick(t,.016),o=>o.userData.base);
- baked.push(r0);
- for(const g of gates.slice(1)){
-  const byName=new Map(),doomed=[];
-  g.root.traverse(o=>{if(o.name)byName.set(o.name,o);if(o.isMesh&&o.name&&r0.removedNames.has(o.name))doomed.push(o);});
-  for(const o of doomed){o.removeFromParent();o.geometry.dispose();}
-  for(const {mesh,ancName} of r0.merged){
-   const twin=new T.Mesh(mesh.geometry,mesh.material);
-   twin.castShadow=mesh.castShadow;twin.receiveShadow=mesh.receiveShadow;
-   (byName.get(ancName)||g.root).add(twin);
-  }
- }
-}
+// The six gates hang off one batched master (see cloneGate above); their
+// shared meshes must never be re-baked per copy.
 await phase('書庫塔を磨いています…');console.log('[T] opt archive',performance.now()|0);
 // Archive and vault batch their own static architecture. Do not re-bake their
 // vertex-driven crystal seams, vault shutters or furnace steam.
@@ -319,6 +326,7 @@ function setFollow(w){following=w;$('#follow-name').textContent=w?w.name+' を�
 // opens its real ARCHITECTURE page; other clicks pick a walker to follow.
 const portals=[
  {root:archiveB.root,href:'../archive/'},
+ {root:arcadeB.root,href:'../arcade/'},
  {root:assemblyB.root,href:'../assembly/'},
  {root:window.__vaultB.root,href:'../vault/'},
  {root:depot.root,href:'../depot/'},
@@ -366,13 +374,13 @@ function exitPlayer(){
 $('#walk').onclick=()=>player?exitPlayer():enterPlayer();
 const camF=new T.Vector3(),camR=new T.Vector3(),mv=new T.Vector3();
 let paused=false;$('#pause').onchange=e=>paused=e.target.checked;
-const civicLayer=new T.Group();scene.add(civicLayer);civicLayer.add(civic,archiveB.root,depot.root,lighthouse.root);
+const civicLayer=new T.Group();scene.add(civicLayer);civicLayer.add(civic,archiveB.root,depot.root,arcadeB.root,lighthouse.root);
 lighthouse.root.visible=false;
 const aside=document.querySelector('aside');
 const switches=document.createElement('div');switches.innerHTML='<label><input id="civilian" type="checkbox" checked> 民家・商店街</label><label><input id="landmarks" type="checkbox" checked> 大型建造物</label><button id="market-view">商店街へ</button><button id="bridge-view">橋と水路へ</button>';
 aside.insertBefore(switches,document.querySelector('#pause').parentElement);
 const landmarkSelect=document.createElement('select');landmarkSelect.setAttribute('aria-label','建造物へ移動');landmarkSelect.style.cssText='width:100%;padding:9px;background:#453341;color:#f6dfc6;border:1px solid #a5826866;border-radius:6px;margin:6px 0';
-landmarkSelect.innerHTML='<option value="">建造物へ移動…</option><option value="3">憲法書庫</option><option value="0">DRep議事堂</option><option value="1">大金庫</option><option value="2">配送所</option>';
+landmarkSelect.innerHTML='<option value="">建造物へ移動…</option><option value="3">憲法書庫</option><option value="0">DRep議事堂</option><option value="1">大金庫</option><option value="2">配送所</option><option value="4">からくり遊技館</option>';
 switches.append(landmarkSelect);
 landmarkSelect.onchange=()=>{if(landmarkSelect.value==='')return;if(player)exitPlayer();civicLayer.visible=true;$('#landmarks').checked=true;const m=landmarkModels[+landmarkSelect.value],b=new T.Box3().setFromObject(m.root),c=b.getCenter(new T.Vector3()),size=b.getSize(new T.Vector3()),d=Math.max(size.x,size.y,size.z);controls.target.copy(c);camera.position.copy(c).add(new T.Vector3(d*.45,d*.28,d*1.5).applyAxisAngle(new T.Vector3(0,1,0),m.root.rotation.y));controls.update();};
 const vaultButton=document.createElement('button');vaultButton.textContent='金庫を開く';switches.append(vaultButton);let vaultLocked=true;
@@ -419,6 +427,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
    archiveB.tick(dt,camera.position.distanceTo(archiveB.root.position));
    depot.tick(elapsed);
    if(frames%2===0){assemblyB.tick(elapsed);vaultB.tick(elapsed,dt*2);}
+   if(camera.position.distanceTo(arcadeB.root.position)<160)arcadeB.tick(elapsed);
   }
   if(frames%15===0){const ground=camera.position.y<40;
    for(const e of lod)e.o.visible=!ground||camera.position.distanceToSquared(e.p||e.o.position)<e.d2;}
@@ -461,7 +470,7 @@ function frame(){const dt=Math.min(clock.getDelta(),.05);
  if(!paused)tune(dt);
  contactAO.enabled=camera.position.y<22&&innerWidth>=700;
  if(frames%30===0)updateLocalLights();controls.update();composer.render();frames++;
- if(frames===2)$('#loading')?.classList.add('done');}
+ if(frames===1)$('#loading')?.classList.add('done');}
 renderer.setAnimationLoop(frame);
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
 renderer.shadowMap.needsUpdate=true;// the town is static; bake its shadows once

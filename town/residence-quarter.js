@@ -8,7 +8,9 @@ import {planNetwork,buildNetwork} from '../residences/network.js';
 // frontage on both sides — the same address rule the old neighborhood used —
 // and the aerial flame network routes every PORT_FLAME over the roofs to the
 // town's actual Treasury Vault, exactly as the residence kit contract says.
-export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,obstacles=[]}){
+// `guests` are already-placed buildings that share the flame standard — the
+// arcade, for one. They keep their own ground; they only join the mains.
+export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,obstacles=[],guests=[]}){
  const root=new T.Group();root.name='ResidenceQuarter';
  const homesGroup=new T.Group();homesGroup.name='ResidenceHomes';root.add(homesGroup);
  let seed=1911;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
@@ -29,7 +31,7 @@ export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,o
  // accepts is a slot the flame planner also accepts. A probe of each tier is
  // built once to measure it, then handed to the next house of that tier.
  const probes=TIERS.map(()=>null);
- const probe=t=>probes[t]||(probes[t]=buildResidence(t));
+ const probe=t=>{if(!probes[t]){const p=buildResidence(t);for(const {g} of p.gears)collapseInPlace(g,materialRecipe);probes[t]=p;}return probes[t];};
  const footprint=t=>probe(t).root.userData.footprint;
  // A root rotated by ry sends local +X to (cos ry, -sin ry).
  const tierLot=(t,x,z,ry,pad=0)=>{const f=footprint(t);return lot(x,z,Math.cos(ry),-Math.sin(ry),f.width+pad,f.depth+pad);};
@@ -62,7 +64,9 @@ export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,o
  }
  function settle(tier,x,z,ry){
   const lot=tierLot(tier,x,z,ry,PAD);// air between neighbouring lots
-  const home=probe(tier);probes[tier]=null;
+  const template=probe(tier),cloned=template.root.clone(true);
+  const gears=template.gears.map(({g,speed,phase})=>({g:cloned.getObjectByName(g.name),speed,phase}));
+  const home={root:cloned,spec:template.spec,maxHeight:template.maxHeight,ports:template.ports.map(p=>cloned.getObjectByName(p.name)),gears,tick(t){for(const {g,speed,phase} of gears)g.rotation.z=phase+speed*t*Math.PI/4;}};
   home.root.position.set(x,0,z);home.root.rotation.y=ry;
   placedLots.push(lot);
   homes.push(home);homesGroup.add(home.root);
@@ -120,7 +124,7 @@ export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,o
   if(!fits(tierLot(tier,x,z,ry,PAD),33,98))continue;
   settle(tier,x,z,ry);
  }
- for(const p of probes)if(p)p.root.traverse(o=>{if(o.isMesh)o.geometry.dispose();});
+ // Template geometry is shared by the placed homes; it must remain alive.
  root.updateMatrixWorld(true);
  const boxes=homes.map(h=>new T.Box3().setFromObject(h.root));
  // The aerial flame network runs to the town's real Treasury Vault. A failed
@@ -128,12 +132,12 @@ export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,o
  let network=null;
  if(sink&&homes.length){
   try{
-   const plan=planNetwork(homes,sink,{grid:2,clearance:2.6,obstacles});
+   const plan=planNetwork([...homes,...guests],sink,{grid:2,clearance:2.6,obstacles});
    network=buildNetwork(plan,{supportOk:(x,z)=>!isWater(x,z)&&!frames.some(f=>distToStreet(f,x,z)<1.1)});
    root.add(network.root);
   }catch(err){console.warn('[TOWN] residence flame network skipped:',err.message);}
  }
- mergeAcrossHomes(homesGroup);
+ instanceAcrossHomes(homesGroup);
  console.log('[TOWN] residence quarter:',homes.length,'houses',network?'+ flame network':'(no network)');
  // Street furniture wants simple keep-out circles, the same shape the old
  // neighborhood handed it.
@@ -145,24 +149,16 @@ export function buildResidenceQuarter({streets,isWater,exclusions=[],sink=null,o
 // clone of the same stone set is still hundreds of draw calls. Materials that
 // are the same recipe (colour, maps, surface) collapse into one town-wide mesh
 // per recipe; the clockwork gears stay live under their dynamic groups.
-function mergeAcrossHomes(group){
- group.updateMatrixWorld(true);
- const recipe=m=>[m.type,m.color?.getHexString(),m.emissive?.getHexString?.()||'',m.emissiveIntensity||0,m.map?.uuid||'',m.bumpMap?.uuid||'',m.roughness,m.metalness].join('|');
- const dynamic=o=>{for(let p=o;p&&p!==group;p=p.parent)if(p.userData.dynamic)return true;return false;};
- // Turning parts cannot join the town-wide batches, but a gear's own rim,
- // spokes and hub share one transform: collapse each gear to a single mesh.
- const spinners=[];group.traverse(o=>{if(o.userData.dynamic)spinners.push(o);});
- for(const spinner of spinners)collapseInPlace(spinner,recipe);
- const buckets=new Map();
- group.traverse(o=>{if(o.isMesh&&!dynamic(o)){const k=recipe(o.material);if(!buckets.has(k))buckets.set(k,{mat:o.material,list:[]});buckets.get(k).list.push(o);}});
- for(const {mat,list} of buckets.values()){
-  if(list.length<2)continue;
-  const parts=list.map(o=>{const g=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();return g.applyMatrix4(o.matrixWorld);});
-  const merged=mergeGeometries(parts);parts.forEach(g=>g.dispose());
-  if(!merged)continue;
-  const mesh=new T.Mesh(merged,mat);mesh.castShadow=mesh.receiveShadow=true;group.add(mesh);
-  for(const o of list){o.removeFromParent();o.geometry.dispose();}
- }
+const materialRecipe=m=>[m.type,m.color?.getHexString(),m.emissive?.getHexString?.()||'',m.emissiveIntensity||0,m.map?.uuid||'',m.bumpMap?.uuid||'',m.roughness,m.metalness].join('|');
+function instanceAcrossHomes(group){
+ group.updateMatrixWorld(true);const buckets=new Map(),inverse=group.matrixWorld.clone().invert();
+ group.traverse(o=>{if(!o.isMesh)return;for(let p=o.parent;p&&p!==group;p=p.parent)if(p.userData.dynamic)return;
+ // Spatial tiles preserve culling; instances share the authored vertices.
+ const p=o.getWorldPosition(new T.Vector3()),key=o.geometry.uuid+'|'+o.material.uuid+'|'+Math.floor(p.x/32)+','+Math.floor(p.z/32);
+ if(!buckets.has(key))buckets.set(key,[]);buckets.get(key).push(o);
+ });
+ for(const list of buckets.values()){const first=list[0],mesh=new T.InstancedMesh(first.geometry,first.material,list.length);mesh.name='ResidenceStoneInstances';mesh.castShadow=first.castShadow;mesh.receiveShadow=first.receiveShadow;
+ list.forEach((o,i)=>mesh.setMatrixAt(i,inverse.clone().multiply(o.matrixWorld)));mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingBox();mesh.computeBoundingSphere();group.add(mesh);list.forEach(o=>o.removeFromParent());}
 }
 
 // Batch one moving group's meshes into its own local space, per material

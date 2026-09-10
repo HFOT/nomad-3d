@@ -137,6 +137,15 @@ for(const z of [-.90,.92]){stone(root,sx,.3,z,1.98,.20,.25);stone(root,sx,.5,z,1
 box(root,M.brass,sx+.73,5.14,.30,.06,.55,.43);box(root,warmGlass,sx+.77,5.14,.30,.012,.45,.33);rod(root,M.brass,[sx+.79,4.92,.30],[sx+.79,5.36,.30],.014);
 // Low-growing flowers provide small color accents instead of identical leaf clusters.
 const flower=new T.MeshStandardMaterial({color:0x8a749d,roughness:.9});for(const side of [-1,1])for(let j=0;j<16;j++){const x=side*2.7+Math.sin(j*5)*.60,z=1.38+Math.cos(j*7)*.13,y=.63+Math.sin(j*3)*.05;rod(root,M.leaf,[x,.49,z],[x,y,z],.006);mesh(root,new T.SphereGeometry(.024,7,5),flower,x,y,z);}
+return gateController(root,doors,lights,flames);
+}
+function gateController(root,doors,lights,flames){
 let openness=.28,target=.28,health=3;
 return{root,doors,lights,setOpen(v){target=v?1:0;},setHealth(v){health=v;},tick(t,dt=.016){openness=T.MathUtils.damp(openness,target,4,dt);doors.forEach(({door,side})=>door.rotation.y=side*openness*1.36);flames.forEach((f,i)=>{f.visible=i<health;f.children.forEach(o=>{const pos=o.geometry.attributes.position,base=o.userData.base,k=o.userData.layer;for(let j=0;j<pos.count;j++){const yy=(base[j*3+1]+1)/2;const taper=(1-yy)*(.75+yy);const height=k?.24:.40;pos.setXYZ(j,base[j*3]*taper*(k?.040:.070)+Math.sin(t*9+yy*6+i)*yy*yy*.022,-.17+yy*height*(1+.07*Math.sin(t*12+i)),base[j*3+2]*taper*(k?.026:.048)+Math.cos(t*7+yy*5+i)*yy*yy*.012);}pos.needsUpdate=true;o.geometry.computeVertexNormals();});lights[i].intensity=i<health?2.7+.3*Math.sin(t*17+i):0;});},get state(){return{openness,health};}};
+}
+export function cloneGate(source){
+ const root=source.root.clone(true),original=[],copies=[];source.root.traverse(o=>original.push(o));root.traverse(o=>copies.push(o));const map=new Map(original.map((o,i)=>[o,copies[i]]));
+ const materials=new Map();root.traverse(o=>{if(o.isMesh&&o.material.emissive?.getHex()){if(!materials.has(o.material))materials.set(o.material,o.material.clone());o.material=materials.get(o.material);}if(o.isMesh&&o.userData.base)o.geometry=o.geometry.clone();});
+ const flames=[];root.traverse(o=>{if(o.children.some(c=>c.isMesh&&c.userData.base))flames.push(o);});
+ return gateController(root,source.doors.map(({door,side})=>({door:map.get(door),side})),source.lights.map(l=>map.get(l)),flames);
 }

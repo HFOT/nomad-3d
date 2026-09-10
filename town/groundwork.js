@@ -1,7 +1,11 @@
 import * as T from 'three';
 
 export function stoneSurface(kind='ground'){
- const size=1024,c=document.createElement('canvas'),h=document.createElement('canvas'),rough=document.createElement('canvas');c.width=c.height=h.width=h.height=rough.width=rough.height=size;
+ // This material is tiled across an entire city. A 1024px procedural canvas
+ // was needlessly generated five times during boot, freezing lower-power
+ // browsers before the first frame. At the repeat scale used by the town,
+ // 256px preserves the masonry read while cutting setup pixels by 16x.
+ const size=256,c=document.createElement('canvas'),h=document.createElement('canvas'),rough=document.createElement('canvas');c.width=c.height=h.width=h.height=rough.width=rough.height=size;
  const ctx=c.getContext('2d'),hc=h.getContext('2d'),rc=rough.getContext('2d');
  ctx.fillStyle='#615e53';ctx.fillRect(0,0,size,size);hc.fillStyle='#555';hc.fillRect(0,0,size,size);rc.fillStyle='#eee';rc.fillRect(0,0,size,size);
  let seed=2159;const rand=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};

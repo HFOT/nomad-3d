@@ -1,6 +1,6 @@
 import * as T from 'three';
-function surface(kind){
- const size=512,c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),im=ctx.createImageData(size,size);
+function surface(kind,size=512){
+ const c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d'),im=ctx.createImageData(size,size);
  function hash(x,y){const v=Math.sin(x*127.1+y*311.7)*43758.5453;return v-Math.floor(v);}
  function noise(x,y){const ix=Math.floor(x),iy=Math.floor(y);let u=x-ix,v=y-iy;u=u*u*(3-2*u);v=v*v*(3-2*v);return T.MathUtils.lerp(T.MathUtils.lerp(hash(ix,iy),hash(ix+1,iy),u),T.MathUtils.lerp(hash(ix,iy+1),hash(ix+1,iy+1),u),v);}
  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
@@ -13,7 +13,7 @@ function surface(kind){
  }ctx.putImageData(im,0,0);const tex=new T.CanvasTexture(c);tex.anisotropy=8;tex.colorSpace=T.SRGBColorSpace;return tex;
 }
 
-export function materials(){const stoneMap=surface('stone'),woodMap=surface('wood'),metalMap=surface('metal');return {
+export function materials({textureSize=512}={}){const stoneMap=surface('stone',textureSize),woodMap=surface('wood',textureSize),metalMap=surface('metal',textureSize);return {
 stone:new T.MeshStandardMaterial({color:0xc5b79e,map:stoneMap,bumpMap:stoneMap,bumpScale:.065,roughness:.96}),
 mortar:new T.MeshStandardMaterial({color:0x746c5e,roughness:1}),
 wood:new T.MeshStandardMaterial({color:0x75563a,map:woodMap,bumpMap:woodMap,bumpScale:.035,roughness:.85}),
