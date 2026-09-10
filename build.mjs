@@ -26,7 +26,7 @@ for(const id of characters){
   await mkdir(out,{recursive:true});
   if(id==='residences')for(const file of ['network.js','architecture.js'])await copyFile(path.join(src,file),path.join(out,file));
   if(id==='arcade')for(const file of ['mechanics.js','machines.js'])await copyFile(path.join(src,file),path.join(out,file));
-  for(const file of ['viewer.js','materials.js','buildings.js','districts.js','courses.js','racers.js','words.js','romaji.js','groundwork.js','player-motion.js','street-furniture.js','canal-crossings.js','street-surface.js','neighborhood.js','landmarks.js','cast.js','lab.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
+  for(const file of ['viewer.js','materials.js','buildings.js','districts.js','courses.js','racers.js','words.js','romaji.js','groundwork.js','player-motion.js','street-furniture.js','canal-crossings.js','street-surface.js','neighborhood.js','residence-quarter.js','landmarks.js','cast.js','lab.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
     if(await exists(path.join(src,file)))await copyFile(path.join(src,file),path.join(out,file));
   }
   await writeFile(path.join(out,'index.html'),forDist(await readFile(path.join(src,'index.html'),'utf8')));
