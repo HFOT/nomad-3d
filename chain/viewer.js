@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=2';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=3';
 
 const $=s=>document.querySelector(s);
 
@@ -30,7 +30,9 @@ const GEAR_TIME=4.5, GEAR_EVERY=9, GEAR_LIFE=12, GEAR_MAX=2;
 const BTC=0,ETH=1,ADA=2,SOL=3;
 const SLOW_TIME=3.2, SLOW_TURN=.7;
 const MAGNET_TIME=3.0, MAGNET_R=8, MAGNET_PULL=13, MAGNET_BURN=.55;
-const SHIELD_MAX=1, SHIELD_GRACE=.6;
+// A shield is not one block's worth: it takes SHIELD_ADA Cardano blocks to
+// raise one, or with a quarter of the floor being Cardano nothing ever dies.
+const SHIELD_MAX=1, SHIELD_ADA=6, SHIELD_GRACE=.4;
 const LETHAL=FIELD-.5;
 
 const renderer=new T.WebGLRenderer({antialias:true});
@@ -126,7 +128,7 @@ function makeChain(i,entry){
   px:new Float32Array(CAP),pz:new Float32Array(CAP),n:0,
   x:0,z:0,a:0,len:START_LEN,alive:false,wait:0,
   boost:false,burn:0,gear:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
-  slow:0,magnet:0,shield:0,grace:0,got:[0,0,0,0],
+  slow:0,magnet:0,shield:0,charge:0,grace:0,got:[0,0,0,0],
  };
 }
 function setMotion(ch,name){
@@ -151,7 +153,7 @@ function seed(ch,x,z,a){
   ch.px[ch.n%CAP]=x-dx*k*STEP;ch.pz[ch.n%CAP]=z-dz*k*STEP;ch.n++;
  }
  ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
- ch.slow=0;ch.magnet=0;ch.shield=0;ch.grace=0;ch.got=[0,0,0,0];
+ ch.slow=0;ch.magnet=0;ch.shield=0;ch.charge=0;ch.grace=0;ch.got=[0,0,0,0];
  ch.fig.root.visible=true;
  layout(ch);
 }
@@ -409,7 +411,7 @@ function hud(){
   const c=rank[k];
   li.className=c.i===0?'you':'';
   li.querySelector('i').style.background='#'+c.hue.color.toString(16).padStart(6,'0');
-  li.querySelector('span').textContent=c.name+(c.shield>0?' ◈':'');
+  li.querySelector('span').textContent=c.name+(c.shield>0?' ◈':(c.charge>0?' ◇'+c.charge:''));
   // The mix: one dot per kind, carrying how many of it this chain has taken.
   const dots=li.querySelectorAll('.mix u');
   for(let j=0;j<4;j++){
@@ -518,13 +520,12 @@ function step(dt){
     let gain=1;
     if(kind===BTC){gain=2;ch.slow=SLOW_TIME;}
     else if(kind===ETH){ch.magnet=MAGNET_TIME;}
-    else if(kind===ADA){if(ch.shield<SHIELD_MAX)ch.shield++;}
+    else if(kind===ADA&&ch.shield<SHIELD_MAX){ch.charge++;if(ch.charge>=SHIELD_ADA){ch.charge=0;ch.shield++;if(ch.i===0)flash('盾ができた','次の一撃をブロック1つで耐える');}}
     ch.len=Math.min(MAX_LEN,ch.len+gain);
     if(ch.i===0){
      sfx.pick(ch.len);
      if(kind===BTC)flash('Bitcoin +2','数秒、曲がりが重い');
      else if(kind===ETH)flash('Ethereum','周りの光を引き寄せる · 燃やすと高くつく');
-     else if(kind===ADA&&ch.shield===1&&ch.got[ADA]===1)flash('Cardano','次の一撃を盾が受ける');
     }
    }
   }

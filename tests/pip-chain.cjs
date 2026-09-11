@@ -77,16 +77,22 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    pipChain.addLoose(you.x,you.z,1);await wait(200);
    const eth={magnet:you.magnet>0};
    pipChain.addLoose(you.x,you.z,2);await wait(200);
-   const ada={shield:you.shield};
+   const one={shield:you.shield,charge:you.charge};
+   for(let k=0;k<5;k++){pipChain.addLoose(you.x,you.z,2);await wait(120);}
+   const ada={shield:you.shield,charge:you.charge,one};
+   await wait(300); // the board is redrawn a few times a second, not every frame
    const dots=[...document.querySelectorAll('#board li.you .mix u.on')].map(u=>u.textContent);
    return {btc,eth,ada,got:you.got,dots};
   });
   assert.equal(kinds.btc.len,2,'a Bitcoin block is worth two');
   assert.ok(kinds.btc.slow,'and sits on the turn for a moment');
   assert.ok(kinds.eth.magnet,'an Ethereum block starts the magnet');
-  assert.equal(kinds.ada.shield,1,'a Cardano block leaves a shield');
-  assert.deepEqual(kinds.got.slice(0,3),[1,1,1],'each kind is counted');
-  assert.deepEqual(kinds.dots,['1','1','1'],'and the board shows the mix');
+  assert.equal(kinds.ada.one.shield,0,'one Cardano block is not a shield yet');
+  assert.equal(kinds.ada.one.charge,1,'but it counts toward one');
+  assert.equal(kinds.ada.shield,1,'six Cardano blocks raise a shield');
+  assert.equal(kinds.ada.charge,0,'and the count starts over');
+  assert.deepEqual(kinds.got.slice(0,3),[1,1,6],'each kind is counted');
+  assert.deepEqual(kinds.dots,['1','1','6'],'and the board shows the mix');
 
   // The shield takes one hit for one block, then the chain is bare again.
   const shielded=await page.evaluate(async()=>{
