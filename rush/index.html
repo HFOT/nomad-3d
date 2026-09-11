@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP RUSH — 60秒、投げ切る</title><meta name="description" content="四方から寄る滞留を、琥珀のtransactionで捌く60秒。動かすのは移動だけ。拾ったアイテムはその場で発動します。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP RUSH — 60秒、投げ切る</title><meta name="description" content="四方から寄る滞留を、琥珀のtransactionで捌く60秒。動かすのは移動だけ。拾ったアイテムはその場で発動します。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../shared/title.css?v=1"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
 <body>
 <main id="stage"></main>
 
@@ -49,4 +49,5 @@
 <footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
 <div id="loading"><div class="loader"></div><p>PIP RUSH</p></div>
 <script type="module" src="viewer.js"></script>
+<script type="module">import {mountTitle} from '../shared/title.js?v=1';mountTitle({logo:['PIP','RUSH'],tag:'60秒、投げ切る。',bestLabel:'刻んだブロック',best:()=>{try{const c=JSON.parse(localStorage.getItem('pip-rush-chain')||'[]');const n=c.filter(Boolean).length;return n?String(n):null}catch{return null}},hint:{pc:'ENTER でも開始 · カーソルを追いかけて動く',touch:'画面のどこでも指をずらして動く'}});</script>
 </body></html>

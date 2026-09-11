@@ -1,0 +1,63 @@
+/* The title screen the games share (see title.js). Loaded after the game's
+   own stylesheet, so the card, rules and START keep the game's look and only
+   the title face and the sheet are styled here. */
+
+#overlay.land{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;align-items:stretch;justify-content:center;isolation:isolate;overflow:hidden}
+/* Until the scene is built, a blurred still of it stands in. */
+#overlay.land.building::before{content:"";position:absolute;inset:-24px;background:url(preview.png) center/cover;filter:blur(9px) brightness(.55);z-index:-1}
+body:has(#overlay.land:not([hidden])) header .wordmark{visibility:hidden}
+
+.title{width:min(520px,100%);display:flex;flex-direction:column;justify-content:space-between;padding:calc(26px + env(safe-area-inset-top)) 22px calc(22px + env(safe-area-inset-bottom));pointer-events:none}
+.title .top,.title .bottom{pointer-events:auto}
+.title .top{text-align:center;padding-top:6vh}
+.title .eyebrow{justify-content:center}
+.logo{margin:14px 0 8px;font-size:clamp(56px,14vw,84px);line-height:.9;letter-spacing:.06em;font-weight:800;color:#fff3dc;
+  text-shadow:0 2px 0 #c96a3a,0 6px 0 #6b2f1a,0 14px 30px #0009}
+.logo span{display:block;font-size:.62em;letter-spacing:.32em;color:#ffd79a;padding-left:.32em}
+.tag{font-size:15px;letter-spacing:4px;color:#ffe8c4;margin:0;text-shadow:0 1px 8px #000}
+.chips{display:flex;gap:8px;justify-content:center;margin-top:18px}
+.chip{display:inline-flex;align-items:center;gap:10px;padding:8px 14px;border-radius:30px;border:1px solid #ffffff22;background:#0a1113aa;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:inherit;font:inherit}
+.chip label{font-size:8.5px;letter-spacing:1.8px;color:#a9bcc2}
+.chip b{font-size:15px;color:#ffd79a;font-weight:600}
+.chip.btn{cursor:pointer}
+.chip.btn:hover{background:#ffffff1a}
+
+/* whatever the game offers to pick - kept in the game's own .pick style,
+   given a translucent ground so it reads over the scene */
+.title .picks{margin-bottom:14px}
+.title .picks .pick{margin:0 0 10px}
+.title .picks .pick-label{text-align:center;display:block}
+.title .picks button,.title .picks .opt{background:#0a1113aa;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+
+/* the game's #start, while it sits on the title */
+.title #start{width:100%;padding:18px;border:1px solid #ffb8a8;border-radius:16px;background:linear-gradient(180deg,#ff8c72,#e2705f);color:#fff;font:inherit;font-size:15px;letter-spacing:5px;font-weight:600;cursor:pointer;
+  box-shadow:0 8px 0 #8a3a2c,0 18px 40px #0008;transition:transform .1s,box-shadow .1s}
+.title #start:hover{background:linear-gradient(180deg,#ff9a82,#ea7a68)}
+.title #start:active{transform:translateY(5px);box-shadow:0 3px 0 #8a3a2c,0 10px 24px #0008}
+.title #start:not([disabled]){animation:tbeat 1.6s ease-in-out infinite}
+.title #start[disabled]{opacity:.6;cursor:wait;animation:none;box-shadow:0 4px 0 #8a3a2c}
+/* the pulse is in the glow, not the box: a button that moves cannot be tapped cleanly */
+@keyframes tbeat{0%,100%{box-shadow:0 8px 0 #8a3a2c,0 18px 40px #0008,0 0 0 0 #ff8c7200}50%{box-shadow:0 8px 0 #8a3a2c,0 18px 40px #0008,0 0 0 10px #ff8c7233}}
+.title .hint{margin:12px 0 0;font-size:9.5px;letter-spacing:1.6px;color:#c9d6da;text-align:center;text-shadow:0 1px 6px #000}
+.title .hint .touch{display:none}
+@media(pointer:coarse){.title .hint .pc{display:none}.title .hint .touch{display:inline}}
+
+/* the result card: the game's card, plus a way home */
+#tohome{width:100%;margin-top:8px;padding:11px;border:1px solid #ffffff1a;border-radius:11px;background:transparent;color:#a9bcc2;font:inherit;font-size:11px;letter-spacing:3px;cursor:pointer}
+#tohome:hover{background:#ffffff0d}
+
+/* the rules sheet */
+#rules{position:fixed;inset:0;z-index:7;display:flex;align-items:flex-end;justify-content:center;background:#0a1113aa;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#rules[hidden]{display:none}
+.sheet{width:min(560px,100%);max-height:86vh;overflow:auto;background:linear-gradient(180deg,#1b282cf5,#121a1cf8);border:1px solid #d5dec21f;border-radius:22px 22px 0 0;padding:18px 24px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -18px 60px #000a;animation:tup .28s cubic-bezier(.2,.9,.3,1)}
+@keyframes tup{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.sheethead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.sheethead b{font-size:11px;letter-spacing:3px;color:#c5ba92}
+#closerules{border:1px solid #ffffff22;background:#ffffff0d;color:inherit;border-radius:50%;width:32px;height:32px;font-size:16px;line-height:1;cursor:pointer}
+.sheet .rules{margin:8px 0 0}
+@media(min-width:900px){.sheet{border-radius:22px;margin-bottom:6vh}#rules{align-items:center}}
+
+@media(max-width:900px),(pointer:coarse){
+ .title .top{padding-top:4vh}
+ .tag{font-size:13px;letter-spacing:3px}
+}

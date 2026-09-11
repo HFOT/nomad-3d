@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIPレーサー — 3周、ゴーストと</title><meta name="description" content="噴射でドリフトして3周走る。道を塞ぐ滞留はアイテムで押しのける。相手は自分の前回の走り。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIPレーサー — 3周、ゴーストと</title><meta name="description" content="噴射でドリフトして3周走る。道を塞ぐ滞留はアイテムで押しのける。相手は自分の前回の走り。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../shared/title.css?v=1"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
 <body>
 <main id="stage"></main>
 <div id="count" hidden>3</div>
@@ -50,4 +50,5 @@
 <footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
 <div id="loading"><div class="loader"></div><p>PIP RACER</p></div>
 <script type="module" src="viewer.js"></script>
+<script type="module">import {mountTitle} from '../shared/title.js?v=1';mountTitle({logo:['PIP','RACER'],tag:'3周、ゴーストと。',bestLabel:'ベスト',best:()=>{try{const id=localStorage.getItem('pip-racer-course')||'';const v=localStorage.getItem('pip-racer-best-'+id);if(!v)return null;const t=JSON.parse(v);if(typeof t!=='number')return null;const m=Math.floor(t/60),s=t-m*60;return m+"'"+s.toFixed(2).padStart(5,'0')+'"'}catch{return null}},hint:{pc:'ENTER でも開始 · カーソルか ← → で曲がる',touch:'画面のどこでも指をずらして曲がる'}});</script>
 </body></html>

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PIP RUN — Transaction Courier</title><meta name="description" content="PIPを走らせて、transactionをFORGEのゲートまで運ぶ。1スロットごとに1ブロックが刻まれます。"><link rel="icon" href="data:,"><meta name="theme-color" content="#111a1d"><link rel="stylesheet" href="style.css"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PIP RUN — Transaction Courier</title><meta name="description" content="PIPを走らせて、transactionをFORGEのゲートまで運ぶ。1スロットごとに1ブロックが刻まれます。"><link rel="icon" href="data:,"><meta name="theme-color" content="#111a1d"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="../shared/title.css?v=1"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
 <body>
 <main id="stage"></main>
 <div id="mint" aria-hidden="true"></div>
@@ -52,4 +52,5 @@
 <footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
 <div id="loading"><div class="loader"></div><p>PIP RUN</p></div>
 <script type="module" src="viewer.js"></script>
+<script type="module">import {mountTitle} from '../shared/title.js?v=1';mountTitle({logo:['PIP','RUN'],tag:'届けるまで、走る。',hint:{pc:'ENTER でも開始 · ← → で避ける、↑ でジャンプ',touch:'画面下のボタンで避ける・跳ぶ・ダッシュ'}});</script>
 </body></html>
