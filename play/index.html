@@ -1,106 +1,97 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PIP GAMES — あそぼ！</title><meta name="description" content="CARAKURI の配送からくり PIP が主役の5つのゲーム。走る、投げる、走らせる、伸ばす、打つ。全部ブラウザの中で、登録もインストールも要らない。"><link rel="icon" href="data:,"><meta name="theme-color" content="#fff6e9">
-<meta property="og:title" content="PIP GAMES — あそぼ！"><meta property="og:description" content="PIP が主役の5つのゲーム。全部ブラウザの中で、登録もインストールも要らない。"><meta property="og:image" content="https://hfot.github.io/nomad-3d/play/og.png?v=2"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=M+PLUS+Rounded+1c:wght@500;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=2"></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>PIP GAMES — 光の、はこび屋の遊び</title><meta name="description" content="CARAKURI の配送からくり PIP が主役の5つのゲーム。走る、投げる、走らせる、伸ばす、打つ。全部ブラウザの中で、登録もインストールも要らない。"><link rel="icon" href="data:,"><meta name="theme-color" content="#efe9df">
+<meta property="og:title" content="PIP GAMES — 光の、はこび屋の遊び"><meta property="og:description" content="PIP が主役の5つのゲーム。全部ブラウザの中で、登録もインストールも要らない。"><meta property="og:image" content="https://hfot.github.io/nomad-3d/play/og.png?v=3"><meta property="og:type" content="website"><meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="style.css?v=3">
+<script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
 <body>
-<div class="confetti" aria-hidden="true"></div>
 
 <header>
-  <a class="brand" href="#top"><span class="dot"></span><b>PIP</b><i>GAMES</i></a>
+  <a class="brand" href="#top"><b>PIP</b><span>GAMES · BY CORN</span></a>
   <a class="back" href="../">← CARAKURI</a>
 </header>
 
 <section class="hero" id="top">
-  <div class="figure">
-    <div class="blob"></div>
-    <img src="pip.png" alt="PIP" width="283" height="489" decoding="async">
-    <div class="bubble">あそぼ！</div>
-    <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+  <div class="stage">
+    <div id="hero3d" aria-label="PIP"></div>
+    <img class="still" src="pip.png" alt="PIP" width="283" height="489" decoding="async">
   </div>
   <div class="words">
-    <div class="eyebrow">光の、はこび屋の</div>
-    <h1><span>5つの</span><span class="big">あそび。</span></h1>
-    <p>CARAKURI の配送からくり <b>PIP</b> が主役。走る、投げる、走らせる、伸ばす、打つ。全部ブラウザの中で動くから、登録もインストールもいらない。</p>
-    <a class="cta" href="#games">あそぶ <span>↓</span></a>
-    <ul class="facts">
-      <li class="c-pink"><b>5</b><span>ゲーム</span></li>
-      <li class="c-sky"><b>0</b><span>登録・課金</span></li>
-      <li class="c-mint"><b id="f-played">—</b><span>あそんだ</span></li>
-    </ul>
+    <div class="eyebrow"><i></i> SMALL BODY. FAST DELIVERY.</div>
+    <h1>光の、はこび屋の<br>遊び。</h1>
+    <p>白磁の頭と真鍮の関節を持つ配送からくり、PIP。琥珀の transaction を抱えて走るその仕事を、5つのゲームにした。走る、投げる、走らせる、伸ばす、打つ。全部ブラウザの中で動く。</p>
+    <div class="row">
+      <a class="cta" href="#games">遊ぶ <span>↓</span></a>
+      <span class="played"><b id="f-played">0</b><em>/ 5 遊んだ</em></span>
+    </div>
   </div>
 </section>
 
 <section class="games" id="games">
-  <h2><span class="tape">どれから あそぶ？</span></h2>
+  <div class="sechead"><div class="eyebrow"><i></i> FIVE GAMES</div><h2>どれから。</h2></div>
 
-  <article class="game c-pink" data-id="game">
-    <a class="cover" href="../game/"><img src="covers/game.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"><span class="num">01</span></a>
+  <article class="game">
+    <a class="cover" href="../game/"><img src="covers/game.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"></a>
     <div class="body">
-      <div class="kind">はしる</div>
+      <div class="top"><b class="num">01</b><span class="kind">TRANSACTION COURIER</span></div>
       <h3>PIP RUN</h3>
-      <p>噴射でよけて、跳びこえて、スロットの終わりの門まで届ける。届かなかった分は空のブロックになる。</p>
-      <ul class="tags"><li>ランナー</li><li>片手でOK</li><li>1分〜</li></ul>
-      <div class="row"><span class="rec" data-rec="game"></span><a class="play" href="../game/">PLAY</a></div>
+      <p>噴射で避け、跳び越え、スロットの終わりに立つ門へ届ける。届かなかったスロットは空のブロックになる。</p>
+      <dl class="spec"><div><dt>型</dt><dd>ランナー</dd></div><div><dt>時間</dt><dd>1分〜</dd></div><div><dt>手</dt><dd>片手</dd></div></dl>
+      <div class="foot"><span class="rec" data-rec="game"></span><a class="play" href="../game/">PLAY</a></div>
     </div>
   </article>
 
-  <article class="game c-sky" data-id="rush">
-    <a class="cover" href="../rush/"><img src="covers/rush.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"><span class="num">02</span></a>
+  <article class="game">
+    <a class="cover" href="../rush/"><img src="covers/rush.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"></a>
     <div class="body">
-      <div class="kind">なげる</div>
+      <div class="top"><b class="num">02</b><span class="kind">SIXTY SECONDS</span></div>
       <h3>PIP RUSH</h3>
-      <p>四方から寄ってくる滞留を、琥珀を投げてさばく60秒。動かすのは移動だけ。アイテムは拾った瞬間に発動。</p>
-      <ul class="tags"><li>シューター</li><li>60秒</li><li>指1本</li></ul>
-      <div class="row"><span class="rec" data-rec="rush"></span><a class="play" href="../rush/">PLAY</a></div>
+      <p>四方から寄る滞留を、琥珀を投げて捌く60秒。動かすのは移動だけ。拾ったアイテムはその場で発動する。</p>
+      <dl class="spec"><div><dt>型</dt><dd>シューター</dd></div><div><dt>時間</dt><dd>60秒</dd></div><div><dt>手</dt><dd>指1本</dd></div></dl>
+      <div class="foot"><span class="rec" data-rec="rush"></span><a class="play" href="../rush/">PLAY</a></div>
     </div>
   </article>
 
-  <article class="game c-yellow" data-id="racer">
-    <a class="cover" href="../racer/"><img src="covers/racer.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"><span class="num">03</span></a>
+  <article class="game">
+    <a class="cover" href="../racer/"><img src="covers/racer.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"></a>
     <div class="body">
-      <div class="kind">はしらせる</div>
+      <div class="top"><b class="num">03</b><span class="kind">THREE LAPS</span></div>
       <h3>PIP RACER</h3>
-      <p>噴射でドリフトして3周。道をふさぐ滞留はアイテムで押しのける。相手は自分の前回の走り。</p>
-      <ul class="tags"><li>レース</li><li>3コース</li><li>7キャラ</li></ul>
-      <div class="row"><span class="rec" data-rec="racer"></span><a class="play" href="../racer/">PLAY</a></div>
+      <p>噴射でドリフトして3周。道を塞ぐ滞留はアイテムで押しのける。相手は自分の前回の走り。</p>
+      <dl class="spec"><div><dt>型</dt><dd>レース</dd></div><div><dt>コース</dt><dd>3</dd></div><div><dt>からくり</dt><dd>7体</dd></div></dl>
+      <div class="foot"><span class="rec" data-rec="racer"></span><a class="play" href="../racer/">PLAY</a></div>
     </div>
   </article>
 
-  <article class="game c-mint" data-id="chain">
-    <a class="cover" href="../chain/"><img src="covers/chain.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"><span class="num">04</span></a>
+  <article class="game">
+    <a class="cover" href="../chain/"><img src="covers/chain.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"></a>
     <div class="body">
-      <div class="kind">のばす</div>
+      <div class="top"><b class="num">04</b><span class="kind">LONGEST CHAIN</span></div>
       <h3>PIP CHAIN</h3>
-      <p>拾った光がそのまま後ろのブロックになる。ほかの鎖に頭からぶつかったら、そこでおしまい。</p>
-      <ul class="tags"><li>スネーク</li><li>4ステージ</li><li>エンドレス</li></ul>
-      <div class="row"><span class="rec" data-rec="chain"></span><a class="play" href="../chain/">PLAY</a></div>
+      <p>拾った光がそのまま後ろのブロックになる。同じ場を伸びる他の鎖に頭からぶつかれば、その分岐は捨てられる。</p>
+      <dl class="spec"><div><dt>型</dt><dd>スネーク</dd></div><div><dt>ステージ</dt><dd>4</dd></div><div><dt>終わり</dt><dd>なし</dd></div></dl>
+      <div class="foot"><span class="rec" data-rec="chain"></span><a class="play" href="../chain/">PLAY</a></div>
     </div>
   </article>
 
-  <article class="game c-lav" data-id="type">
-    <a class="cover" href="../type/"><img src="covers/type.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"><span class="num">05</span></a>
+  <article class="game">
+    <a class="cover" href="../type/"><img src="covers/type.jpg" alt="" width="960" height="720" loading="lazy" decoding="async"></a>
     <div class="body">
-      <div class="kind">うつ</div>
+      <div class="top"><b class="num">05</b><span class="kind">SIXTY SECONDS</span></div>
       <h3>PIP TYPE</h3>
       <p>滞留の頭上に Cardano の語が浮かぶ。打ち切った語が、そのまま投擲になる。手は打つだけ。</p>
-      <ul class="tags"><li>タイピング</li><li>60秒</li><li>PC向け</li></ul>
-      <div class="row"><span class="rec" data-rec="type"></span><a class="play" href="../type/">PLAY</a></div>
+      <dl class="spec"><div><dt>型</dt><dd>タイピング</dd></div><div><dt>時間</dt><dd>60秒</dd></div><div><dt>手</dt><dd>PC向け</dd></div></dl>
+      <div class="foot"><span class="rec" data-rec="type"></span><a class="play" href="../type/">PLAY</a></div>
     </div>
   </article>
 </section>
 
 <section class="about">
-  <div class="note">
-    <img src="pip.png" alt="" width="283" height="489" loading="lazy" decoding="async">
-    <div>
-      <h2>PIP って？</h2>
-      <p>白磁の頭と真鍮の関節を持つ、小さな配送からくり。耳から伸びる電極が頭の上でパチパチ光って、琥珀の transaction を両手にかかえて走る。CARAKURI の8体のうち、7番目。</p>
-      <p class="small">ゲームの中の transaction はぜんぶシミュレーション。本物のチェーンにはつながっていない。記録はこのブラウザにだけ残って、誰にも送らない。</p>
-      <div class="links"><a href="../pip/">PIP を見る →</a><a href="../">CARAKURI の町へ →</a></div>
-    </div>
+  <div class="eyebrow"><i></i> ABOUT</div>
+  <div class="cols">
+    <p>PIP は CARAKURI の8体のうちの7番目。耳から伸びる電極が頭の上で放電し、琥珀の transaction を両手に抱えて走る。ゲームの中の transaction はすべてシミュレーションで、実際のチェーンには繋がっていない。</p>
+    <p>記録はこのブラウザにだけ残り、誰にも送らない。登録も、課金も、インストールもない。開いたら、そのまま遊べる。</p>
   </div>
+  <div class="links"><a href="../pip/">PIP を見る →</a><a href="../">CARAKURI の町へ →</a></div>
 </section>
 
 <footer><span>SIMULATION · 実際の transaction とは未接続</span><span>BY CORN · CARAKURI</span></footer>
@@ -121,11 +112,12 @@
  let n=0;
  document.querySelectorAll('.rec').forEach(el=>{
   const v=(rec[el.dataset.rec]||(()=>null))();
-  if(v){el.textContent='★ '+v;el.classList.add('on');n++;}
-  else el.textContent='まだ';
+  if(v){el.textContent=v;el.classList.add('on');n++;}
+  else el.textContent='未プレイ';
  });
  const f=document.getElementById('f-played');
- if(f)f.textContent=n?n+'/5':'0/5';
+ if(f)f.textContent=n;
 })();
 </script>
+<script type="module" src="hero.js?v=3"></script>
 </body></html>
