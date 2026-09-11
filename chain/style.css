@@ -64,6 +64,29 @@ header{position:fixed;top:22px;left:30px;right:26px;display:flex;justify-content
 .rules .rh{font-size:8.5px;letter-spacing:2.4px;color:#c5ba92;margin-bottom:4px}
 #overlay.land .rules{margin:0;border-left:1px solid #ffffff12;padding-left:32px}
 #start[disabled]{opacity:.55;cursor:wait}
+/* the stage: four looks for the same field, picked before the run */
+.stagepick{margin:18px 0 0}
+.stagepick label{display:block;font-size:8.5px;letter-spacing:2.4px;color:#c5ba92;margin-bottom:8px}
+#stages{display:flex;gap:8px;flex-wrap:wrap}
+#stages button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:9px 13px;min-width:88px;border:1px solid #ffffff1a;border-radius:11px;background:#ffffff08;color:#dce6e2;transition:border-color .15s,background .15s}
+#stages button b{font-size:11px;letter-spacing:2.4px;font-weight:600}
+#stages button span{font-size:9px;letter-spacing:1px;color:#8fa5ad}
+#stages button:hover{background:#ffffff12}
+#stages button[aria-pressed="true"]{border-color:#e2705f99;background:#e2705f1f;color:#ffd0c4}
+#stages button[aria-pressed="true"] span{color:#e8b3a8}
+#stages button[data-stage="pop"]::before,#stages button[data-stage="neon"]::before,#stages button[data-stage="dawn"]::before,#stages button[data-stage="night"]::before{content:"";width:100%;height:3px;border-radius:2px;margin-bottom:3px;background:linear-gradient(90deg,#141c21,#48cbff,#ffc98a)}
+#stages button[data-stage="pop"]::before{background:linear-gradient(90deg,#ffd3e0,#ffe08a,#7fe3ff)}
+#stages button[data-stage="neon"]::before{background:linear-gradient(90deg,#120b26,#ff2fd0,#22e6ff)}
+#stages button[data-stage="dawn"]::before{background:linear-gradient(90deg,#8c5a3d,#ffb347,#fff0c4)}
+/* the HUD, pickup text and card keep their ink on a light stage */
+:root[data-stage="pop"] .stat b,:root[data-stage="dawn"] .stat b{text-shadow:0 1px 2px #0008}
+:root[data-stage="pop"] #board li,:root[data-stage="dawn"] #board li{background:#1a1d2288;border-color:#00000022}
+:root[data-stage="pop"] .stat label,:root[data-stage="dawn"] .stat label,:root[data-stage="pop"] .boardlabel,:root[data-stage="dawn"] .boardlabel,:root[data-stage="pop"] footer,:root[data-stage="dawn"] footer,:root[data-stage="pop"] .wordmark span,:root[data-stage="dawn"] .wordmark span{color:#3a3f46}
+:root[data-stage="pop"] .wordmark,:root[data-stage="dawn"] .wordmark{color:#1b1f26}
+:root[data-stage="pop"] .back,:root[data-stage="dawn"] .back{color:#2a2f38;border-color:#00000022;background:#ffffff66}
+:root[data-stage="pop"] #pickup span,:root[data-stage="dawn"] #pickup span{color:#3a3f46}
+:root[data-stage="pop"] .stat.small b,:root[data-stage="dawn"] .stat.small b{color:#1b1f26}
+:root[data-stage="pop"] #boost,:root[data-stage="dawn"] #boost{background:#e2705f33;color:#7a2a1f;border-color:#e2705f88}
 .eyebrow{font-size:8.5px;letter-spacing:2.4px;color:#c5ba92;display:flex;gap:9px;align-items:center}
 .eyebrow i{height:5px;width:5px;border-radius:50%;background:#e2705f;box-shadow:0 0 14px #ff8f74}
 .card h1{font-size:29px;letter-spacing:5px;font-weight:500;margin:14px 0 12px}
@@ -106,6 +129,7 @@ button:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
  #overlay.land .rules{border-left:none;padding-left:0;border-top:1px solid #ffffff12;padding-top:14px}
  .tag{font-size:16px}
  .landstats{gap:18px;margin:14px 0 16px}
+ #stages button{min-width:0;flex:1 1 40%;padding:8px 10px}
  .landstats b{font-size:21px}
  .card h1{font-size:22px;letter-spacing:3px}
  .rules{font-size:10px;line-height:1.9;margin:14px 0 18px}

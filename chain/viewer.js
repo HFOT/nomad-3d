@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,buildShield,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=4';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,buildShield,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS,STAGES,stageById} from './model.js?v=5';
 
 const $=s=>document.querySelector(s);
 
@@ -52,15 +52,45 @@ scene.fog=new T.Fog(0x0f1618,72,215);
 const camera=new T.PerspectiveCamera(42,innerWidth/innerHeight,.1,420);
 const pmrem=new T.PMREMGenerator(renderer);
 scene.environment=pmrem.fromScene(new RoomEnvironment(),.06).texture;
-scene.add(new T.HemisphereLight(0xa8c6d4,0x141a16,.85));
+const hemi=new T.HemisphereLight(0xa8c6d4,0x141a16,.85);scene.add(hemi);
 const key=new T.DirectionalLight(0xffe0b2,1.25);
 key.position.set(-10,20,8);scene.add(key);
-scene.add(buildField());
+let field=null;
 
 const composer=new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.30,.72,.90);
 composer.addPass(bloom);composer.addPass(new OutputPass());
+
+// --- the stage: every colour on the field, swapped as one ---
+// The field is rebuilt rather than recoloured; it is a few hundred meshes and
+// a second's work, and a stage is chosen on the landing, not mid-run.
+let stage=null;
+function setStage(id){
+ const st=stageById(id);
+ if(stage&&stage.id===st.id)return;
+ stage=st;
+ if(field){scene.remove(field);field.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material.map)o.material.map.dispose();o.material.dispose();}});}
+ field=buildField(st);scene.add(field);
+ scene.background.setHex(st.bg);scene.fog.color.setHex(st.bg);scene.fog.near=st.fog[0];scene.fog.far=st.fog[1];
+ hemi.color.setHex(st.hemi[0]);hemi.groundColor.setHex(st.hemi[1]);hemi.intensity=st.hemi[2];
+ key.color.setHex(st.key[0]);key.intensity=st.key[1];
+ bloom.strength=st.bloom;
+ renderer.toneMappingExposure=st.exp;scene.environmentIntensity=st.env;
+ document.documentElement.dataset.stage=st.id;
+ document.querySelectorAll('#stages button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.stage===st.id?'true':'false'));
+ try{localStorage.setItem('pip-chain-stage',st.id)}catch{}
+}
+(function(){
+ let id=null;
+ try{id=new URLSearchParams(location.search).get('stage')||localStorage.getItem('pip-chain-stage')}catch{}
+ const box=$('#stages');
+ if(box){
+  box.innerHTML=STAGES.map(st=>'<button type="button" data-stage="'+st.id+'" aria-pressed="false"><b>'+st.name+'</b><span>'+st.ja+'</span></button>').join('');
+  box.addEventListener('click',e=>{const b=e.target.closest('button');if(b)setStage(b.dataset.stage);});
+ }
+ setStage(id||'night');
+})();
 
 // --- loose transactions: flat arrays, swapped in from the end when one is taken ---
 const loose={n:0,x:new Float32Array(LOOSE_MAX),z:new Float32Array(LOOSE_MAX),r:new Float32Array(LOOSE_MAX),k:new Uint8Array(LOOSE_MAX)};
@@ -684,5 +714,5 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  const b=best();if(b)$('#l-best').textContent=b.height;
  const st=$('#start');st.disabled=false;st.textContent='START';
  st.onclick=start;
- window.pipChain={S,chains,loose,looseMeshes,KINDS,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR,height};
+ window.pipChain={S,chains,loose,looseMeshes,KINDS,STAGES,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR,height,setStage,stage:()=>stage};
 })();
