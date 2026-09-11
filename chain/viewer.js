@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=2';
 
 const $=s=>document.querySelector(s);
 
