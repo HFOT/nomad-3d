@@ -382,7 +382,8 @@ addEventListener('keydown',e=>{
  if(k==='arrowleft'||k==='a'){ctl.left=true;ctl.mode='keys';}
  if(k==='arrowright'||k==='d'){ctl.right=true;ctl.mode='keys';}
  if(k===' '||k==='shift'){ctl.boost=true;e.preventDefault();}
- if((k==='enter'||k==='r')&&S.phase!=='run')start();
+ if((k==='enter'||k==='r')&&S.phase!=='run'&&!$('#start').disabled)start();
+ if(k==='escape')$('#rules').hidden=true;
 });
 addEventListener('keyup',e=>{
  const k=e.key.toLowerCase();
@@ -424,7 +425,7 @@ function start(){
  }
  S.phase='run';S.seedDebt=0;S.nextGear=GEAR_EVERY*.5;
  for(const g of gears){g.live=false;g.o.visible=false;}
- $('#overlay').hidden=true;$('#overlay').classList.remove('land');
+ $('#overlay').hidden=true;$('#rules').hidden=true;
  $('#hud').hidden=false;
  hud();
 }
@@ -432,16 +433,33 @@ function finish(){
  S.phase='over';
  const you=chains[0],b=best();
  saveBest(you.peak,you.cut);
- $('#o-title').textContent='この分岐は捨てられた';
- $('#o-lead').textContent='頭がぶつかったところで鎖は途切れる。抱えていた分は光に戻り、残った一番長い鎖が続きを刻む。';
  $('#o-score').innerHTML='<b></b><span></span>';
  $('#o-score').firstChild.textContent=you.peak;
  $('#o-score').lastChild.textContent='到達した高さ · 切った鎖 '+you.cut+' 本'+(b?' · これまでの最高 '+b.height:'');
- $('#o-score').hidden=false;$('.rules').hidden=true;$('.lede').hidden=true;$('.landstats').hidden=true;
- $('#start').textContent='もう一度';
- $('#overlay').hidden=false;
+ $('#l-best').textContent=b?b.height:'—';
+ showFace('result');
 }
 
+// The two faces of the overlay: the title screen, and the result card.
+function showFace(which){
+ const ov=$('#overlay');ov.hidden=false;
+ ov.classList.toggle('land',which==='title');
+ $('.title').hidden=which!=='title';
+ $('.result').hidden=which!=='result';
+ if(which==='title')pose();
+}
+// The title pose: PIP alone in the middle of a scattered field, for the
+// camera to circle. The others wait off the floor.
+function pose(){
+ S.phase='ready';
+ loose.n=0;scatter(SEED_TARGET);
+ for(const ch of chains){ch.alive=false;ch.mesh.count=0;ch.fig.root.visible=false;ch.blob.visible=false;ch.halo.visible=false;ch.wait=1e9;}
+ const you=chains[0];
+ you.x=0;you.z=0;you.a=0;you.fig.root.position.set(0,0,0);you.fig.root.rotation.y=Math.PI;
+ you.fig.root.visible=true;you.blob.visible=true;you.blob.position.set(0,.2,0);
+ setMotion(you,'Idle');
+ $('#hud').hidden=true;
+}
 let hudAt=0;
 function hud(){
  const you=chains[0];
@@ -621,7 +639,7 @@ function step(dt){
 
 function draw(dt){
  for(const ch of chains){
-  if(!ch.alive){ch.mesh.count=0;continue;}
+  if(!ch.alive){ch.mesh.count=0;if(S.phase==='ready'&&ch.i===0){ch.mixer.update(dt);ch.fig.tick(S.t,ch.motion,dt,0);}continue;}
   const base=scaleOf(ch);
   for(let k=0;k<ch.len;k++){
    const s=ch.seg[k];
@@ -679,7 +697,13 @@ renderer.setAnimationLoop(()=>{
  draw(dt);
 
  const you=chains[0];
- if(you){
+ if(you&&S.phase==='ready'){
+  // Title screen: a slow circle round PIP, low enough to see the figure.
+  const a=S.t*.16;
+  tmp.set(Math.sin(a)*13,7.5,Math.cos(a)*13);
+  camera.position.lerp(tmp,Math.min(1,dt*2));
+  camera.lookAt(0,1.6,0);
+ }else if(you){
   // The camera climbs with the chain: what you need to see is not PIP, it is
   // how much of the field your own body has started to take up.
   const grow=Math.min(1,you.len/150);
@@ -709,10 +733,16 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  const rest=RACERS.filter(r=>r.id!=='pip').sort(()=>Math.random()-.5).slice(0,AI_COUNT);
  for(let i=0;i<rest.length;i++){await frame();chains.push(makeChain(i+1,rest[i]));}
  for(const ch of chains){ch.fig.root.visible=false;ch.blob.visible=false;ch.mesh.count=0;}
- camera.position.set(0,26,-15);camera.lookAt(0,0,2);
- scatter(SEED_TARGET);draw(0);hud();
+ camera.position.set(0,7.5,13);camera.lookAt(0,1.6,0);
+ pose();draw(0);
+ $('#overlay').classList.remove('building');
  const b=best();if(b)$('#l-best').textContent=b.height;
  const st=$('#start');st.disabled=false;st.textContent='START';
  st.onclick=start;
+ $('#again').onclick=start;
+ $('#tohome').onclick=()=>showFace('title');
+ $('#howto').onclick=()=>{$('#rules').hidden=false;};
+ $('#closerules').onclick=()=>{$('#rules').hidden=true;};
+ $('#rules').addEventListener('click',e=>{if(e.target.id==='rules')$('#rules').hidden=true;});
  window.pipChain={S,chains,loose,looseMeshes,KINDS,STAGES,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR,height,setStage,stage:()=>stage};
 })();

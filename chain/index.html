@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP CHAIN — 長いほうが残る</title><meta name="description" content="拾った琥珀のtransactionが、そのまま後ろのブロックになる。同じ場を回る他のチェーンに頭からぶつかれば、そこで分岐は捨てられます。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css?v=6"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
+<html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><title>PIP CHAIN — 長いほうが残る</title><meta name="description" content="拾った琥珀のtransactionが、そのまま後ろのブロックになる。同じ場を回る他のチェーンに頭からぶつかれば、そこで分岐は捨てられます。"><link rel="icon" href="data:,"><meta name="theme-color" content="#0f1618"><link rel="stylesheet" href="style.css?v=7"><script type="importmap">{"imports":{"three":"../node_modules/three/build/three.module.js","three/addons/":"../node_modules/three/examples/jsm/"}}</script></head>
 <body>
 <main id="stage"></main>
 
@@ -25,28 +25,46 @@
 
 <div id="pickup" aria-live="polite"></div>
 
-<div id="overlay" class="land">
-  <div class="card">
-    <div class="intro">
+<div id="overlay" class="land building">
+  <!-- The title screen: the field itself is the picture, PIP stands in the
+       middle of it, and everything the player needs sits at the bottom
+       where a thumb is. -->
+  <section class="title">
+    <div class="top">
       <div class="eyebrow"><i></i> THE LONGEST ONE SURVIVES.</div>
-      <h1 id="o-title">PIP CHAIN</h1>
+      <h1 class="logo">PIP<span>CHAIN</span></h1>
       <p class="tag">長いほうが、残る。</p>
-      <p id="o-lead" class="lede">床の光を拾うと、後ろにブロックが1つ増える。同じ場を、別のからくり3体も伸ばしている。頭がぶつかったところで、その分岐は捨てられる。</p>
-      <div id="o-score" hidden></div>
+      <div class="chips">
+        <span class="chip"><label>これまでの最高</label><b id="l-best">—</b></span>
+        <button class="chip btn" id="howto" type="button"><label>遊び方</label><b>?</b></button>
+      </div>
+    </div>
+    <div class="bottom">
       <div class="stagepick">
         <label>STAGE</label>
         <div id="stages" role="group" aria-label="ステージ"></div>
       </div>
-      <ul class="landstats">
-        <li><b id="l-best">—</b><span>これまでの最高</span></li>
-        <li><b>4</b><span>種類のブロック</span></li>
-        <li><b>3</b><span>体の相手</span></li>
-      </ul>
       <button id="start" disabled>準備中…</button>
-      <p class="hint">ENTER でも開始 · スマホは画面のどこでも指をずらして曲がる</p>
+      <p class="hint"><span class="pc">ENTER でも開始 · カーソルか ← → で曲がる</span><span class="touch">画面のどこでも指をずらして曲がる · 2本目の指で BURN</span></p>
     </div>
+  </section>
+
+  <!-- After a run: the same card as before, with the number that matters. -->
+  <section class="card result" hidden>
+    <div class="eyebrow"><i></i> THE LONGEST ONE SURVIVES.</div>
+    <h2 id="o-title">この分岐は捨てられた</h2>
+    <p id="o-lead">頭がぶつかったところで鎖は途切れる。抱えていた分は光に戻り、残った一番長い鎖が続きを刻む。</p>
+    <div id="o-score"></div>
+    <button id="again">もう一度</button>
+    <button id="tohome" type="button">タイトルへ</button>
+  </section>
+</div>
+
+<!-- The rules, on a sheet that slides up over the title. -->
+<div id="rules" hidden>
+  <div class="sheet">
+    <div class="sheethead"><b>遊び方</b><button id="closerules" type="button" aria-label="閉じる">×</button></div>
     <ul class="rules">
-      <li class="rh">遊び方</li>
       <li><b>曲げるだけ</b> ‥ 前進は自動。スマホは画面のどこでも指をずらす、PCはカーソルか ← →</li>
       <li><b>拾えば伸びる</b> ‥ 床のtransactionが1つ、後ろのブロック1つになります。4種あります</li>
       <li class="kinds">
@@ -65,5 +83,5 @@
 </div>
 
 <footer><span>SIMULATION · 実際のtransactionとは未接続</span><span>BY CORN · CARAKURI</span></footer>
-<script type="module" src="viewer.js?v=6"></script>
+<script type="module" src="viewer.js?v=7"></script>
 </body></html>
