@@ -13,6 +13,11 @@ const $=s=>document.querySelector(s);
 // other chain and off the wall, and the only number that matters is how long
 // the chain behind it got.
 const MAX_LEN=240, START_LEN=6;
+// The body drawn on the field stops at MAX_LEN blocks, since every block is
+// a collision and a matrix. The height does not stop: past the cap every
+// block taken is kept as 'extra', spent first when the chain burns or bleeds,
+// and counted in everything that ranks a chain. Only the picture is capped.
+const height=ch=>ch.len+ch.extra;
 const STEP=.30, CAP=700;      // the path is kept at a fixed spacing, so "one
                               // block back" is an index rather than a search
 const SPEED=11.5, BOOST_SPEED=19.5;
@@ -129,7 +134,7 @@ function makeChain(i,entry){
   px:new Float32Array(CAP),pz:new Float32Array(CAP),n:0,
   x:0,z:0,a:0,len:START_LEN,alive:false,wait:0,
   boost:false,burn:0,gear:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
-  slow:0,magnet:0,shield:0,charge:0,grace:0,pop:1,got:[0,0,0,0],
+  extra:0,slow:0,magnet:0,shield:0,charge:0,grace:0,pop:1,got:[0,0,0,0],
  };
 }
 function setMotion(ch,name){
@@ -153,7 +158,7 @@ function seed(ch,x,z,a){
  for(let k=140;k>=1;k--){
   ch.px[ch.n%CAP]=x-dx*k*STEP;ch.pz[ch.n%CAP]=z-dz*k*STEP;ch.n++;
  }
- ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
+ ch.len=START_LEN;ch.extra=0;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
  ch.slow=0;ch.magnet=0;ch.shield=0;ch.charge=0;ch.grace=0;ch.pop=1;ch.got=[0,0,0,0];
  ch.fig.root.visible=true;
  layout(ch);
@@ -213,9 +218,16 @@ const wrap=a=>{while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return
 // on what the body can catch.
 // Logarithmic, so a long chain is visibly stout without filling the field by
 // the middle of a run the way a straight ratio did.
-function scaleOf(ch){return 1+Math.log1p(ch.len/40)*.38;}
+function scaleOf(ch){return 1+Math.log1p((ch.len+(ch.extra||0))/40)*.38;}
 // How wide the head catches: a stout head gathers more, and cannot slip past.
 function eatR(ch){return EAT_R+(scaleOf(ch)-1)*.9;}
+// One block off the end of a chain, left on the floor where the tail is.
+// Blocks past the drawn cap go first; the picture only shortens after that.
+function shed(ch,kind){
+ const tail=ch.seg[Math.max(0,ch.len-1)];
+ addLoose(tail.x,tail.z,kind);
+ if(ch.extra>0)ch.extra--;else ch.len--;
+}
 function steer(ch,want,rate,dt){
  const d=wrap(want-ch.a),m=rate*dt;
  ch.a=wrap(ch.a+(Math.abs(d)<m?d:Math.sign(d)*m));
@@ -265,6 +277,8 @@ function kill(ch,by){
  // What it was carrying goes back on the floor. Every other block, so one very
  // long chain does not bury the field it fell on.
  for(let k=0;k<ch.len;k+=2)addLoose(ch.seg[k].x,ch.seg[k].z);
+ const tail=ch.seg[Math.max(0,ch.len-1)];
+ for(let k=0;k<ch.extra;k+=2){const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*4;addLoose(tail.x+Math.cos(a)*r,tail.z+Math.sin(a)*r);}
  if(by)by.cut++;
  if(ch.i===0)finish();
  else if(by&&by.i===0)flash(ch.name+' の鎖が切れた','落ちた光は拾える');
@@ -380,7 +394,8 @@ function start(){
  }
  S.phase='run';S.seedDebt=0;S.nextGear=GEAR_EVERY*.5;
  for(const g of gears){g.live=false;g.o.visible=false;}
- $('#overlay').hidden=true;
+ $('#overlay').hidden=true;$('#overlay').classList.remove('land');
+ $('#hud').hidden=false;
  hud();
 }
 function finish(){
@@ -392,7 +407,7 @@ function finish(){
  $('#o-score').innerHTML='<b></b><span></span>';
  $('#o-score').firstChild.textContent=you.peak;
  $('#o-score').lastChild.textContent='到達した高さ · 切った鎖 '+you.cut+' 本'+(b?' · これまでの最高 '+b.height:'');
- $('#o-score').hidden=false;$('.rules').hidden=true;
+ $('#o-score').hidden=false;$('.rules').hidden=true;$('.lede').hidden=true;$('.landstats').hidden=true;
  $('#start').textContent='もう一度';
  $('#overlay').hidden=false;
 }
@@ -400,11 +415,11 @@ function finish(){
 let hudAt=0;
 function hud(){
  const you=chains[0];
- $('#height').textContent=you.len;
+ $('#height').textContent=height(you);
  $('#cut').textContent=you.cut;
  const b=best();
  $('#best').textContent=b?b.height:'—';
- const rank=chains.slice().sort((p,q)=>q.len-p.len);
+ const rank=chains.slice().sort((p,q)=>height(q)-height(p));
  const board=$('#board');
  if(board.children.length!==rank.length)
   board.innerHTML=rank.map(()=>'<li><i></i><span></span><em class="mix">'+KINDS.map(k=>'<u style="--k:#'+k.color.toString(16).padStart(6,'0')+'"></u>').join('')+'</em><b></b></li>').join('');
@@ -420,7 +435,7 @@ function hud(){
    dots[j].textContent=n>0?n:'';
    dots[j].classList.toggle('on',n>0);
   }
-  li.querySelector('b').textContent=c.alive?c.len:'—';
+  li.querySelector('b').textContent=c.alive?height(c):'—';
  });
 }
 
@@ -459,10 +474,9 @@ function step(dt){
   if(burning){
    ch.burn+=dt;
    const every=BURN_EVERY*(ch.magnet>0?MAGNET_BURN:1); // dearer while the magnet runs
-   while(ch.burn>=every&&ch.len>MIN_BOOST){
+   while(ch.burn>=every&&height(ch)>MIN_BOOST){
     ch.burn-=every;
-    const tail=ch.seg[ch.len-1];
-    addLoose(tail.x,tail.z);ch.len--;
+    shed(ch);
     if(ch.i===0)sfx.burn();
    }
   }else ch.burn=0;
@@ -471,7 +485,7 @@ function step(dt){
   ch.fig.root.rotation.y=ch.a;
   ch.blob.position.set(ch.x,.2,ch.z);
   setMotion(ch,fast?'Dash':'Run');
-  if(ch.len>ch.peak)ch.peak=ch.len;
+  if(height(ch)>ch.peak)ch.peak=height(ch);
  }
 
  // heads: against the wall, and against everyone else's body
@@ -490,11 +504,11 @@ function step(dt){
   }
   if(hitBy){
    if(ch.grace>0)continue;
-   if(ch.shield>0&&ch.len>MIN_BOOST){
+   if(ch.shield>0&&height(ch)>MIN_BOOST){
     // The shield takes it: one block gone from the tail, and a breath of grace
     // so the same body does not take the head again on the next frame.
     ch.shield--;ch.grace=SHIELD_GRACE;ch.pop=0;
-    const tail=ch.seg[ch.len-1];addLoose(tail.x,tail.z,ADA);ch.len--;
+    shed(ch,ADA);
     burst(ch.x,ch.z,0x1a4dff);
     if(ch.i===0){flash('盾が受けた','ブロック1つで耐えた');sfx.shield();}
     continue;
@@ -522,7 +536,8 @@ function step(dt){
     if(kind===BTC){gain=2;ch.slow=SLOW_TIME;}
     else if(kind===ETH){ch.magnet=MAGNET_TIME;}
     else if(kind===ADA&&ch.shield<SHIELD_MAX){ch.charge++;if(ch.charge>=SHIELD_ADA){ch.charge=0;ch.shield++;if(ch.i===0)flash('盾ができた','次の一撃をブロック1つで耐える');}}
-    ch.len=Math.min(MAX_LEN,ch.len+gain);
+    const room=MAX_LEN-ch.len;
+    if(gain<=room)ch.len+=gain;else{ch.len=MAX_LEN;ch.extra+=gain-room;}
     if(ch.i===0){
      sfx.pick(ch.len);
      if(kind===BTC)flash('Bitcoin +2','数秒、曲がりが重い');
@@ -666,7 +681,8 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  for(const ch of chains){ch.fig.root.visible=false;ch.blob.visible=false;ch.mesh.count=0;}
  camera.position.set(0,26,-15);camera.lookAt(0,0,2);
  scatter(SEED_TARGET);draw(0);hud();
- $('#loading').classList.add('done');
- $('#start').onclick=start;
- window.pipChain={S,chains,loose,looseMeshes,KINDS,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR};
+ const b=best();if(b)$('#l-best').textContent=b.height;
+ const st=$('#start');st.disabled=false;st.textContent='START';
+ st.onclick=start;
+ window.pipChain={S,chains,loose,looseMeshes,KINDS,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR,height};
 })();

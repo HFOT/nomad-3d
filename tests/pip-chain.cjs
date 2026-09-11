@@ -99,6 +99,8 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    const wait=ms=>new Promise(r=>setTimeout(r,ms));
    const you=pipChain.chains[0];
    const other=pipChain.chains.find(c=>c.i>0&&c.alive);
+   pipChain.S.seedTarget=0;pipChain.loose.n=0; // nothing to pick up on the way in
+   other.hunt=0;other.huntIn=1e9;other.gear=0; // and the other is not burning its tail onto the player's head
    const before=you.len;
    const s=other.seg[Math.min(6,other.len-1)];
    you.x=s.x;you.z=s.z;
@@ -108,6 +110,33 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   assert.ok(shielded.alive,'the shield takes the first hit');
   assert.equal(shielded.shield,0,'and is spent');
   assert.equal(shielded.len,shielded.before-1,'for one block');
+
+  // Past the drawn cap the height keeps counting: blocks taken are kept as
+  // extra, shown in the score and on the board, and burned off first.
+  const tall=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const you=pipChain.chains[0];
+   pipChain.start();pipChain.S.seedTarget=0;pipChain.loose.n=0;
+   you.len=240;
+   for(let k=0;k<3;k++){pipChain.addLoose(you.x,you.z,3);await wait(120);}
+   return {len:you.len,extra:you.extra,height:pipChain.height(you)};
+  });
+  await page.waitForTimeout(400); // the score is redrawn a few times a second
+  const tallShown=await page.evaluate(()=>({shown:document.querySelector('#height').textContent,board:document.querySelector('#board li.you b').textContent}));
+  const afterBurn=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const you=pipChain.chains[0];
+   pipChain.ctl.boost=true;await wait(500);pipChain.ctl.boost=false;
+   return {len:you.len,extra:you.extra};
+  });
+  tall.grown=tall;tall.grown.shown=tallShown.shown;tall.grown.board=tallShown.board;tall.afterBurn=afterBurn;
+  assert.equal(tall.grown.len,240,'the drawn body stops at the cap');
+  assert.equal(tall.grown.extra,3,'and what is taken past it is kept');
+  assert.equal(tall.grown.height,243,'the height counts both');
+  assert.equal(tall.grown.shown,'243','the score shows the height');
+  assert.equal(tall.grown.board,'243','so does the board');
+  assert.ok(tall.afterBurn.extra<3&&tall.afterBurn.len>=240-1,'burning spends the extra before the body, got '+JSON.stringify(tall.afterBurn));
+
 
   // Burning trades the end of the chain for speed, and every block it lets go
   // of is left where it fell.
@@ -128,7 +157,9 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   });
   assert.equal(burned.mid.phase,'run','the chain survived the burn');
   assert.ok(burned.mid.len<burned.before,'burning shortens the chain, '+burned.before+'→'+burned.mid.len);
-  assert.equal(burned.mid.loose,burned.before-burned.mid.len,'every block let go of is on the floor');
+  // At least: another chain can come apart in the same second and drop its
+  // own blocks on the same floor, which is not the player's doing.
+  assert.ok(burned.mid.loose>=burned.before-burned.mid.len,'every block let go of is on the floor, '+burned.mid.loose+' for '+(burned.before-burned.mid.len));
   assert.equal(burned.after,burned.mid.len,'it stops shortening when the burn stops');
 
   // And a field that has been emptied fills again, so a long run never runs
@@ -148,6 +179,9 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    const wait=ms=>new Promise(r=>setTimeout(r,ms));
    pipChain.start();
    pipChain.S.seedTarget=0;pipChain.loose.n=0;
+   // The others sit this one out: a chain burning or coming apart elsewhere
+   // would leave blocks on the floor that are not the gear's doing.
+   for(const c of pipChain.chains)if(c.i>0){c.alive=false;c.wait=1e9;}
    const you=pipChain.chains[0];you.len=30;
    const g=pipChain.gears[0];
    g.live=true;g.life=12;g.o.position.set(you.x,.75,you.z);
