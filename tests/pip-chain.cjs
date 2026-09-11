@@ -47,8 +47,9 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
   assert.ok(steered.upZ>0,'a finger up the screen steers away (world +z)');
   assert.ok(steered.turned<0,'the right arrow turns clockwise on screen');
 
-  // One transaction picked up is one block added. The floor is told to stop
-  // topping itself up first, so nothing but the one laid down is in play.
+  // One transaction picked up is one block added - a Solana one, the plain
+  // kind; the others carry effects and are checked below. The floor is told
+  // to stop topping itself up first, so nothing but the one laid down is in play.
   const grew=await page.evaluate(async()=>{
    const wait=ms=>new Promise(r=>setTimeout(r,ms));
    const you=pipChain.chains[0];
@@ -57,12 +58,50 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    pipChain.start();
    pipChain.S.seedTarget=0;pipChain.loose.n=0;
    const before=you.len;
-   pipChain.addLoose(you.x,you.z);
+   pipChain.addLoose(you.x,you.z,3);
    await wait(250);
    return {before,after:you.len,loose:pipChain.loose.n};
   });
   assert.equal(grew.after,grew.before+1,'picking one up adds one block');
   assert.equal(grew.loose,0,'the one that was picked up is off the floor');
+
+  // The four kinds. Bitcoin is worth two and weighs on the turn; Ethereum
+  // starts the magnet; Cardano leaves a shield; and the board shows the mix.
+  const kinds=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const you=pipChain.chains[0];
+   pipChain.start();pipChain.S.seedTarget=0;pipChain.loose.n=0;
+   const before=you.len;
+   pipChain.addLoose(you.x,you.z,0);await wait(200);
+   const btc={len:you.len-before,slow:you.slow>0};
+   pipChain.addLoose(you.x,you.z,1);await wait(200);
+   const eth={magnet:you.magnet>0};
+   pipChain.addLoose(you.x,you.z,2);await wait(200);
+   const ada={shield:you.shield};
+   const dots=[...document.querySelectorAll('#board li.you .mix u.on')].map(u=>u.textContent);
+   return {btc,eth,ada,got:you.got,dots};
+  });
+  assert.equal(kinds.btc.len,2,'a Bitcoin block is worth two');
+  assert.ok(kinds.btc.slow,'and sits on the turn for a moment');
+  assert.ok(kinds.eth.magnet,'an Ethereum block starts the magnet');
+  assert.equal(kinds.ada.shield,1,'a Cardano block leaves a shield');
+  assert.deepEqual(kinds.got.slice(0,3),[1,1,1],'each kind is counted');
+  assert.deepEqual(kinds.dots,['1','1','1'],'and the board shows the mix');
+
+  // The shield takes one hit for one block, then the chain is bare again.
+  const shielded=await page.evaluate(async()=>{
+   const wait=ms=>new Promise(r=>setTimeout(r,ms));
+   const you=pipChain.chains[0];
+   const other=pipChain.chains.find(c=>c.i>0&&c.alive);
+   const before=you.len;
+   const s=other.seg[Math.min(6,other.len-1)];
+   you.x=s.x;you.z=s.z;
+   await wait(120);
+   return {alive:you.alive,shield:you.shield,len:you.len,before};
+  });
+  assert.ok(shielded.alive,'the shield takes the first hit');
+  assert.equal(shielded.shield,0,'and is spent');
+  assert.equal(shielded.len,shielded.before-1,'for one block');
 
   // Burning trades the end of the chain for speed, and every block it lets go
   // of is left where it fell.
@@ -158,6 +197,7 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    await wait(400);
    const peak=you.len;
    const other=pipChain.chains.find(c=>c.i>0&&c.alive);
+   you.shield=0; // a Cardano block picked up on the way would take this hit
    you.x=other.seg[5].x;you.z=other.seg[5].z;
    await wait(300);
    return {phase:pipChain.S.phase,alive:you.alive,peak,best:pipChain.best()};
@@ -178,6 +218,7 @@ const BASE=process.env.BASE||'http://127.0.0.1:8846';
    pipChain.loose.n=0;
    const them=pipChain.chains.find(c=>c.i>0&&c.alive);
    const name=them.name,had=them.len;
+   them.shield=0; // they pick up Cardano blocks too
    them.x=you.seg[12].x;them.z=you.seg[12].z;
    await wait(300);
    return {name,had,alive:them.alive,cut:you.cut,loose:pipChain.loose.n,phase:pipChain.S.phase};

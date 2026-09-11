@@ -97,18 +97,31 @@ export function buildBody(hue,max){
  return mesh;
 }
 
-// Loose transactions lying on the floor. All of them are amber whether they
-// were laid out at the start or dropped by a chain that came apart, because in
-// both cases they are the same thing: work waiting to be picked up again.
+// Loose transactions lying on the floor, one kind per chain they came from.
+// Colour alone does not carry at this camera height on a block this small, so
+// each kind also has its own shape, and each kind is its own instanced mesh:
+// a hexagonal coin for Bitcoin, a diamond for Ethereum, the rounded block for
+// Cardano, a thin tile for Solana. Weight is how often the floor deals it.
+export const KINDS=[
+ {id:'btc',name:'Bitcoin', color:0xF7931A,emissive:0xb85e00,weight:.12,
+  geo:()=>new T.CylinderGeometry(.21,.21,.13,6)},
+ {id:'eth',name:'Ethereum',color:0x627EEA,emissive:0x2f45b8,weight:.18,
+  geo:()=>new T.OctahedronGeometry(.24,0)},
+ {id:'ada',name:'Cardano', color:0x0033AD,emissive:0x1a4dff,glow:1.3,weight:.25,
+  geo:()=>new RoundedBoxGeometry(.3,.3,.3,3,.03)},
+ {id:'sol',name:'Solana',  color:0x14F195,emissive:0x0a8f58,weight:.45,
+  geo:()=>new T.BoxGeometry(.4,.06,.4)},
+];
 export function buildLoose(max){
- const mesh=new T.InstancedMesh(
-  new RoundedBoxGeometry(.3,.3,.3,3,.03),
-  new T.MeshStandardMaterial({color:0xffdb8d,emissive:0xffa324,emissiveIntensity:.7,metalness:.25,roughness:.18}),
-  max);
- mesh.frustumCulled=false;
- mesh.castShadow=mesh.receiveShadow=false;
- mesh.count=0;
- return mesh;
+ return KINDS.map(k=>{
+  const mesh=new T.InstancedMesh(k.geo(),
+   new T.MeshStandardMaterial({color:k.color,emissive:k.emissive,emissiveIntensity:k.glow||.8,metalness:.3,roughness:.2}),
+   max);
+  mesh.frustumCulled=false;
+  mesh.castShadow=mesh.receiveShadow=false;
+  mesh.count=0;
+  return mesh;
+ });
 }
 
 // The one thing on the floor that is not a transaction: a gear. Whoever runs

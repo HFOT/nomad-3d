@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES} from './model.js';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js';
 
 const $=s=>document.querySelector(s);
 
@@ -23,6 +23,14 @@ const EAT_R=1.7, HIT_R=.85;
 const LOOSE_MAX=680, SEED_TARGET=300, SEED_RATE=7;
 const AI_COUNT=3, AI_LOOK=10.5, RESPAWN=2.6;
 const GEAR_TIME=4.5, GEAR_EVERY=9, GEAR_LIFE=12, GEAR_MAX=2;
+// What each kind of block does when it is picked up. Bitcoin is worth two but
+// sits heavy on the turn for a moment; Ethereum pulls the floor in around the
+// head and makes burning dearer while it does; Cardano leaves a shield that
+// takes the next hit for one block; Solana is just plentiful.
+const BTC=0,ETH=1,ADA=2,SOL=3;
+const SLOW_TIME=3.2, SLOW_TURN=.7;
+const MAGNET_TIME=3.0, MAGNET_R=8, MAGNET_PULL=13, MAGNET_BURN=.55;
+const SHIELD_MAX=1, SHIELD_GRACE=.6;
 const LETHAL=FIELD-.5;
 
 const renderer=new T.WebGLRenderer({antialias:true});
@@ -48,15 +56,23 @@ const bloom=new UnrealBloomPass(new T.Vector2(innerWidth,innerHeight),.30,.72,.9
 composer.addPass(bloom);composer.addPass(new OutputPass());
 
 // --- loose transactions: flat arrays, swapped in from the end when one is taken ---
-const loose={n:0,x:new Float32Array(LOOSE_MAX),z:new Float32Array(LOOSE_MAX),r:new Float32Array(LOOSE_MAX)};
-const looseMesh=buildLoose(LOOSE_MAX);scene.add(looseMesh);
-function addLoose(x,z){
+const loose={n:0,x:new Float32Array(LOOSE_MAX),z:new Float32Array(LOOSE_MAX),r:new Float32Array(LOOSE_MAX),k:new Uint8Array(LOOSE_MAX)};
+const looseMeshes=buildLoose(LOOSE_MAX);for(const m of looseMeshes)scene.add(m);
+// The floor deals kinds by weight: Solana most, Bitcoin least.
+const KW=KINDS.map(k=>k.weight),KW_SUM=KW.reduce((a,b)=>a+b,0);
+function dealKind(){
+ let r=Math.random()*KW_SUM;
+ for(let i=0;i<KW.length;i++){r-=KW[i];if(r<=0)return i;}
+ return KW.length-1;
+}
+function addLoose(x,z,kind){
  if(loose.n>=LOOSE_MAX)return;
  const i=loose.n++;loose.x[i]=x;loose.z[i]=z;loose.r[i]=Math.random()*9;
+ loose.k[i]=kind===undefined?dealKind():kind;
 }
 function takeLoose(i){
  const j=--loose.n;
- loose.x[i]=loose.x[j];loose.z[i]=loose.z[j];loose.r[i]=loose.r[j];
+ loose.x[i]=loose.x[j];loose.z[i]=loose.z[j];loose.r[i]=loose.r[j];loose.k[i]=loose.k[j];
 }
 function scatter(n){
  for(let k=0;k<n;k++){
@@ -110,6 +126,7 @@ function makeChain(i,entry){
   px:new Float32Array(CAP),pz:new Float32Array(CAP),n:0,
   x:0,z:0,a:0,len:START_LEN,alive:false,wait:0,
   boost:false,burn:0,gear:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
+  slow:0,magnet:0,shield:0,grace:0,got:[0,0,0,0],
  };
 }
 function setMotion(ch,name){
@@ -134,6 +151,7 @@ function seed(ch,x,z,a){
   ch.px[ch.n%CAP]=x-dx*k*STEP;ch.pz[ch.n%CAP]=z-dz*k*STEP;ch.n++;
  }
  ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
+ ch.slow=0;ch.magnet=0;ch.shield=0;ch.grace=0;ch.got=[0,0,0,0];
  ch.fig.root.visible=true;
  layout(ch);
 }
@@ -190,7 +208,11 @@ function advance(ch,dist){
 const wrap=a=>{while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a;};
 // How stout this chain's blocks are: the length shows on the body itself, and
 // on what the body can catch.
-function scaleOf(ch){return 1+Math.min(ch.len/MAX_LEN,1)*.55;}
+// Logarithmic, so a long chain is visibly stout without filling the field by
+// the middle of a run the way a straight ratio did.
+function scaleOf(ch){return 1+Math.log1p(ch.len/40)*.38;}
+// How wide the head catches: a stout head gathers more, and cannot slip past.
+function eatR(ch){return EAT_R+(scaleOf(ch)-1)*.9;}
 function steer(ch,want,rate,dt){
  const d=wrap(want-ch.a),m=rate*dt;
  ch.a=wrap(ch.a+(Math.abs(d)<m?d:Math.sign(d)*m));
@@ -228,7 +250,7 @@ function drive(ch,dt){
   const score=reach*1.6-Math.abs(wrap(a-want))*2.4;
   if(score>bestScore){bestScore=score;bestA=a;}
  }
- steer(ch,bestA,AI_TURN,dt);
+ steer(ch,bestA,AI_TURN*(ch.slow>0?SLOW_TURN:1)/Math.sqrt(scaleOf(ch)),dt);
  ch.boost=ch.hunt>0&&ch.len>24;
 }
 
@@ -268,6 +290,7 @@ const sfx={
  // Every block picked up climbs a step; the ladder starts over as it wraps.
  pick(len){tone(500+(len%12)*30,.09,'triangle',.1,1.4);},
  gear(){tone(880,.08,'triangle',.1);tone(1320,.1,'triangle',.1,1,.07);},
+ shield(){tone(420,.16,'triangle',.12,1.6);tone(640,.18,'sine',.1,1.2,.06);},
  burn(){tone(230,.05,'square',.05,.75);},
  cut(){tone(340,.26,'sawtooth',.13,.45);tone(1100,.14,'triangle',.09,.6,.03);},
  down(){tone(160,.55,'sawtooth',.16,.4);tone(90,.6,'sine',.14,.6,.08);},
@@ -381,12 +404,19 @@ function hud(){
  const rank=chains.slice().sort((p,q)=>q.len-p.len);
  const board=$('#board');
  if(board.children.length!==rank.length)
-  board.innerHTML=rank.map(()=>'<li><i></i><span></span><b></b></li>').join('');
+  board.innerHTML=rank.map(()=>'<li><i></i><span></span><em class="mix">'+KINDS.map(k=>'<u style="--k:#'+k.color.toString(16).padStart(6,'0')+'"></u>').join('')+'</em><b></b></li>').join('');
  [...board.children].forEach((li,k)=>{
   const c=rank[k];
   li.className=c.i===0?'you':'';
   li.querySelector('i').style.background='#'+c.hue.color.toString(16).padStart(6,'0');
-  li.querySelector('span').textContent=c.name;
+  li.querySelector('span').textContent=c.name+(c.shield>0?' ◈':'');
+  // The mix: one dot per kind, carrying how many of it this chain has taken.
+  const dots=li.querySelectorAll('.mix u');
+  for(let j=0;j<4;j++){
+   const n=c.got[j];
+   dots[j].textContent=n>0?n:'';
+   dots[j].classList.toggle('on',n>0);
+  }
   li.querySelector('b').textContent=c.alive?c.len:'—';
  });
 }
@@ -402,25 +432,32 @@ function step(dt){
    continue;
   }
   if(ch.i===0){
-   if(ctl.mode==='keys'&&(ctl.left||ctl.right))ch.a=wrap(ch.a+((ctl.left?1:0)-(ctl.right?1:0))*TURN*dt);
+   // The price of length: a stout chain turns like one. Bitcoin sits on the
+   // turn as well for a moment after it is taken.
+   const turn=TURN*(ch.slow>0?SLOW_TURN:1)/scaleOf(ch);
+   if(ctl.mode==='keys'&&(ctl.left||ctl.right))ch.a=wrap(ch.a+((ctl.left?1:0)-(ctl.right?1:0))*turn*dt);
    else{
     const want=ctl.mode==='stick'?ctl.dir:Math.atan2(ctl.tx-ch.x,ctl.tz-ch.z);
     // A gentle wish gets the gentle circle; a wish for the opposite direction
     // is answered hard, so a reversal is a snap rather than a wide arc.
-    const rate=TURN*(1+1.7*Math.min(1,Math.abs(wrap(want-ch.a))/Math.PI));
+    const rate=turn*(1+1.7*Math.min(1,Math.abs(wrap(want-ch.a))/Math.PI));
     steer(ch,want,rate,dt);
    }
    ch.boost=ctl.boost;
   }else drive(ch,dt);
 
   if(ch.gear>0)ch.gear-=dt;
+  if(ch.slow>0)ch.slow-=dt;
+  if(ch.magnet>0)ch.magnet-=dt;
+  if(ch.grace>0)ch.grace-=dt;
   const burning=ch.boost&&ch.len>MIN_BOOST&&ch.gear<=0; // a turning gear pays instead
   const fast=burning||ch.gear>0;
   advance(ch,(fast?BOOST_SPEED:SPEED)*dt);
   if(burning){
    ch.burn+=dt;
-   while(ch.burn>=BURN_EVERY&&ch.len>MIN_BOOST){
-    ch.burn-=BURN_EVERY;
+   const every=BURN_EVERY*(ch.magnet>0?MAGNET_BURN:1); // dearer while the magnet runs
+   while(ch.burn>=every&&ch.len>MIN_BOOST){
+    ch.burn-=every;
     const tail=ch.seg[ch.len-1];
     addLoose(tail.x,tail.z);ch.len--;
     if(ch.i===0)sfx.burn();
@@ -448,18 +485,47 @@ function step(dt){
    }
    if(hitBy)break;
   }
-  if(hitBy)kill(ch,hitBy);
+  if(hitBy){
+   if(ch.grace>0)continue;
+   if(ch.shield>0&&ch.len>MIN_BOOST){
+    // The shield takes it: one block gone from the tail, and a breath of grace
+    // so the same body does not take the head again on the next frame.
+    ch.shield--;ch.grace=SHIELD_GRACE;
+    const tail=ch.seg[ch.len-1];addLoose(tail.x,tail.z,ADA);ch.len--;
+    burst(ch.x,ch.z,0x1a4dff);
+    if(ch.i===0){flash('盾が受けた','ブロック1つで耐えた');sfx.shield();}
+    continue;
+   }
+   kill(ch,hitBy);
+  }
  }
 
- // light off the floor
+ // light off the floor: what it is decides what it does
  for(const ch of chains){
   if(!ch.alive)continue;
+  const er=eatR(ch),er2=er*er,pulling=ch.magnet>0;
   for(let i=loose.n-1;i>=0;i--){
-   const dx=loose.x[i]-ch.x,dz=loose.z[i]-ch.z;
-   if(dx*dx+dz*dz<EAT_R*EAT_R){
+   let dx=loose.x[i]-ch.x,dz=loose.z[i]-ch.z,d2=dx*dx+dz*dz;
+   if(pulling&&d2<MAGNET_R*MAGNET_R&&d2>er2*.5){
+    const d=Math.sqrt(d2),m=Math.min(d,MAGNET_PULL*dt)/d;
+    loose.x[i]-=dx*m;loose.z[i]-=dz*m;
+    dx=loose.x[i]-ch.x;dz=loose.z[i]-ch.z;d2=dx*dx+dz*dz;
+   }
+   if(d2<er2){
+    const kind=loose.k[i];
     takeLoose(i);
-    if(ch.len<MAX_LEN)ch.len++;
-    if(ch.i===0)sfx.pick(ch.len);
+    ch.got[kind]++;
+    let gain=1;
+    if(kind===BTC){gain=2;ch.slow=SLOW_TIME;}
+    else if(kind===ETH){ch.magnet=MAGNET_TIME;}
+    else if(kind===ADA){if(ch.shield<SHIELD_MAX)ch.shield++;}
+    ch.len=Math.min(MAX_LEN,ch.len+gain);
+    if(ch.i===0){
+     sfx.pick(ch.len);
+     if(kind===BTC)flash('Bitcoin +2','数秒、曲がりが重い');
+     else if(kind===ETH)flash('Ethereum','周りの光を引き寄せる · 燃やすと高くつく');
+     else if(kind===ADA&&ch.shield===1&&ch.got[ADA]===1)flash('Cardano','次の一撃を盾が受ける');
+    }
    }
   }
  }
@@ -524,13 +590,17 @@ function draw(dt){
   ch.fig.tick(S.t,ch.motion,dt,0);
  }
  SC.set(1,1,1);
+ // Each kind is its own mesh, so the floor is walked once and every block is
+ // filed under the mesh that draws its shape.
+ const kn=[0,0,0,0];
  for(let i=0;i<loose.n;i++){
+  const k=loose.k[i];
   EU.set(S.t*1.2+loose.r[i],S.t*1.6+loose.r[i]*2,0);QT.setFromEuler(EU);
   V3.set(loose.x[i],.5+Math.sin(S.t*2.4+loose.r[i])*.11,loose.z[i]);
   M4.compose(V3,QT,SC);
-  looseMesh.setMatrixAt(i,M4);
+  looseMeshes[k].setMatrixAt(kn[k]++,M4);
  }
- looseMesh.count=loose.n;looseMesh.instanceMatrix.needsUpdate=true;
+ for(let k=0;k<4;k++){looseMeshes[k].count=kn[k];looseMeshes[k].instanceMatrix.needsUpdate=true;}
 
  for(const b of bursts){
   if(b.t>=1){b.o.visible=false;continue;}
@@ -582,5 +652,5 @@ const frame=()=>new Promise(r=>setTimeout(r,0));
  scatter(SEED_TARGET);draw(0);hud();
  $('#loading').classList.add('done');
  $('#start').onclick=start;
- window.pipChain={S,chains,loose,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf};
+ window.pipChain={S,chains,loose,looseMeshes,KINDS,gears,scene,camera,start,kill,addLoose,scatter,ctl,best,stickDir,scaleOf,eatR};
 })();

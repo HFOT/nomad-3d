@@ -28,6 +28,13 @@ header{position:fixed;top:22px;left:30px;right:26px;display:flex;justify-content
 #board li i{width:7px;height:7px;border-radius:2px;flex:none}
 #board li span{flex:1;white-space:nowrap}
 #board li b{font-weight:600;color:#ffd79a}
+.rules li.kinds{font-size:.92em;line-height:1.9;display:flex;flex-wrap:wrap;gap:2px 16px}
+.rules li.kinds .kd{white-space:nowrap}
+.rules li.kinds i{display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--k);margin:0 5px 0 0;vertical-align:-1px}
+/* the mix: one dot per kind, lit once the chain has taken any of it */
+#board li .mix{display:flex;gap:3px;align-items:center;font-style:normal}
+#board li .mix u{display:none;text-decoration:none;min-width:12px;height:12px;padding:0 3px;border-radius:6px;font-size:8px;line-height:12px;text-align:center;color:#0f1618;background:var(--k);font-weight:700}
+#board li .mix u.on{display:inline-block}
 
 #boost{pointer-events:auto;display:none;border:1px solid #e2705f55;border-radius:40px;background:#e2705f1f;color:#ffd0c4;font-size:11px;letter-spacing:3px;padding:16px 34px;backdrop-filter:blur(10px);-webkit-user-select:none;user-select:none}
 #boost:active{background:#e2705f4d}
@@ -75,6 +82,7 @@ button:focus-visible{outline:2px solid #e0cb87;outline-offset:3px}
  #board{min-width:0}
  #board li{font-size:9px;padding:4px 8px;gap:6px}
  #board li span{max-width:66px;overflow:hidden;text-overflow:ellipsis}
+ #board li .mix u{min-width:10px;height:10px;font-size:7px;line-height:10px}
  .boardlabel{display:none}
  footer{display:none}
  #pickup{top:16%}
