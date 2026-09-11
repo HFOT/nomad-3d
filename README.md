@@ -75,6 +75,10 @@ PIPのモデルとアニメーションは `pip/model.js` をそのまま読み�
 高さは平面図の上に重ねてあるので、坂を足しても判定側は二次元のまま変わりません。
 形状は `racer/model.js`、走りは `racer/viewer.js`。検証は `node tests/pip-racer.cjs`。
 
+## ゲーム — PIP GAMES
+
+[/play/](https://hfot.github.io/nomad-3d/play/) — PIP が主役の5つのゲームの入口。各ゲームの記録（このブラウザに残っているもの）も並びます。
+
 ## ゲーム — PIP CHAIN
 
 [/chain/](https://hfot.github.io/nomad-3d/chain/) — 拾った琥珀が、そのまま後ろのブロックになります。

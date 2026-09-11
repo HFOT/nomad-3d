@@ -2,7 +2,7 @@ import {mkdir,copyFile,cp,readFile,writeFile,access,rm} from 'node:fs/promises';
 import path from 'node:path';
 const root=import.meta.dirname;
 const dist=path.join(root,'dist');
-const characters=['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','game','rush','racer','chain','type','depot','gate','assembly','vault','archive','town','residences','arcade'];
+const characters=['nomad','ward','quorum','lex','catalyst','treasury','pip','forge','game','rush','racer','chain','type','depot','gate','assembly','vault','archive','town','residences','arcade','play'];
 const exists=async p=>{try{await access(p);return true}catch{return false}};
 // Every character page reaches three through ../node_modules in dev; in dist it is one shared copy.
 const forDist=html=>html.replaceAll('../node_modules/three/','../vendor/three/');
@@ -26,6 +26,8 @@ for(const id of characters){
   await mkdir(out,{recursive:true});
   if(id==='residences')for(const file of ['network.js','architecture.js'])await copyFile(path.join(src,file),path.join(out,file));
   if(id==='arcade')for(const file of ['mechanics.js','machines.js'])await copyFile(path.join(src,file),path.join(out,file));
+  // The games portal is plain files - its stills, covers and card - so it ships whole.
+  if(id==='play')await cp(src,out,{recursive:true});
   for(const file of ['viewer.js','materials.js','buildings.js','districts.js','courses.js','racers.js','words.js','romaji.js','groundwork.js','player-motion.js','street-furniture.js','canal-crossings.js','street-surface.js','neighborhood.js','residence-quarter.js','landmarks.js','cast.js','lab.js','merge.js','model.js','ward.js','style.css','concept.png','preview.png']){
     if(await exists(path.join(src,file)))await copyFile(path.join(src,file),path.join(out,file));
   }
