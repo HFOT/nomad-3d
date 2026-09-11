@@ -5,7 +5,7 @@ import {RenderPass} from 'three/addons/postprocessing/RenderPass.js';
 import {UnrealBloomPass} from 'three/addons/postprocessing/UnrealBloomPass.js';
 import {OutputPass} from 'three/addons/postprocessing/OutputPass.js';
 import {RACERS,racerById,pickClip} from '../racer/racers.js';
-import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=3';
+import {buildField,buildBody,buildLoose,buildBlobShadow,buildBurst,buildGear,buildShield,FIELD,SEG_GAP,HEAD_GAP,HUES,KINDS} from './model.js?v=4';
 
 const $=s=>document.querySelector(s);
 
@@ -121,14 +121,15 @@ function makeChain(i,entry){
  const action=mixer.clipAction(pickClip(fig.clips,'Idle'));action.play();
  const mesh=buildBody(HUES[i],MAX_LEN);scene.add(mesh);
  const blob=buildBlobShadow();scene.add(blob);
+ const halo=buildShield();scene.add(halo);
  const seg=[];for(let k=0;k<MAX_LEN;k++)seg.push({x:0,z:0,a:0});
  return {
-  i,entry,fig,mixer,action,motion:'Idle',mesh,blob,seg,
+  i,entry,fig,mixer,action,motion:'Idle',mesh,blob,halo,seg,
   hue:HUES[i],name:i===0?'あなた':entry.name,
   px:new Float32Array(CAP),pz:new Float32Array(CAP),n:0,
   x:0,z:0,a:0,len:START_LEN,alive:false,wait:0,
   boost:false,burn:0,gear:0,hunt:0,huntIn:4+Math.random()*7,cut:0,peak:START_LEN,
-  slow:0,magnet:0,shield:0,charge:0,grace:0,got:[0,0,0,0],
+  slow:0,magnet:0,shield:0,charge:0,grace:0,pop:1,got:[0,0,0,0],
  };
 }
 function setMotion(ch,name){
@@ -153,7 +154,7 @@ function seed(ch,x,z,a){
   ch.px[ch.n%CAP]=x-dx*k*STEP;ch.pz[ch.n%CAP]=z-dz*k*STEP;ch.n++;
  }
  ch.len=START_LEN;ch.peak=START_LEN;ch.alive=true;ch.wait=0;ch.boost=false;ch.burn=0;ch.gear=0;
- ch.slow=0;ch.magnet=0;ch.shield=0;ch.charge=0;ch.grace=0;ch.got=[0,0,0,0];
+ ch.slow=0;ch.magnet=0;ch.shield=0;ch.charge=0;ch.grace=0;ch.pop=1;ch.got=[0,0,0,0];
  ch.fig.root.visible=true;
  layout(ch);
 }
@@ -258,7 +259,7 @@ function drive(ch,dt){
 
 function kill(ch,by){
  ch.alive=false;ch.wait=RESPAWN;ch.mesh.count=0;
- ch.fig.root.visible=false;ch.blob.visible=false;
+ ch.fig.root.visible=false;ch.blob.visible=false;ch.halo.visible=false;
  burst(ch.x,ch.z,ch.hue.color);
  if(ch.i===0)sfx.down();else if(by&&by.i===0)sfx.cut();
  // What it was carrying goes back on the floor. Every other block, so one very
@@ -492,7 +493,7 @@ function step(dt){
    if(ch.shield>0&&ch.len>MIN_BOOST){
     // The shield takes it: one block gone from the tail, and a breath of grace
     // so the same body does not take the head again on the next frame.
-    ch.shield--;ch.grace=SHIELD_GRACE;
+    ch.shield--;ch.grace=SHIELD_GRACE;ch.pop=0;
     const tail=ch.seg[ch.len-1];addLoose(tail.x,tail.z,ADA);ch.len--;
     burst(ch.x,ch.z,0x1a4dff);
     if(ch.i===0){flash('盾が受けた','ブロック1つで耐えた');sfx.shield();}
@@ -589,6 +590,20 @@ function draw(dt){
   ch.mesh.count=ch.len;ch.mesh.instanceMatrix.needsUpdate=true;
   ch.mixer.update(dt);
   ch.fig.tick(S.t,ch.motion,dt,0);
+  // The shield: a ring that breathes around the head while it is held, and
+  // on the hit it takes, blows out to three times its size and is gone.
+  const h=ch.halo;
+  if(ch.shield>0){
+   h.visible=true;h.position.set(ch.x,.9,ch.z);
+   const pulse=1+Math.sin(S.t*5)*.06;h.scale.setScalar(pulse);
+   h.rotation.y+=dt*1.6;h.children[0].material.opacity=.85;h.children[3].material.opacity=.12;
+  }else if(ch.pop<1){
+   ch.pop=Math.min(1,ch.pop+dt/.45);
+   h.visible=true;h.position.set(ch.x,.9,ch.z);
+   h.scale.setScalar(1+ch.pop*2.2);
+   h.children[0].material.opacity=.85*(1-ch.pop);h.children[3].material.opacity=.12*(1-ch.pop);
+   if(ch.pop>=1)h.visible=false;
+  }else h.visible=false;
  }
  SC.set(1,1,1);
  // Each kind is its own mesh, so the floor is walked once and every block is

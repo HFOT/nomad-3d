@@ -136,6 +136,21 @@ export function buildGear(){
  return g;
 }
 
+// The shield a chain is holding: a blue ring around the head, and a second,
+// tilted one so it reads as a sphere from the camera's height. Shown only
+// while a shield is held; the run scales it out when the shield takes a hit.
+export function buildShield(){
+ const g=new T.Group();
+ const mat=new T.MeshBasicMaterial({color:0x4d7dff,transparent:true,opacity:.85,blending:T.AdditiveBlending,depthWrite:false});
+ const a=new T.Mesh(new T.TorusGeometry(1.15,.06,8,40),mat);a.rotation.x=Math.PI/2;g.add(a);
+ const b=new T.Mesh(new T.TorusGeometry(1.15,.045,8,40),mat);b.rotation.x=Math.PI/2+.9;g.add(b);
+ const c=new T.Mesh(new T.TorusGeometry(1.15,.045,8,40),mat);c.rotation.x=Math.PI/2-.9;c.rotation.y=1.2;g.add(c);
+ const core=new T.Mesh(new T.SphereGeometry(1.05,20,14),new T.MeshBasicMaterial({color:0x2b5fff,transparent:true,opacity:.12,blending:T.AdditiveBlending,depthWrite:false,side:T.BackSide}));
+ g.add(core);
+ g.position.y=.9;g.visible=false;
+ return g;
+}
+
 export function buildBlobShadow(){
  const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');
  const g=x.createRadialGradient(64,64,2,64,64,62);
